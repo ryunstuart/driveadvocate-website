@@ -5,6 +5,7 @@ import React from 'react';
 export default function Home() {
   return (
     <div className="min-h-screen bg-white font-sans">
+      <img src="/logo.png" alt="DriveAdvocate" className="mx-auto mb-8 h-20" />
       {/* Hero */}
       <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white py-24 text-center">
         <div className="max-w-6xl mx-auto px-6">
