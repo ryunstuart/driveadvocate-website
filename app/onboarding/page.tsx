@@ -7,45 +7,125 @@ export default function Onboarding() {
   const [step, setStep] = useState(1);
   const router = useRouter();
 
-  const nextStep = () => {
-    if (step < 4) {
-      setStep(step + 1);
+  const [formData, setFormData] = useState({
+    year: '',
+    make: '',
+    model: '',
+    trim: [],
+    colors: { first: '', second: '', third: '' },
+    accessories: []
+  });
+
+  const nextStep = () => setStep(step + 1);
+  const prevStep = () => setStep(step - 1);
+
+  const handleInputChange = (field, value) => {
+    setFormData({ ...formData, [field]: value });
+  };
+
+  const handleArrayChange = (field, value, checked) => {
+    if (checked) {
+      setFormData({
+        ...formData,
+        [field]: [...formData[field], value]
+      });
     } else {
-      router.push('/dashboard'); // Redirect to dashboard
+      setFormData({
+        ...formData,
+        [field]: formData[field].filter(item => item !== value)
+      });
     }
   };
 
-  const prevStep = () => setStep(step - 1);
+  const completeOnboarding = () => {
+    console.log('Onboarding Data:', formData);
+    router.push('/dashboard');
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
       <div className="max-w-lg w-full bg-white rounded-3xl shadow p-10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Let's Get Started</h1>
+          <h1 className="text-3xl font-bold">Let's Find Your Perfect Car</h1>
           <p className="text-slate-500">Step {step} of 4</p>
         </div>
 
         {step === 1 && (
           <div>
-            <h2 className="text-2xl font-semibold mb-6">What are you looking for?</h2>
-            <input type="text" placeholder="e.g. 2025 Toyota Camry" className="w-full p-4 border rounded-2xl mb-6" />
+            <h2 className="text-2xl font-semibold mb-6">Vehicle Details</h2>
+            <select onChange={(e) => handleInputChange('year', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
+              <option value="">Year</option>
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+            <select onChange={(e) => handleInputChange('make', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
+              <option value="">Make</option>
+              <option value="Toyota">Toyota</option>
+              <option value="Honda">Honda</option>
+              <option value="Ford">Ford</option>
+            </select>
+            <select onChange={(e) => handleInputChange('model', e.target.value)} className="w-full p-4 border rounded-2xl mb-6">
+              <option value="">Model</option>
+              <option value="Camry">Camry</option>
+              <option value="Accord">Accord</option>
+              <option value="F-150">F-150</option>
+              <option value="F-350">F-350</option>
+            </select>
             <button onClick={nextStep} className="w-full bg-emerald-600 text-white py-4 rounded-2xl">Next</button>
           </div>
         )}
 
         {step === 2 && (
           <div>
-            <h2 className="text-2xl font-semibold mb-6">Budget & Timeline</h2>
-            <input type="text" placeholder="Budget range" className="w-full p-4 border rounded-2xl mb-6" />
-            <input type="text" placeholder="When do you need the car?" className="w-full p-4 border rounded-2xl mb-6" />
+            <h2 className="text-2xl font-semibold mb-6">Trim & Colors</h2>
+            <div className="mb-6">
+              <p className="mb-2">Trim Package</p>
+              <div className="space-y-2">
+                {['LE', 'SE', 'XLE', 'Limited'].map(trim => (
+                  <label key={trim} className="flex items-center gap-2">
+                    <input type="checkbox" onChange={(e) => handleArrayChange('trim', trim, e.target.checked)} />
+                    {trim}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="mb-2">Preferred Colors (1st, 2nd, 3rd)</p>
+              <select onChange={(e) => handleInputChange('colors.first', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
+                <option value="">1st Choice</option>
+                <option value="White">White</option>
+                <option value="Black">Black</option>
+                <option value="Silver">Silver</option>
+              </select>
+              <select onChange={(e) => handleInputChange('colors.second', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
+                <option value="">2nd Choice</option>
+                <option value="White">White</option>
+                <option value="Black">Black</option>
+                <option value="Silver">Silver</option>
+              </select>
+              <select onChange={(e) => handleInputChange('colors.third', e.target.value)} className="w-full p-4 border rounded-2xl mb-6">
+                <option value="">3rd Choice</option>
+                <option value="White">White</option>
+                <option value="Black">Black</option>
+                <option value="Silver">Silver</option>
+              </select>
+            </div>
             <button onClick={nextStep} className="w-full bg-emerald-600 text-white py-4 rounded-2xl">Next</button>
           </div>
         )}
 
         {step === 3 && (
           <div>
-            <h2 className="text-2xl font-semibold mb-6">Current Situation</h2>
-            <textarea placeholder="Do you have a trade-in? Any special needs?" className="w-full p-4 border rounded-2xl h-32 mb-6"></textarea>
+            <h2 className="text-2xl font-semibold mb-6">Accessories & Options</h2>
+            <div className="space-y-3 mb-8">
+              {['Leather Seats', 'Sunroof', 'Navigation', 'Backup Camera', 'Heated Seats', 'Blind Spot Monitoring'].map(item => (
+                <label key={item} className="flex items-center gap-2">
+                  <input type="checkbox" onChange={(e) => handleArrayChange('accessories', item, e.target.checked)} />
+                  {item}
+                </label>
+              ))}
+            </div>
             <button onClick={nextStep} className="w-full bg-emerald-600 text-white py-4 rounded-2xl">Complete Onboarding</button>
           </div>
         )}
