@@ -1,9 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
+  const router = useRouter();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push('/onboarding');
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -22,20 +29,13 @@ export default function Login() {
           </button>
         </div>
 
-        {isLogin ? (
-          <form className="space-y-6">
-            <input type="email" placeholder="Email" className="w-full p-4 border rounded-2xl" />
-            <input type="password" placeholder="Password" className="w-full p-4 border rounded-2xl" />
-            <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-semibold">Log In</button>
-          </form>
-        ) : (
-          <form className="space-y-6">
-            <input type="text" placeholder="Full Name" className="w-full p-4 border rounded-2xl" />
-            <input type="email" placeholder="Email" className="w-full p-4 border rounded-2xl" />
-            <input type="password" placeholder="Password" className="w-full p-4 border rounded-2xl" />
-            <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-semibold">Create Account</button>
-          </form>
-        )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <input type="email" placeholder="Email" className="w-full p-4 border rounded-2xl" required />
+          <input type="password" placeholder="Password" className="w-full p-4 border rounded-2xl" required />
+          <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-semibold">
+            {isLogin ? 'Log In' : 'Create Account'}
+          </button>
+        </form>
 
         <p className="text-center text-sm text-slate-500 mt-8">
           By signing up, you agree to our Terms and Privacy Policy.
