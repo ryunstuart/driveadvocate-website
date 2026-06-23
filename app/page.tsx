@@ -5,17 +5,17 @@ import React from 'react';
 export default function Home() {
   return (
     <div className="min-h-screen bg-white font-sans">
-      {/* Header - Grey to match logo background */}
-      <header className="bg-slate-800 text-white sticky top-0 z-50 border-b border-slate-700">
+      {/* Header */}
+      <header className="bg-[#f4f4f4] text-slate-900 sticky top-0 z-50 border-b border-slate-200">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="DriveAdvocate" className="h-10" />
             <span className="text-2xl font-bold">DriveAdvocate</span>
           </div>
           <nav className="flex gap-8 text-sm font-medium">
-            <a href="#how" className="hover:text-emerald-400 transition">How It Works</a>
-            <a href="#pricing" className="hover:text-emerald-400 transition">Pricing</a>
-            <a href="#book" className="hover:text-emerald-400 transition">Book a Call</a>
+            <a href="#how" className="hover:text-emerald-600 transition">How It Works</a>
+            <a href="#pricing" className="hover:text-emerald-600 transition">Pricing</a>
+            <a href="#book" className="hover:text-emerald-600 transition">Book a Call</a>
           </nav>
         </div>
       </header>
@@ -30,11 +30,6 @@ export default function Home() {
             <a href="#how" className="border border-white hover:bg-white hover:text-slate-900 text-white px-8 py-4 rounded-xl text-lg font-semibold">See How It Works</a>
           </div>
         </div>
-      </div>
-
-      {/* Trust Bar */}
-      <div className="bg-slate-100 py-4 text-center text-slate-600 font-medium">
-        100% Buyer-Focused • Average Savings $2,500+ • Transparent Process • No Dealer Kickbacks
       </div>
 
       {/* Why Us */}
