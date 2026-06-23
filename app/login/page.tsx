@@ -1,4 +1,4 @@
-\'use client';
+'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,16 +10,16 @@ export default function Login() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Mock user state for now (we'll make this real later)
-    const isNewUser = false;           // Change to true to test new user flow
-    const hasActiveDeal = true;        // Change to test different flows
+    // Mock user state - change these to test different flows
+    const isNewUser = false;           // Set to true to test new user flow
+    const hasActiveDeal = true;        // Set to false to test welcome-back screen
 
     if (isNewUser) {
       router.push('/onboarding');
     } else if (hasActiveDeal) {
       router.push('/dashboard');
     } else {
-      router.push('/welcome-back');   // Choice screen for existing users without active deal
+      router.push('/welcome-back');
     }
   };
 
