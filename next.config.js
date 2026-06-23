@@ -8,3 +8,21 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+const nextConfig = {
+  output: 'export',
+  distDir: 'out',
+  trailingSlash: true,
+  images: {
+    unoptimized: true,
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/dashboard.html',
+        destination: '/dashboard.html',
+      },
+    ];
+  },
+};
+
+module.exports = nextConfig;
