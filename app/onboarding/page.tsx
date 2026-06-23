@@ -1,11 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Onboarding() {
   const [step, setStep] = useState(1);
+  const router = useRouter();
 
-  const nextStep = () => setStep(step + 1);
+  const nextStep = () => {
+    if (step < 4) {
+      setStep(step + 1);
+    } else {
+      router.push('/dashboard'); // Redirect to dashboard
+    }
+  };
+
   const prevStep = () => setStep(step - 1);
 
   return (
@@ -42,15 +51,14 @@ export default function Onboarding() {
         )}
 
         {step === 4 && (
-          <div className="text-center">
+          <div className="text-center py-12">
             <h2 className="text-3xl font-bold mb-6">You're All Set!</h2>
-            <p className="mb-8">Redirecting to your dashboard...</p>
-            <a href="/dashboard" className="bg-emerald-600 text-white px-10 py-4 rounded-2xl">Go to Dashboard</a>
+            <p className="mb-8">Taking you to your dashboard...</p>
           </div>
         )}
 
-        {step > 1 && step < 4 && (
-          <button onClick={prevStep} className="mt-4 text-slate-500">Back</button>
+        {step > 1 && (
+          <button onClick={prevStep} className="mt-6 text-slate-500">Back</button>
         )}
       </div>
     </div>
