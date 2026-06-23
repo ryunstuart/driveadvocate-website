@@ -1,147 +1,81 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-export default function Onboarding() {
+export default function Login() {
+  const [isLogin, setIsLogin] = useState(true);
   const router = useRouter();
-  const [step, setStep] = useState(1);
 
-  const [formData, setFormData] = useState({
-    firstName: '',
-    zipCode: '63301',
-    vehicleType: '',
-    year: '',
-    make: '',
-    model: '',
-    budget: '',
-  });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-  // Load existing data if available
-  useEffect(() => {
-    const saved = localStorage.getItem('onboardingData');
-    if (saved) setFormData(JSON.parse(saved));
-  }, []);
+    const emailInput = (e.target as HTMLFormElement).querySelector('input[type="email"]') as HTMLInputElement;
+    const email = emailInput.value.trim();
 
-  const updateField = (field: string, value: string) => {
-    const updated = { ...formData, [field]: value };
-    setFormData(updated);
-    localStorage.setItem('onboardingData', JSON.stringify(updated));
-  };
+    if (!email) return;
 
-  const nextStep = () => setStep(s => s + 1);
-  const prevStep = () => setStep(s => s - 1);
+    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    let user = existingUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
 
-  const handleComplete = () => {
-    // Mark onboarding as completed
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    currentUser.hasCompletedOnboarding = true;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    
-    router.push('/dashboard');
+    if (user) {
+      // Existing User
+      localStorage.setItem('currentUser', JSON.stringify(user));
+
+      if (user.hasActiveDeal) {
+        router.push('/dashboard');
+      } else {
+        router.push('/onboarding/vehicle');   // Skip profile → go straight to vehicle
+      }
+    } else {
+      // New User
+      const newUser = {
+        email: email,
+        firstName: '',
+        hasActiveDeal: false,
+        hasCompletedOnboarding: false,
+        createdAt: new Date().toISOString()
+      };
+
+      localStorage.setItem('users', JSON.stringify([...existingUsers, newUser]));
+      localStorage.setItem('currentUser', JSON.stringify(newUser));
+
+      router.push('/onboarding');   // Full onboarding for new users
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <nav className="bg-[#f4f4f4] border-b sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-8 py-5 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="DriveAdvocate" className="h-9" />
-            <div className="font-bold text-xl">DriveAdvocate</div>
-          </div>
-          <div className="text-sm text-slate-500">Step {step} of 2</div>
-        </div>
-      </nav>
-
-      <div className="max-w-4xl mx-auto px-8 py-16">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold">Let's Build Your Profile</h1>
-          <p className="text-slate-600 mt-3">This helps us find the best car deals for you</p>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="max-w-md w-full bg-[#f4f4f4] rounded-3xl shadow p-10">
+        <div className="text-center mb-8">
+          <img src="/logo.png" alt="Logo" className="mx-auto h-12 mb-4" />
+          <h1 className="text-3xl font-bold">Welcome to DriveAdvocate</h1>
         </div>
 
-        {/* Step 1: User Profile */}
-        {step === 1 && (
-          <div className="bg-white rounded-3xl p-10 shadow max-w-2xl mx-auto">
-            <h2 className="text-2xl font-semibold mb-8">Tell us a bit about yourself</h2>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">First Name</label>
-                <input 
-                  type="text" 
-                  value={formData.firstName} 
-                  onChange={(e) => updateField('firstName', e.target.value)}
-                  placeholder="Ryun" 
-                  className="w-full p-4 border rounded-2xl" 
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">ZIP Code</label>
-                <input 
-                  type="text" 
-                  value={formData.zipCode} 
-                  onChange={(e) => updateField('zipCode', e.target.value)}
-                  className="w-full p-4 border rounded-2xl" 
-                />
-              </div>
-            </div>
-            <div className="flex gap-4 mt-10">
-              <button onClick={nextStep} disabled={!formData.firstName} className="flex-1 bg-emerald-600 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold">Continue</button>
-            </div>
-          </div>
-        )}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <input 
+            type="email" 
+            placeholder="Email" 
+            className="w-full p-4 border rounded-2xl bg-white" 
+            required 
+          />
+          <input 
+            type="password" 
+            placeholder="Password" 
+            className="w-full p-4 border rounded-2xl bg-white" 
+            required 
+          />
+          <button 
+            type="submit" 
+            className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-semibold"
+          >
+            {isLogin ? 'Log In' : 'Create Account'}
+          </button>
+        </form>
 
-        {/* Step 2: Vehicle Wizard */}
-        {step === 2 && (
-          <div className="bg-white rounded-3xl p-10 shadow max-w-2xl mx-auto">
-            <h2 className="text-2xl font-semibold mb-8">What vehicle are you looking for?</h2>
-            
-            <div className="space-y-8">
-              {/* Vehicle Type */}
-              <div>
-                <label className="block text-sm font-medium mb-4">Vehicle Type</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {['Sedan', 'SUV', 'Truck', 'Electric', 'Luxury', 'Sports'].map((type) => (
-                    <button
-                      key={type}
-                      onClick={() => updateField('vehicleType', type)}
-                      className={`p-4 rounded-2xl border-2 transition ${formData.vehicleType === type ? 'border-emerald-600 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'}`}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Year, Budget, Make, Model */}
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Preferred Year</label>
-                  <input type="text" placeholder="2025" value={formData.year} onChange={(e) => updateField('year', e.target.value)} className="w-full p-4 border rounded-2xl" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Max Budget</label>
-                  <input type="text" placeholder="$45,000" value={formData.budget} onChange={(e) => updateField('budget', e.target.value)} className="w-full p-4 border rounded-2xl" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Make</label>
-                  <input type="text" placeholder="Toyota" value={formData.make} onChange={(e) => updateField('make', e.target.value)} className="w-full p-4 border rounded-2xl" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Model</label>
-                  <input type="text" placeholder="Camry" value={formData.model} onChange={(e) => updateField('model', e.target.value)} className="w-full p-4 border rounded-2xl" />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-4 mt-10">
-              <button onClick={prevStep} className="flex-1 border py-4 rounded-2xl font-medium">Back</button>
-              <button onClick={handleComplete} className="flex-1 bg-emerald-600 text-white py-4 rounded-2xl font-semibold">Complete Setup →</button>
-            </div>
-          </div>
-        )}
+        <p className="text-center text-sm text-slate-500 mt-8">
+          By signing up, you agree to our Terms and Privacy Policy.
+        </p>
       </div>
     </div>
   );
