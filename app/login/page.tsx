@@ -9,17 +9,35 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Mock user state - change these to test different flows
-    const isNewUser = false;
-    const hasActiveDeal = true;
 
-    if (isNewUser) {
-      router.push('/onboarding');
-    } else if (hasActiveDeal) {
-      router.push('/dashboard');
+    const email = (e.target as HTMLFormElement).querySelector('input[type="email"]') as HTMLInputElement;
+    
+    // Check if user exists in localStorage
+    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    const user = existingUsers.find((u: any) => u.email === email.value);
+
+    if (user) {
+      // Existing user
+      localStorage.setItem('currentUser', JSON.stringify(user));
+      
+      if (user.hasActiveDeal) {
+        router.push('/dashboard');
+      } else {
+        router.push('/welcome-back');
+      }
     } else {
-      router.push('/welcome-back');
+      // New user
+      const newUser = {
+        email: email.value,
+        firstName: "Ryun",
+        hasActiveDeal: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      localStorage.setItem('users', JSON.stringify([...existingUsers, newUser]));
+      localStorage.setItem('currentUser', JSON.stringify(newUser));
+      
+      router.push('/onboarding');
     }
   };
 
