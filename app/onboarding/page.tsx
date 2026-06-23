@@ -16,10 +16,7 @@ export default function Onboarding() {
     accessories: []
   });
 
-  const nextStep = () => setStep(step + 1);
-  const prevStep = () => setStep(step - 1);
-
-  const handleInputChange = (field: string, value: string) => {
+  const handleChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
   };
 
@@ -37,8 +34,11 @@ export default function Onboarding() {
     }
   };
 
+  const nextStep = () => setStep(step + 1);
+  const prevStep = () => setStep(step - 1);
+
   const completeOnboarding = () => {
-    console.log('Onboarding Data:', formData);
+    console.log('Onboarding Completed:', formData);
     router.push('/dashboard');
   };
 
@@ -53,24 +53,23 @@ export default function Onboarding() {
         {step === 1 && (
           <div>
             <h2 className="text-2xl font-semibold mb-6">Vehicle Details</h2>
-            <select onChange={(e) => handleInputChange('year', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
+            <select onChange={(e) => handleChange('year', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
               <option value="">Year</option>
               <option value="2026">2026</option>
               <option value="2025">2025</option>
               <option value="2024">2024</option>
             </select>
-            <select onChange={(e) => handleInputChange('make', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
+            <select onChange={(e) => handleChange('make', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
               <option value="">Make</option>
               <option value="Toyota">Toyota</option>
               <option value="Honda">Honda</option>
               <option value="Ford">Ford</option>
             </select>
-            <select onChange={(e) => handleInputChange('model', e.target.value)} className="w-full p-4 border rounded-2xl mb-6">
+            <select onChange={(e) => handleChange('model', e.target.value)} className="w-full p-4 border rounded-2xl mb-6">
               <option value="">Model</option>
               <option value="Camry">Camry</option>
               <option value="Accord">Accord</option>
               <option value="F-150">F-150</option>
-              <option value="F-350">F-350</option>
             </select>
             <button onClick={nextStep} className="w-full bg-emerald-600 text-white py-4 rounded-2xl">Next</button>
           </div>
@@ -80,7 +79,7 @@ export default function Onboarding() {
           <div>
             <h2 className="text-2xl font-semibold mb-6">Trim & Colors</h2>
             <div className="mb-6">
-              <p className="mb-2">Trim Package</p>
+              <p className="mb-3 font-medium">Trim Package</p>
               <div className="space-y-2">
                 {['LE', 'SE', 'XLE', 'Limited'].map(trim => (
                   <label key={trim} className="flex items-center gap-2">
@@ -91,24 +90,27 @@ export default function Onboarding() {
               </div>
             </div>
             <div>
-              <p className="mb-2">Preferred Colors (1st, 2nd, 3rd)</p>
-              <select onChange={(e) => handleInputChange('colors.first', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
-                <option value="">1st Choice</option>
+              <p className="mb-3 font-medium">Preferred Colors</p>
+              <select onChange={(e) => handleChange('colors.first', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
+                <option value="">1st Choice Color</option>
                 <option value="White">White</option>
                 <option value="Black">Black</option>
                 <option value="Silver">Silver</option>
+                <option value="Blue">Blue</option>
               </select>
-              <select onChange={(e) => handleInputChange('colors.second', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
-                <option value="">2nd Choice</option>
+              <select onChange={(e) => handleChange('colors.second', e.target.value)} className="w-full p-4 border rounded-2xl mb-4">
+                <option value="">2nd Choice Color</option>
                 <option value="White">White</option>
                 <option value="Black">Black</option>
                 <option value="Silver">Silver</option>
+                <option value="Blue">Blue</option>
               </select>
-              <select onChange={(e) => handleInputChange('colors.third', e.target.value)} className="w-full p-4 border rounded-2xl mb-6">
-                <option value="">3rd Choice</option>
+              <select onChange={(e) => handleChange('colors.third', e.target.value)} className="w-full p-4 border rounded-2xl mb-6">
+                <option value="">3rd Choice Color</option>
                 <option value="White">White</option>
                 <option value="Black">Black</option>
                 <option value="Silver">Silver</option>
+                <option value="Blue">Blue</option>
               </select>
             </div>
             <button onClick={nextStep} className="w-full bg-emerald-600 text-white py-4 rounded-2xl">Next</button>
@@ -119,7 +121,7 @@ export default function Onboarding() {
           <div>
             <h2 className="text-2xl font-semibold mb-6">Accessories & Options</h2>
             <div className="space-y-3 mb-8">
-              {['Leather Seats', 'Sunroof', 'Navigation', 'Backup Camera', 'Heated Seats', 'Blind Spot Monitoring'].map(item => (
+              {['Leather Seats', 'Sunroof', 'Navigation System', 'Backup Camera', 'Heated Seats', 'Blind Spot Monitoring', 'Premium Audio'].map(item => (
                 <label key={item} className="flex items-center gap-2">
                   <input type="checkbox" onChange={(e) => handleArrayChange('accessories', item, e.target.checked)} />
                   {item}
@@ -133,11 +135,11 @@ export default function Onboarding() {
         {step === 4 && (
           <div className="text-center py-12">
             <h2 className="text-3xl font-bold mb-6">You're All Set!</h2>
-            <p className="mb-8">Taking you to your dashboard...</p>
+            <p className="mb-8">Taking you to your personalized dashboard...</p>
           </div>
         )}
 
-        {step > 1 && (
+        {step > 1 && step < 4 && (
           <button onClick={prevStep} className="mt-6 text-slate-500">Back</button>
         )}
       </div>
