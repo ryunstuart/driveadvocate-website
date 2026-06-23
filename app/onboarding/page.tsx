@@ -11,16 +11,16 @@ export default function Onboarding() {
     year: '',
     make: '',
     model: '',
-    trim: [],
+    trim: [] as string[],
     colors: { first: '', second: '', third: '' },
-    accessories: []
+    accessories: [] as string[]
   });
 
-  const handleChange = (field, value) => {
+  const handleChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const handleArrayChange = (field, value, checked) => {
+  const handleArrayChange = (field: 'trim' | 'accessories', value: string, checked: boolean) => {
     if (checked) {
       setFormData({
         ...formData,
@@ -135,7 +135,7 @@ export default function Onboarding() {
         {step === 4 && (
           <div className="text-center py-12">
             <h2 className="text-3xl font-bold mb-6">You're All Set!</h2>
-            <p className="mb-8">Taking you to your personalized dashboard...</p>
+            <p className="mb-8">Taking you to your dashboard...</p>
           </div>
         )}
 
