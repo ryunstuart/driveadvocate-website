@@ -136,6 +136,9 @@ export default function Onboarding() {
           <div className="text-center py-12">
             <h2 className="text-3xl font-bold mb-6">You're All Set!</h2>
             <p className="mb-8">Taking you to your dashboard...</p>
+            <button onClick={() => router.push('/dashboard')} className="bg-emerald-600 text-white px-10 py-4 rounded-2xl">
+              Go to Dashboard
+            </button>
           </div>
         )}
 
