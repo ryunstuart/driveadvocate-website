@@ -1,4 +1,4 @@
-'use client';
+\'use client';
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -9,7 +9,18 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push('/onboarding');
+    
+    // Mock user state for now (we'll make this real later)
+    const isNewUser = false;           // Change to true to test new user flow
+    const hasActiveDeal = true;        // Change to test different flows
+
+    if (isNewUser) {
+      router.push('/onboarding');
+    } else if (hasActiveDeal) {
+      router.push('/dashboard');
+    } else {
+      router.push('/welcome-back');   // Choice screen for existing users without active deal
+    }
   };
 
   return (
@@ -21,10 +32,16 @@ export default function Login() {
         </div>
 
         <div className="flex mb-8 border-b">
-          <button onClick={() => setIsLogin(true)} className={`flex-1 pb-4 ${isLogin ? 'border-b-2 border-emerald-600 font-medium' : ''}`}>
+          <button 
+            onClick={() => setIsLogin(true)} 
+            className={`flex-1 pb-4 ${isLogin ? 'border-b-2 border-emerald-600 font-medium' : ''}`}
+          >
             Log In
           </button>
-          <button onClick={() => setIsLogin(false)} className={`flex-1 pb-4 ${!isLogin ? 'border-b-2 border-emerald-600 font-medium' : ''}`}>
+          <button 
+            onClick={() => setIsLogin(false)} 
+            className={`flex-1 pb-4 ${!isLogin ? 'border-b-2 border-emerald-600 font-medium' : ''}`}
+          >
             Sign Up
           </button>
         </div>
