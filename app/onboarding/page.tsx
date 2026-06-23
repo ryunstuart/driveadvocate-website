@@ -19,7 +19,7 @@ export default function Onboarding() {
   const nextStep = () => setStep(step + 1);
   const prevStep = () => setStep(step - 1);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
   };
 
