@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -16,14 +15,12 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header - Matching Homepage Style */}
+      {/* Header */}
       <nav className="bg-white border-b sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-8 py-5 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => router.push('/')}>
-            <div className="w-9 h-9 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-xl">
-              DA
-            </div>
+            <img src="/logo.png" alt="DriveAdvocate" className="h-10" />
             <div>
               <div className="font-bold text-2xl tracking-tight">DriveAdvocate</div>
               <div className="text-[10px] text-slate-500 -mt-1">Your Voice at the Dealership</div>
