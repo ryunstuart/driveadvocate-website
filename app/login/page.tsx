@@ -11,8 +11,8 @@ export default function Login() {
     e.preventDefault();
     
     // Mock user state - change these to test different flows
-    const isNewUser = false;           // Set to true to test new user flow
-    const hasActiveDeal = true;        // Set to false to test welcome-back screen
+    const isNewUser = false;
+    const hasActiveDeal = true;
 
     if (isNewUser) {
       router.push('/onboarding');
@@ -25,7 +25,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow p-10">
+      <div className="max-w-md w-full bg-[#f4f4f4] rounded-3xl shadow p-10">
         <div className="text-center mb-8">
           <img src="/logo.png" alt="Logo" className="mx-auto h-12 mb-4" />
           <h1 className="text-3xl font-bold">Welcome to DriveAdvocate</h1>
@@ -47,8 +47,8 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <input type="email" placeholder="Email" className="w-full p-4 border rounded-2xl" required />
-          <input type="password" placeholder="Password" className="w-full p-4 border rounded-2xl" required />
+          <input type="email" placeholder="Email" className="w-full p-4 border rounded-2xl bg-white" required />
+          <input type="password" placeholder="Password" className="w-full p-4 border rounded-2xl bg-white" required />
           <button type="submit" className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-semibold">
             {isLogin ? 'Log In' : 'Create Account'}
           </button>
