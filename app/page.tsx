@@ -71,6 +71,18 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Legal Disclaimer */}
+      <div className="bg-slate-100 py-12 text-center text-sm text-slate-500 border-t">
+        <div className="max-w-4xl mx-auto px-6">
+          <p className="mb-4">
+            <strong>Legal Disclaimer:</strong> DriveAdvocate provides advocacy and negotiation services only. 
+            We do not guarantee specific savings, outcomes, or dealer acceptance. Actual results vary by market conditions, 
+            vehicle, and dealer willingness. All final decisions rest with the client.
+          </p>
+          <p>Services are provided "as is" without warranty of any kind. See our full Service Agreement for details.</p>
+        </div>
+      </div>
+
       {/* Final CTA */}
       <div className="bg-slate-900 text-white py-20 text-center" id="book">
         <h2 className="text-4xl font-bold mb-6">Ready to Buy Your Next Car the Smart Way?</h2>
