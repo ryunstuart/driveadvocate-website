@@ -85,31 +85,24 @@ export default function VehicleWizard() {
     fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeIdYear/makeId/${makeObj.Make_ID}/modelyear/${formData.year}?format=json`)
       .then(res => res.json())
       .then(data => {
-        let filteredModels: Model[] = data.Results || [];
+        let modelList: Model[] = data.Results || [];
+
+        // Clean duplicates and sort - type safe
+        const uniqueModels = Array.from(
+          new Map(modelList.map(item => [item.Model_Name, item])).values()
+        );
+
+        uniqueModels.sort((a, b) => a.Model_Name.localeCompare(b.Model_Name));
         
-        // Remove duplicates and sort - fixed typing
-        filteredModels = Array.from(
-          new Map(filteredModels.map((m: Model) => [m.Model_Name, m])).values()
-        ).sort((a: Model, b: Model) => a.Model_Name.localeCompare(b.Model_Name));
+        setModels(uniqueModels);
         
-        setModels(filteredModels);
-        if (filteredModels.length > 0 && !formData.model) {
-          updateForm('model', filteredModels[0].Model_Name);
+        if (uniqueModels.length > 0 && !formData.model) {
+          updateForm('model', uniqueModels[0].Model_Name);
         }
         setLoadingModels(false);
       })
       .catch(() => setLoadingModels(false));
   }, [formData.make, formData.year, makes]);
-
-  // Load saved data
-  useEffect(() => {
-    const saved = localStorage.getItem('vehicleFormData');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setFormData({ ...parsed, accessories: parsed.accessories || [] });
-      setHasExistingData(true);
-    }
-  }, []);
 
   const updateForm = (key: string, value: any) => {
     const updated = { ...formData, [key]: value };
@@ -226,7 +219,7 @@ export default function VehicleWizard() {
                         {rank}st Choice {rank === 1 && '(Most Preferred)'}
                       </label>
                       <select 
-                        value={formData[`exteriorColor${rank}` as keyof typeof formData] as string}
+                        value={(formData as any)[`exteriorColor${rank}`]}
                         onChange={(e) => updateForm(`exteriorColor${rank}`, e.target.value)}
                         className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
                       >
@@ -247,7 +240,7 @@ export default function VehicleWizard() {
                         {rank}st Choice {rank === 1 && '(Most Preferred)'}
                       </label>
                       <select 
-                        value={formData[`interiorColor${rank}` as keyof typeof formData] as string}
+                        value={(formData as any)[`interiorColor${rank}`]}
                         onChange={(e) => updateForm(`interiorColor${rank}`, e.target.value)}
                         className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
                       >
