@@ -5,20 +5,20 @@ import React from 'react';
 export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Top Navigation - Matching homepage style */}
+      {/* Top Navigation - Matching homepage */}
       <nav className="bg-[#f4f4f4] border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img src="/logo.png" alt="DriveAdvocate" className="h-9" />
             <span className="text-2xl font-bold text-slate-900">DriveAdvocate</span>
           </div>
-          <div className="text-sm text-slate-500">Welcome back, Ryun</div>
+          <div className="text-sm text-slate-500">Dashboard</div>
         </div>
       </nav>
 
       <div className="max-w-6xl mx-auto px-6 py-12">
         <div className="mb-10">
-          <h1 className="text-5xl font-bold text-slate-900 mb-3">Good afternoon, Ryun 👋</h1>
+          <h1 className="text-5xl font-bold text-slate-900 mb-3">Good afternoon 👋</h1>
           <p className="text-xl text-slate-600">Here's what's happening with your deal.</p>
         </div>
 
