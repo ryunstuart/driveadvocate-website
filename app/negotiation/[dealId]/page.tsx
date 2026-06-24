@@ -7,3 +7,4 @@ export async function generateStaticParams() {
 export default function DealFilePage() {
   return <ClientDealFile />;
 }
+
