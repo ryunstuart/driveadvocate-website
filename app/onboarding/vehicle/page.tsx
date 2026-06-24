@@ -60,14 +60,14 @@ export default function VehicleWizard() {
     return images[key] || 'https://picsum.photos/id/1075/800/450';
   };
 
-  // Load Makes (limited + sorted)
+  // Load Makes
   useEffect(() => {
     fetch('https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json')
       .then(res => res.json())
       .then(data => {
         const sortedMakes = (data.Results || [])
-          .sort((a: Make, b: Make) => a.Make_Name.localeCompare(b.Make_Name))
-          .slice(0, 60); // Limit to 60 popular makes
+          .sort((a, b) => a.Make_Name.localeCompare(b.Make_Name))
+          .slice(0, 60);
         setMakes(sortedMakes);
         setLoadingMakes(false);
       })
@@ -85,10 +85,12 @@ export default function VehicleWizard() {
     fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeIdYear/makeId/${makeObj.Make_ID}/modelyear/${formData.year}?format=json`)
       .then(res => res.json())
       .then(data => {
-        let filteredModels = data.Results || [];
-        // Remove duplicates and sort
-        filteredModels = Array.from(new Map(filteredModels.map((m: Model) => [m.Model_Name, m])).values())
-          .sort((a, b) => a.Model_Name.localeCompare(b.Model_Name));
+        let filteredModels: Model[] = data.Results || [];
+        
+        // Remove duplicates and sort - fixed typing
+        filteredModels = Array.from(
+          new Map(filteredModels.map((m: Model) => [m.Model_Name, m])).values()
+        ).sort((a: Model, b: Model) => a.Model_Name.localeCompare(b.Model_Name));
         
         setModels(filteredModels);
         if (filteredModels.length > 0 && !formData.model) {
@@ -163,7 +165,6 @@ export default function VehicleWizard() {
 
         <form onSubmit={handleSubmit} className="space-y-10">
           <div className="grid lg:grid-cols-5 gap-8">
-            {/* Left Column - Inputs */}
             <div className="lg:col-span-3 space-y-8">
               {/* Vehicle Configuration */}
               <div className="bg-white rounded-3xl shadow p-8">
@@ -224,9 +225,11 @@ export default function VehicleWizard() {
                       <label className="block text-sm font-medium text-slate-600 mb-3">
                         {rank}st Choice {rank === 1 && '(Most Preferred)'}
                       </label>
-                      <select value={formData[`exteriorColor${rank}` as keyof typeof formData] as string}
+                      <select 
+                        value={formData[`exteriorColor${rank}` as keyof typeof formData] as string}
                         onChange={(e) => updateForm(`exteriorColor${rank}`, e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
+                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
+                      >
                         {exteriorColors.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
@@ -243,9 +246,11 @@ export default function VehicleWizard() {
                       <label className="block text-sm font-medium text-slate-600 mb-3">
                         {rank}st Choice {rank === 1 && '(Most Preferred)'}
                       </label>
-                      <select value={formData[`interiorColor${rank}` as keyof typeof formData] as string}
+                      <select 
+                        value={formData[`interiorColor${rank}` as keyof typeof formData] as string}
                         onChange={(e) => updateForm(`interiorColor${rank}`, e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
+                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
+                      >
                         {interiorColors.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
