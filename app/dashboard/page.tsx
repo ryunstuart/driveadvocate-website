@@ -8,7 +8,7 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
-    router.push('/login');
+    router.push('/');
   };
 
   return (
