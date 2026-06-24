@@ -46,7 +46,11 @@ export default function VehicleWizard() {
   useEffect(() => {
     const saved = localStorage.getItem('vehicleFormData');
     if (saved) {
-      setFormData(JSON.parse(saved));
+      const parsed = JSON.parse(saved);
+      setFormData({
+        ...parsed,
+        accessories: parsed.accessories || []
+      });
       setHasExistingData(true);
     }
   }, []);
@@ -58,7 +62,7 @@ export default function VehicleWizard() {
   };
 
   const toggleAccessory = (accessory: string) => {
-    const current = formData.accessories;
+    const current = formData.accessories || [];
     let updatedAccessories: string[];
 
     if (current.includes(accessory)) {
@@ -173,7 +177,7 @@ export default function VehicleWizard() {
                   type="button"
                   onClick={() => toggleAccessory(acc)}
                   className={`p-4 text-left border rounded-2xl transition-all text-sm ${
-                    formData.accessories.includes(acc)
+                    (formData.accessories || []).includes(acc)
                       ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
