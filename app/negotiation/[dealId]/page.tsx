@@ -3,6 +3,11 @@
 import React, { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 
+// Fix for static export + dynamic route
+export async function generateStaticParams() {
+  return [];
+}
+
 interface Dealership {
   id: number;
   name: string;
@@ -54,8 +59,7 @@ export default function ClientDealFile() {
     if (!isWorking) {
       const interval = setInterval(() => {
         setTotalTime(prev => prev + 1);
-      }, 60000); // every minute
-      // Store interval ID if needed for cleanup
+      }, 60000);
     }
   };
 
