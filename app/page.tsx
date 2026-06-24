@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 
 export default function Home() {
   return (
@@ -13,19 +12,10 @@ export default function Home() {
             <img src="/logo.png" alt="DriveAdvocate" className="h-10" />
             <span className="text-2xl font-bold">DriveAdvocate</span>
           </div>
-          
-          <nav className="flex items-center gap-8 text-sm font-medium">
+          <nav className="flex gap-8 text-sm font-medium">
             <a href="#how" className="hover:text-emerald-600 transition">How It Works</a>
             <a href="#pricing" className="hover:text-emerald-600 transition">Pricing</a>
             <a href="#book" className="hover:text-emerald-600 transition">Book a Call</a>
-            
-            {/* Login Button */}
-            <Link 
-              href="/login"
-              className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-2xl text-sm font-semibold transition"
-            >
-              Log In
-            </Link>
           </nav>
         </div>
       </header>
