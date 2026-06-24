@@ -22,10 +22,10 @@ export default function Login() {
       // Existing User
       localStorage.setItem('currentUser', JSON.stringify(user));
 
-      if (user.hasActiveDeal) {
+      if (user.hasActiveDeal === true) {
         router.push('/dashboard');
       } else {
-        router.push('/onboarding/vehicle');   // Skip profile → go straight to vehicle
+        router.push('/onboarding/vehicle');
       }
     } else {
       // New User
@@ -40,34 +40,50 @@ export default function Login() {
       localStorage.setItem('users', JSON.stringify([...existingUsers, newUser]));
       localStorage.setItem('currentUser', JSON.stringify(newUser));
 
-      router.push('/onboarding');   // Full onboarding for new users
+      router.push('/onboarding');
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="max-w-md w-full bg-[#f4f4f4] rounded-3xl shadow p-10">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-10">
         <div className="text-center mb-8">
-          <img src="/logo.png" alt="Logo" className="mx-auto h-12 mb-4" />
+          <img src="/logo.png" alt="DriveAdvocate" className="mx-auto h-12 mb-4" />
           <h1 className="text-3xl font-bold">Welcome to DriveAdvocate</h1>
+        </div>
+
+        {/* Toggle */}
+        <div className="flex mb-8 border-b border-slate-200">
+          <button 
+            onClick={() => setIsLogin(true)} 
+            className={`flex-1 pb-4 text-lg font-medium ${isLogin ? 'border-b-2 border-emerald-600 text-emerald-700' : 'text-slate-500'}`}
+          >
+            Log In
+          </button>
+          <button 
+            onClick={() => setIsLogin(false)} 
+            className={`flex-1 pb-4 text-lg font-medium ${!isLogin ? 'border-b-2 border-emerald-600 text-emerald-700' : 'text-slate-500'}`}
+          >
+            Create Account
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <input 
             type="email" 
             placeholder="Email" 
-            className="w-full p-4 border rounded-2xl bg-white" 
+            className="w-full p-4 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600" 
             required 
           />
           <input 
             type="password" 
             placeholder="Password" 
-            className="w-full p-4 border rounded-2xl bg-white" 
+            className="w-full p-4 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600" 
             required 
           />
           <button 
             type="submit" 
-            className="w-full bg-emerald-600 text-white py-4 rounded-2xl font-semibold"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold text-lg transition"
           >
             {isLogin ? 'Log In' : 'Create Account'}
           </button>
