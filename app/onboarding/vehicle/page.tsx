@@ -34,8 +34,6 @@ export default function VehicleWizard() {
   const [models, setModels] = useState<Model[]>([]);
   const [loadingMakes, setLoadingMakes] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
-  const [makeSearch, setMakeSearch] = useState('');
-  const [modelSearch, setModelSearch] = useState('');
 
   const [hasExistingData, setHasExistingData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,16 +58,16 @@ export default function VehicleWizard() {
     return images[key] || 'https://picsum.photos/id/1075/800/450';
   };
 
-  // Load Makes - Limited to 60
+  // Load Makes - Limited
   useEffect(() => {
     fetch('https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json')
       .then(res => res.json())
       .then(data => {
         const results: Make[] = data.Results || [];
-        const sortedMakes = results
+        const sorted = results
           .sort((a, b) => a.Make_Name.localeCompare(b.Make_Name))
           .slice(0, 60);
-        setMakes(sortedMakes);
+        setMakes(sorted);
         setLoadingMakes(false);
       })
       .catch(() => setLoadingMakes(false));
@@ -100,16 +98,6 @@ export default function VehicleWizard() {
       .catch(() => setLoadingModels(false));
   }, [formData.make, formData.year, makes]);
 
-  // Load saved data
-  useEffect(() => {
-    const saved = localStorage.getItem('vehicleFormData');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setFormData({ ...parsed, accessories: parsed.accessories || [] });
-      setHasExistingData(true);
-    }
-  }, []);
-
   const updateForm = (key: string, value: any) => {
     const updated = { ...formData, [key]: value };
     setFormData(updated);
@@ -118,21 +106,11 @@ export default function VehicleWizard() {
 
   const toggleAccessory = (accessory: string) => {
     const current = formData.accessories || [];
-    const updatedAccessories = current.includes(accessory)
+    const updated = current.includes(accessory)
       ? current.filter(a => a !== accessory)
       : [...current, accessory];
-    updateForm('accessories', updatedAccessories);
+    updateForm('accessories', updated);
   };
-
-  const filteredMakes = useMemo(() => 
-    makes.filter(m => m.Make_Name.toLowerCase().includes(makeSearch.toLowerCase())), 
-    [makes, makeSearch]
-  );
-
-  const filteredModels = useMemo(() => 
-    models.filter(m => m.Model_Name.toLowerCase().includes(modelSearch.toLowerCase())), 
-    [models, modelSearch]
-  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,7 +131,7 @@ export default function VehicleWizard() {
       <div className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-3">Build Your Perfect Vehicle</h1>
-          <p className="text-slate-600">Real NHTSA data • Clean interface</p>
+          <p className="text-slate-600">Real NHTSA data</p>
         </div>
 
         {hasExistingData && (
@@ -181,21 +159,14 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Make</label>
-                    <input 
-                      type="text" 
-                      placeholder="Search makes..." 
-                      value={makeSearch}
-                      onChange={(e) => setMakeSearch(e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-2 text-sm"
-                    />
                     <select 
                       value={formData.make} 
-                      onChange={(e) => { updateForm('make', e.target.value); setMakeSearch(''); }}
+                      onChange={(e) => updateForm('make', e.target.value)}
                       className="w-full px-4 py-3 border border-slate-300 rounded-2xl" 
                       disabled={loadingMakes}
                     >
                       <option value="">Select Make</option>
-                      {filteredMakes.map(make => (
+                      {makes.map(make => (
                         <option key={make.Make_ID} value={make.Make_Name}>{make.Make_Name}</option>
                       ))}
                     </select>
@@ -203,21 +174,14 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Model</label>
-                    <input 
-                      type="text" 
-                      placeholder="Search models..." 
-                      value={modelSearch}
-                      onChange={(e) => setModelSearch(e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-2 text-sm"
-                    />
                     <select 
                       value={formData.model} 
-                      onChange={(e) => { updateForm('model', e.target.value); setModelSearch(''); }}
+                      onChange={(e) => updateForm('model', e.target.value)}
                       disabled={loadingModels || !formData.make} 
                       className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
                     >
                       <option value="">Select Model</option>
-                      {filteredModels.map(model => (
+                      {models.map(model => (
                         <option key={model.Model_ID} value={model.Model_Name}>{model.Model_Name}</option>
                       ))}
                     </select>
