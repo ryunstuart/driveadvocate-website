@@ -2,6 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signOut } from 'aws-amplify/auth';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 
 const ADVOCATE_EMAILS = ['ryun.stuart@gmail.com', 'advocate@driveadvocate.com'];
 
@@ -92,22 +95,10 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <nav className="bg-[#f4f4f4] border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="DriveAdvocate" className="h-9" />
-            <span className="text-xl font-bold">DriveAdvocate</span>
-            <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium ml-1">Advocate</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <button onClick={() => router.push('/negotiation')} className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition">Queue</button>
-            <button onClick={onLogout} className="text-sm text-slate-400 hover:text-slate-600 transition">Log out</button>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header variant="authenticated" />
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
+      <div className="max-w-7xl mx-auto px-6 py-10 flex-1 w-full">
         <div className="flex items-end justify-between mb-8">
           <div>
             <h1 className="text-4xl font-bold">{getGreeting()}, {user.firstName || 'Advocate'}</h1>
@@ -221,6 +212,7 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }
@@ -283,18 +275,10 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
   const steps = getSteps();
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <nav className="bg-[#f4f4f4] border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="DriveAdvocate" className="h-9" />
-            <span className="text-xl font-bold">DriveAdvocate</span>
-          </div>
-          <button onClick={onLogout} className="text-sm text-slate-400 hover:text-slate-600 transition">Log out</button>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header variant="authenticated" />
 
-      <div className="max-w-4xl mx-auto px-6 py-10">
+      <div className="max-w-4xl mx-auto px-6 py-10 flex-1 w-full">
         <div className="mb-8">
           <h1 className="text-4xl font-bold">{getGreeting()}, {profile.firstName || user.firstName || 'there'} 👋</h1>
           <p className="text-slate-500 mt-1">
@@ -468,6 +452,7 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
           </div>
         )}
       </div>
+      <Footer />
     </div>
   );
 }
@@ -488,7 +473,8 @@ export default function Dashboard() {
     setIsAdvocate(ADVOCATE_EMAILS.includes(currentUser.email.toLowerCase()));
   }, [router]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try { await signOut(); } catch {}
     localStorage.removeItem('currentUser');
     router.push('/login');
   };

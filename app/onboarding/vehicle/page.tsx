@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 
 interface Make { Make_ID: number; Make_Name: string; }
 interface Model { Model_ID: number; Model_Name: string; }
@@ -151,8 +153,9 @@ export default function VehicleWizard() {
   const selectedVehicle = `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim();
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
-      <div className="max-w-5xl mx-auto px-6">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header variant="authenticated" />
+      <div className="max-w-5xl mx-auto px-6 py-8 flex-1 w-full">
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-3 mb-10">
@@ -336,6 +339,7 @@ export default function VehicleWizard() {
           </div>
         </form>
       </div>
+      <Footer />
     </div>
   );
 }

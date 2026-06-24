@@ -1,54 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React from 'react';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 
 export default function Home() {
-  const [menuOpen, setMenuOpen] = useState(false);
-
   return (
-    <div className="min-h-screen bg-white font-sans">
-
-      {/* Header */}
-      <header className="bg-[#f4f4f4] text-slate-900 sticky top-0 z-50 border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="DriveAdvocate" className="h-9" />
-            <span className="text-xl font-bold">DriveAdvocate</span>
-          </div>
-
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-            <a href="#how" className="hover:text-emerald-600 transition">How It Works</a>
-            <a href="#pricing" className="hover:text-emerald-600 transition">Pricing</a>
-            <a href="/book" className="hover:text-emerald-600 transition">Book a Call</a>
-            <Link href="/login" className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-2xl text-sm font-semibold transition">
-              Log In
-            </Link>
-          </nav>
-
-          {/* Mobile: Log In + Hamburger */}
-          <div className="flex items-center gap-3 md:hidden">
-            <Link href="/login" className="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-semibold">
-              Log In
-            </Link>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-xl hover:bg-slate-200 transition">
-              <div className="w-5 h-0.5 bg-slate-700 mb-1" />
-              <div className="w-5 h-0.5 bg-slate-700 mb-1" />
-              <div className="w-5 h-0.5 bg-slate-700" />
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        {menuOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-[#f4f4f4] px-6 py-4 space-y-3">
-            <a href="#how" onClick={() => setMenuOpen(false)} className="block text-sm font-medium hover:text-emerald-600 py-2">How It Works</a>
-            <a href="#pricing" onClick={() => setMenuOpen(false)} className="block text-sm font-medium hover:text-emerald-600 py-2">Pricing</a>
-            <a href="/book" onClick={() => setMenuOpen(false)} className="block text-sm font-medium hover:text-emerald-600 py-2">Book a Call</a>
-          </div>
-        )}
-      </header>
+    <div className="min-h-screen bg-white font-sans flex flex-col">
+      <Header variant="public" />
 
       {/* Hero */}
       <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white py-16 md:py-24 text-center">
@@ -156,7 +115,7 @@ export default function Home() {
       {/* Legal Disclaimer */}
       <div className="bg-slate-100 py-8 text-center text-xs md:text-sm text-slate-500 border-t">
         <div className="max-w-4xl mx-auto px-6">
-          <p><strong>Legal Disclaimer:</strong> DriveAdvocate provides advocacy and negotiation services only. We do not guarantee specific savings or outcomes. Actual results vary. See our full Service Agreement for details.</p>
+          <p><strong>Legal Disclaimer:</strong> DriveAdvocate provides advocacy and negotiation services only. We do not guarantee specific savings or outcomes. Actual results vary. See our full <a href="/terms" className="text-emerald-600 hover:underline">Terms of Service</a> for details.</p>
         </div>
       </div>
 
@@ -170,6 +129,8 @@ export default function Home() {
           </a>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

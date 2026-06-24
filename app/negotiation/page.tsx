@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 
 interface Deal {
   id: string;
@@ -101,18 +103,13 @@ export default function NegotiationQueue() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
-      <div className="max-w-7xl mx-auto px-6">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header variant="authenticated" />
+      <div className="max-w-7xl mx-auto px-6 py-8 flex-1 w-full">
 
         {/* Header */}
         <div className="flex items-end justify-between mb-8">
   <div>
-    <button
-      onClick={() => router.push('/dashboard')}
-      className="text-emerald-600 hover:underline text-sm mb-2 block"
-    >
-      ← Back to Dashboard
-    </button>
     <h1 className="text-4xl font-bold">Negotiation Queue</h1>
     <p className="text-slate-500 mt-1">Active client files · sorted by submission date</p>
   </div>
@@ -254,6 +251,7 @@ export default function NegotiationQueue() {
           Sorted oldest to newest · Click any row to open the client file · Stats update from localStorage
         </p>
       </div>
+      <Footer />
     </div>
   );
 }

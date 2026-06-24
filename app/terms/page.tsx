@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 
 const LAST_UPDATED = 'June 24, 2026';
 const COMPANY = 'DriveAdvocate';
@@ -11,25 +13,10 @@ export default function TermsOfService() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header variant="public" />
 
-      {/* Header */}
-      <header className="bg-[#f4f4f4] border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="DriveAdvocate" className="h-9" />
-            <span className="text-xl font-bold">DriveAdvocate</span>
-          </div>
-          <button
-            onClick={() => router.push('/')}
-            className="text-sm text-slate-500 hover:text-slate-700 transition"
-          >
-            ← Back to Home
-          </button>
-        </div>
-      </header>
-
-      <div className="max-w-3xl mx-auto px-6 py-12">
+      <div className="max-w-3xl mx-auto px-6 py-12 flex-1 w-full">
 
         {/* Page header */}
         <div className="mb-10">
@@ -162,16 +149,8 @@ export default function TermsOfService() {
 
         </div>
 
-        {/* Footer nav */}
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => router.push('/')}
-            className="text-sm text-slate-500 hover:text-emerald-600 transition"
-          >
-            ← Back to DriveAdvocate
-          </button>
-        </div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -2,6 +2,19 @@ import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 
 const schema = a.schema({
 
+  Client: a.model({
+    email: a.string().required(),
+    firstName: a.string().required(),
+    lastName: a.string().required(),
+    phone: a.string(),
+    zipCode: a.string(),
+    profileCompleted: a.boolean(),
+    onboardingCompleted: a.boolean(),
+  }).authorization(allow => [
+    allow.groups(['advocates', 'admins']),
+    allow.owner().to(['create', 'read', 'update']),
+  ]),
+
   VehiclePreference: a.model({
     dealId: a.string().required(),
     year: a.string(),

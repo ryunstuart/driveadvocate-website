@@ -1,13 +1,20 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, signUp, confirmSignUp, fetchAuthSession } from 'aws-amplify/auth';
+import { signIn, signUp, confirmSignUp, signOut, fetchAuthSession } from 'aws-amplify/auth';
+import { dataClient } from '@/app/lib/amplify-data';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 
 type AuthView = 'login' | 'signup' | 'confirm';
 
 export default function Login() {
   const router = useRouter();
+
+  useEffect(() => {
+    signOut().catch(() => {});
+  }, []);
   const [view, setView] = useState<AuthView>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,15 +29,30 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await signIn({ username: email.trim().toLowerCase(), password });
+      const normalizedEmail = email.trim().toLowerCase();
+      await signIn({ username: normalizedEmail, password });
 
       const session = await fetchAuthSession();
       const groups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
       const isAdvocate = groups.includes('advocates') || groups.includes('admins');
 
+      let clientFirstName = '';
+      if (!isAdvocate) {
+        try {
+          const { data: clients } = await dataClient.models.Client.list({
+            filter: { email: { eq: normalizedEmail } },
+          });
+          if (clients.length > 0) {
+            clientFirstName = clients[0].firstName;
+          }
+        } catch (err) {
+          console.error('Failed to fetch client record:', err);
+        }
+      }
+
       const currentUser = {
-        email: email.trim().toLowerCase(),
-        firstName: '',
+        email: normalizedEmail,
+        firstName: clientFirstName,
         isAdvocate,
         hasActiveDeal: !isAdvocate,
       };
@@ -77,8 +99,22 @@ export default function Login() {
         confirmationCode: confirmCode,
       });
       await signIn({ username: email.trim().toLowerCase(), password });
+
+      const normalizedEmail = email.trim().toLowerCase();
+      try {
+        await dataClient.models.Client.create({
+          email: normalizedEmail,
+          firstName,
+          lastName,
+          profileCompleted: false,
+          onboardingCompleted: false,
+        });
+      } catch (clientErr) {
+        console.error('Failed to create client record:', clientErr);
+      }
+
       const currentUser = {
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         firstName,
         isAdvocate: false,
         hasActiveDeal: false,
@@ -94,7 +130,9 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 md:p-6">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header variant="public" />
+      <div className="flex-1 flex items-center justify-center p-4 md:p-6">
       <div className="max-w-md w-full bg-[#f4f4f4] rounded-3xl shadow-xl p-6 md:p-10">
 
         <div className="text-center mb-8">
@@ -167,6 +205,8 @@ export default function Login() {
           </form>
         )}
       </div>
+      </div>
+      <Footer />
     </div>
   );
 }

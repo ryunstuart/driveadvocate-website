@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 
 // ── SWAP THIS URL when your Calendly account is ready ──────────────────────
 const CALENDLY_URL = 'https://calendly.com/stuartbrothersllc';
@@ -60,25 +62,10 @@ export default function BookPage() {
     : CALENDLY_URL;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header variant="public" />
 
-      {/* Header */}
-      <header className="bg-[#f4f4f4] border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="DriveAdvocate" className="h-9" />
-            <span className="text-xl font-bold">DriveAdvocate</span>
-          </div>
-          <button
-            onClick={() => router.push('/')}
-            className="text-sm text-slate-500 hover:text-slate-700 transition"
-          >
-            ← Back to Home
-          </button>
-        </div>
-      </header>
-
-      <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-6 py-12 flex-1 w-full">
 
         {/* Page header */}
         <div className="text-center mb-12">
@@ -182,6 +169,7 @@ export default function BookPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

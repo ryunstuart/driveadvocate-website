@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 
 interface Make { Make_ID: number; Make_Name: string; }
 interface Model { Model_ID: number; Model_Name: string; }
@@ -185,13 +187,13 @@ export default function AdvocateIntake() {
   const vehicleSummary = `${form.year} ${form.make} ${form.model} ${form.trim}`.trim();
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
-      <div className="max-w-6xl mx-auto px-6">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header variant="authenticated" />
+      <div className="max-w-6xl mx-auto px-6 py-8 flex-1 w-full">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <button onClick={() => router.back()} className="text-emerald-600 hover:underline text-sm mb-2 block">← Back</button>
             <h1 className="text-3xl font-bold">New Client Intake</h1>
             <p className="text-slate-500 mt-1">Add a new client and vehicle build to the queue</p>
           </div>
@@ -454,6 +456,7 @@ export default function AdvocateIntake() {
           </div>
         </form>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 
 interface Dealership {
   id: number;
@@ -268,13 +270,13 @@ export default function ClientDealFile() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
-      <div className="max-w-6xl mx-auto px-6">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header variant="authenticated" />
+      <div className="max-w-6xl mx-auto px-6 py-8 flex-1 w-full">
 
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <button onClick={() => router.push('/negotiation')} className="text-emerald-600 hover:underline mb-2 text-sm">← Back to Queue</button>
             <h1 className="text-3xl font-bold">{deal.clientName}</h1>
             <p className="text-slate-600 mt-1">{deal.vehicle} • {deal.vehicleDetails}</p>
             <div className="flex items-center gap-2 mt-2">
@@ -819,6 +821,7 @@ export default function ClientDealFile() {
           </div>
         </div>
       )}
+      <Footer />
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 
 export default function Profile() {
   const router = useRouter();
@@ -63,8 +65,9 @@ export default function Profile() {
     }`;
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12">
-      <div className="max-w-2xl mx-auto px-6">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      <Header variant="authenticated" />
+      <div className="max-w-2xl mx-auto px-6 py-12 flex-1 w-full">
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-3 mb-10">
@@ -197,6 +200,7 @@ export default function Profile() {
           </button>
         </form>
       </div>
+      <Footer />
     </div>
   );
 }
