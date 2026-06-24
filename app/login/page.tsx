@@ -16,22 +16,22 @@ export default function Login() {
     if (!email) return;
 
     let users = JSON.parse(localStorage.getItem('users') || '[]');
-    let userIndex = users.findIndex((u: any) => u.email.toLowerCase() === email);
-    let user = userIndex !== -1 ? users[userIndex] : null;
+    let user = users.find((u: any) => u.email.toLowerCase() === email);
 
     if (user) {
-      // Returning User - Preserve existing flags
-      localStorage.setItem('currentUser', JSON.stringify(user));
+      // RETURNING USER - Preserve ALL existing flags
+      const currentUser = { ...user };
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-      if (user.hasActiveDeal === true) {
+      if (currentUser.hasActiveDeal === true) {
         router.push('/dashboard');
       } else {
         router.push('/onboarding/vehicle');
       }
     } else {
-      // New User
+      // NEW USER
       const newUser = {
-        email: email,
+        email,
         firstName: '',
         hasActiveDeal: false,
         hasCompletedOnboarding: false,
