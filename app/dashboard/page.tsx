@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 // Advocate emails — swap for real auth later
-const ADVOCATE_EMAILS = ['ryun.stuart@gmail.com', 'advocate@driveadvocate.com'];
+const ADVOCATE_EMAILS = ['ryun@driveadvoccate.com', 'advocate@driveadvocate.com'];
 
 interface Deal {
   id: string;
@@ -108,7 +108,7 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
             <p className="text-slate-500 mt-1">Here's where things stand today</p>
           </div>
           <button
-            onClick={() => router.push('/onboarding/profile')}
+            onClick={() => router.push('/advocate/intake')}
             className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-medium hover:bg-emerald-700 transition"
           >
             + New Client
@@ -224,7 +224,7 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
                 <button onClick={() => router.push('/negotiation')} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
                   📋 Open Negotiation Queue
                 </button>
-                <button onClick={() => router.push('/onboarding/profile')} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
+                <button onClick={() => router.push('/advocate/intake')} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
                   ➕ Add New Client
                 </button>
                 <button onClick={() => router.push('/negotiation/deal-001')} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
