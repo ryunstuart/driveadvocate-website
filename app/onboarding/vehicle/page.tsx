@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Make {
@@ -34,6 +34,8 @@ export default function VehicleWizard() {
   const [models, setModels] = useState<Model[]>([]);
   const [loadingMakes, setLoadingMakes] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [makeSearch, setMakeSearch] = useState('');
+  const [modelSearch, setModelSearch] = useState('');
 
   const [hasExistingData, setHasExistingData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,18 +60,21 @@ export default function VehicleWizard() {
     return images[key] || 'https://picsum.photos/id/1075/800/450';
   };
 
-  // Load Makes
+  // Load Makes (limited + sorted)
   useEffect(() => {
     fetch('https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json')
       .then(res => res.json())
       .then(data => {
-        setMakes(data.Results || []);
+        const sortedMakes = (data.Results || [])
+          .sort((a: Make, b: Make) => a.Make_Name.localeCompare(b.Make_Name))
+          .slice(0, 60); // Limit to 60 popular makes
+        setMakes(sortedMakes);
         setLoadingMakes(false);
       })
       .catch(() => setLoadingMakes(false));
   }, []);
 
-  // Load Models when Make or Year changes
+  // Load Models
   useEffect(() => {
     if (!formData.make || !formData.year) return;
 
@@ -80,9 +85,14 @@ export default function VehicleWizard() {
     fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeIdYear/makeId/${makeObj.Make_ID}/modelyear/${formData.year}?format=json`)
       .then(res => res.json())
       .then(data => {
-        setModels(data.Results || []);
-        if (data.Results?.length > 0 && !formData.model) {
-          updateForm('model', data.Results[0].Model_Name);
+        let filteredModels = data.Results || [];
+        // Remove duplicates and sort
+        filteredModels = Array.from(new Map(filteredModels.map((m: Model) => [m.Model_Name, m])).values())
+          .sort((a, b) => a.Model_Name.localeCompare(b.Model_Name));
+        
+        setModels(filteredModels);
+        if (filteredModels.length > 0 && !formData.model) {
+          updateForm('model', filteredModels[0].Model_Name);
         }
         setLoadingModels(false);
       })
@@ -94,10 +104,7 @@ export default function VehicleWizard() {
     const saved = localStorage.getItem('vehicleFormData');
     if (saved) {
       const parsed = JSON.parse(saved);
-      setFormData({
-        ...parsed,
-        accessories: parsed.accessories || []
-      });
+      setFormData({ ...parsed, accessories: parsed.accessories || [] });
       setHasExistingData(true);
     }
   }, []);
@@ -116,19 +123,26 @@ export default function VehicleWizard() {
     updateForm('accessories', updatedAccessories);
   };
 
+  const filteredMakes = useMemo(() => 
+    makes.filter(m => m.Make_Name.toLowerCase().includes(makeSearch.toLowerCase())), 
+    [makes, makeSearch]
+  );
+
+  const filteredModels = useMemo(() => 
+    models.filter(m => m.Model_Name.toLowerCase().includes(modelSearch.toLowerCase())), 
+    [models, modelSearch]
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
     localStorage.setItem('vehicleFormData', JSON.stringify(formData));
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     currentUser.hasActiveDeal = true;
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 600);
+    setTimeout(() => router.push('/dashboard'), 600);
   };
 
   const selectedVehicle = `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim();
@@ -138,7 +152,7 @@ export default function VehicleWizard() {
       <div className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-3">Build Your Perfect Vehicle</h1>
-          <p className="text-slate-600">Powered by real NHTSA vehicle data</p>
+          <p className="text-slate-600">Real NHTSA data • Clean interface</p>
         </div>
 
         {hasExistingData && (
@@ -149,9 +163,9 @@ export default function VehicleWizard() {
 
         <form onSubmit={handleSubmit} className="space-y-10">
           <div className="grid lg:grid-cols-5 gap-8">
-            {/* Left Column */}
+            {/* Left Column - Inputs */}
             <div className="lg:col-span-3 space-y-8">
-              {/* Vehicle Config */}
+              {/* Vehicle Configuration */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Vehicle Configuration</h2>
                 <div className="grid grid-cols-2 gap-6">
@@ -167,10 +181,13 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Make</label>
-                    <select value={formData.make} onChange={(e) => updateForm('make', e.target.value)}
-                      disabled={loadingMakes} className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
+                    <input type="text" placeholder="Search makes..." value={makeSearch}
+                      onChange={(e) => setMakeSearch(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-2 text-sm" />
+                    <select value={formData.make} onChange={(e) => { updateForm('make', e.target.value); setMakeSearch(''); }}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl" disabled={loadingMakes}>
                       <option value="">Select Make</option>
-                      {makes.map(make => (
+                      {filteredMakes.map(make => (
                         <option key={make.Make_ID} value={make.Make_Name}>{make.Make_Name}</option>
                       ))}
                     </select>
@@ -178,10 +195,13 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Model</label>
-                    <select value={formData.model} onChange={(e) => updateForm('model', e.target.value)}
+                    <input type="text" placeholder="Search models..." value={modelSearch}
+                      onChange={(e) => setModelSearch(e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-2 text-sm" />
+                    <select value={formData.model} onChange={(e) => { updateForm('model', e.target.value); setModelSearch(''); }}
                       disabled={loadingModels || !formData.make} className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
                       <option value="">Select Model</option>
-                      {models.map(model => (
+                      {filteredModels.map(model => (
                         <option key={model.Model_ID} value={model.Model_Name}>{model.Model_Name}</option>
                       ))}
                     </select>
@@ -199,10 +219,10 @@ export default function VehicleWizard() {
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Exterior Color Preferences</h2>
                 <div className="space-y-6">
-                  {[1, 2, 3].map((rank) => (
+                  {[1,2,3].map(rank => (
                     <div key={rank}>
                       <label className="block text-sm font-medium text-slate-600 mb-3">
-                        {rank === 1 ? '1st Choice (Most Preferred)' : `${rank}nd Choice`}
+                        {rank}st Choice {rank === 1 && '(Most Preferred)'}
                       </label>
                       <select value={formData[`exteriorColor${rank}` as keyof typeof formData] as string}
                         onChange={(e) => updateForm(`exteriorColor${rank}`, e.target.value)}
@@ -218,10 +238,10 @@ export default function VehicleWizard() {
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Interior Color Preferences</h2>
                 <div className="space-y-6">
-                  {[1, 2, 3].map((rank) => (
+                  {[1,2,3].map(rank => (
                     <div key={rank}>
                       <label className="block text-sm font-medium text-slate-600 mb-3">
-                        {rank === 1 ? '1st Choice (Most Preferred)' : `${rank}nd Choice`}
+                        {rank}st Choice {rank === 1 && '(Most Preferred)'}
                       </label>
                       <select value={formData[`interiorColor${rank}` as keyof typeof formData] as string}
                         onChange={(e) => updateForm(`interiorColor${rank}`, e.target.value)}
@@ -237,10 +257,12 @@ export default function VehicleWizard() {
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Desired Accessories</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {availableAccessories.map((acc) => (
+                  {availableAccessories.map(acc => (
                     <button key={acc} type="button" onClick={() => toggleAccessory(acc)}
-                      className={`p-4 text-left border rounded-2xl transition-all text-sm ${
-                        (formData.accessories || []).includes(acc) ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 hover:border-slate-300'
+                      className={`p-4 text-left border rounded-2xl text-sm transition-all ${
+                        (formData.accessories || []).includes(acc) 
+                          ? 'border-emerald-600 bg-emerald-50 text-emerald-700' 
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                       }`}>
                       {acc}
                     </button>
@@ -259,10 +281,10 @@ export default function VehicleWizard() {
                 </div>
 
                 <div className="space-y-4 text-sm">
-                  <div><span className="font-medium">Vehicle:</span> {selectedVehicle || 'Please select make & model'}</div>
+                  <div><span className="font-medium">Vehicle:</span> {selectedVehicle || 'Select make & model'}</div>
                   <div><span className="font-medium">Exterior:</span> {formData.exteriorColor1} → {formData.exteriorColor2} → {formData.exteriorColor3}</div>
                   <div><span className="font-medium">Interior:</span> {formData.interiorColor1} → {formData.interiorColor2} → {formData.interiorColor3}</div>
-
+                  
                   {formData.accessories.length > 0 && (
                     <div>
                       <span className="font-medium">Accessories ({formData.accessories.length})</span>
@@ -277,7 +299,7 @@ export default function VehicleWizard() {
 
                 <button type="submit" disabled={isSubmitting || !formData.make || !formData.model}
                   className="mt-10 w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white py-4 rounded-2xl text-lg font-semibold transition">
-                  {isSubmitting ? 'Saving...' : 'Start Negotiating This Build →'}
+                  {isSubmitting ? 'Saving Build...' : 'Start Negotiating This Build →'}
                 </button>
               </div>
             </div>
