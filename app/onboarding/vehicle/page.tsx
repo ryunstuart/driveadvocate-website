@@ -60,16 +60,15 @@ export default function VehicleWizard() {
     return images[key] || 'https://picsum.photos/id/1075/800/450';
   };
 
-  // Load Makes
+  // Load Makes - Limited to 60
   useEffect(() => {
     fetch('https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json')
       .then(res => res.json())
       .then(data => {
-        const results = data.Results || [];
-        const sortedMakes = [...results].sort((a: Make, b: Make) => 
-          a.Make_Name.localeCompare(b.Make_Name)
-        ).slice(0, 60);
-        
+        const results: Make[] = data.Results || [];
+        const sortedMakes = results
+          .sort((a, b) => a.Make_Name.localeCompare(b.Make_Name))
+          .slice(0, 60);
         setMakes(sortedMakes);
         setLoadingMakes(false);
       })
@@ -88,16 +87,11 @@ export default function VehicleWizard() {
       .then(res => res.json())
       .then(data => {
         let modelList: Model[] = data.Results || [];
-
-        // Remove duplicates and sort
         const uniqueModels = Array.from(
           new Map(modelList.map(item => [item.Model_Name, item])).values()
-        );
+        ).sort((a, b) => a.Model_Name.localeCompare(b.Model_Name));
 
-        uniqueModels.sort((a: Model, b: Model) => a.Model_Name.localeCompare(b.Model_Name));
-        
         setModels(uniqueModels);
-        
         if (uniqueModels.length > 0 && !formData.model) {
           updateForm('model', uniqueModels[0].Model_Name);
         }
@@ -105,6 +99,16 @@ export default function VehicleWizard() {
       })
       .catch(() => setLoadingModels(false));
   }, [formData.make, formData.year, makes]);
+
+  // Load saved data
+  useEffect(() => {
+    const saved = localStorage.getItem('vehicleFormData');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setFormData({ ...parsed, accessories: parsed.accessories || [] });
+      setHasExistingData(true);
+    }
+  }, []);
 
   const updateForm = (key: string, value: any) => {
     const updated = { ...formData, [key]: value };
@@ -177,11 +181,19 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Make</label>
-                    <input type="text" placeholder="Search makes..." value={makeSearch}
+                    <input 
+                      type="text" 
+                      placeholder="Search makes..." 
+                      value={makeSearch}
                       onChange={(e) => setMakeSearch(e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-2 text-sm" />
-                    <select value={formData.make} onChange={(e) => { updateForm('make', e.target.value); setMakeSearch(''); }}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl" disabled={loadingMakes}>
+                      className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-2 text-sm"
+                    />
+                    <select 
+                      value={formData.make} 
+                      onChange={(e) => { updateForm('make', e.target.value); setMakeSearch(''); }}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl" 
+                      disabled={loadingMakes}
+                    >
                       <option value="">Select Make</option>
                       {filteredMakes.map(make => (
                         <option key={make.Make_ID} value={make.Make_Name}>{make.Make_Name}</option>
@@ -191,11 +203,19 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Model</label>
-                    <input type="text" placeholder="Search models..." value={modelSearch}
+                    <input 
+                      type="text" 
+                      placeholder="Search models..." 
+                      value={modelSearch}
                       onChange={(e) => setModelSearch(e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-2 text-sm" />
-                    <select value={formData.model} onChange={(e) => { updateForm('model', e.target.value); setModelSearch(''); }}
-                      disabled={loadingModels || !formData.make} className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
+                      className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-2 text-sm"
+                    />
+                    <select 
+                      value={formData.model} 
+                      onChange={(e) => { updateForm('model', e.target.value); setModelSearch(''); }}
+                      disabled={loadingModels || !formData.make} 
+                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
+                    >
                       <option value="">Select Model</option>
                       {filteredModels.map(model => (
                         <option key={model.Model_ID} value={model.Model_Name}>{model.Model_Name}</option>
@@ -205,8 +225,13 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Trim / Package</label>
-                    <input type="text" value={formData.trim} onChange={(e) => updateForm('trim', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl" placeholder="Limited TRD, Lariat, etc." />
+                    <input 
+                      type="text" 
+                      value={formData.trim} 
+                      onChange={(e) => updateForm('trim', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl" 
+                      placeholder="Limited TRD, Lariat, etc." 
+                    />
                   </div>
                 </div>
               </div>
