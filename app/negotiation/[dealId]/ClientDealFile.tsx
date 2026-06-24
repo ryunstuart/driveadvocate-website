@@ -163,6 +163,11 @@ export default function ClientDealFile() {
   const [offerMsrp, setOfferMsrp] = useState('');
   const [offerNotes, setOfferNotes] = useState('');
 
+  // Complete modal
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [completeSavings, setCompleteSavings] = useState('');
+  const [completeNotes, setCompleteNotes] = useState('');
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto-start timer on open
@@ -640,7 +645,7 @@ export default function ClientDealFile() {
                 <button className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
                   📧 Send Client Update
                 </button>
-                <button onClick={() => { setDealStatus('Complete'); }} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
+                <button onClick={() => setShowCompleteModal(true)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
                   🏁 Mark Deal Complete
                 </button>
               </div>
@@ -726,6 +731,90 @@ export default function ClientDealFile() {
             <div className="flex gap-3 mt-8">
               <button onClick={() => setShowOfferModal(false)} className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50 text-sm font-medium">Cancel</button>
               <button onClick={logOffer} disabled={!offerDealership || !offerPrice} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-sm font-medium">Save Offer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Modal */}
+      {showCompleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl">
+            <div className="text-center mb-6">
+              <div className="text-5xl mb-3">🏁</div>
+              <h3 className="text-2xl font-bold">Mark Deal Complete</h3>
+              <p className="text-slate-500 mt-1 text-sm">Confirm the final outcome for {deal.clientName}</p>
+            </div>
+
+            {/* Winning offer summary */}
+            {bestOffer && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 mb-6">
+                <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">Winning Offer</div>
+                <div className="font-semibold text-slate-800">{bestOffer.dealershipName}</div>
+                <div className="text-2xl font-bold text-emerald-600 mt-1">{bestOffer.price}</div>
+                {bestOffer.discount && <div className="text-sm text-emerald-600">{bestOffer.discount}</div>}
+              </div>
+            )}
+
+            {!bestOffer && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 text-sm text-amber-700">
+                No best offer selected yet. You can still mark the deal complete — add savings details below.
+              </div>
+            )}
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Total Savings Achieved <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={completeSavings}
+                  onChange={e => setCompleteSavings(e.target.value)}
+                  placeholder="e.g. $3,850 below MSRP"
+                  className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Closing Notes <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
+                <textarea
+                  value={completeNotes}
+                  onChange={e => setCompleteNotes(e.target.value)}
+                  className="w-full border border-slate-300 rounded-2xl px-4 py-3 h-24 resize-none text-sm focus:outline-none focus:border-emerald-500"
+                  placeholder="Final deal notes, delivery date, client feedback..."
+                />
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-2xl p-4 mt-5 text-sm text-slate-500">
+              Marking complete will:
+              <ul className="mt-2 space-y-1">
+                <li>✓ Set deal status to Complete</li>
+                <li>✓ Update the client dashboard with the final result</li>
+                <li>✓ Stop the work timer</li>
+              </ul>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowCompleteModal(false)}
+                className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50 text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setDealStatus('Complete');
+                  if (timerRef.current) clearInterval(timerRef.current);
+                  setIsWorking(false);
+                  setShowCompleteModal(false);
+                }}
+                className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 text-sm font-semibold"
+              >
+                Confirm Complete 🏁
+              </button>
             </div>
           </div>
         </div>
