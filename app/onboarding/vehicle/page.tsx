@@ -78,11 +78,9 @@ export default function VehicleWizard() {
       .then(res => res.json())
       .then(data => {
         let allMakes: Make[] = data.Results || [];
-
         const prioritized = popularMakes
           .map(name => allMakes.find(m => m.Make_Name.toLowerCase() === name.toLowerCase()))
           .filter(Boolean) as Make[];
-
         setMakes(prioritized);
         setLoadingMakes(false);
       })
@@ -216,25 +214,16 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Trim / Package</label>
-                    <div className="flex gap-3">
-                      <select 
-                        value={formData.trim} 
-                        onChange={(e) => updateForm('trim', e.target.value)}
-                        className="flex-1 px-4 py-3 border border-slate-300 rounded-2xl"
-                      >
-                        <option value="">Common Trim</option>
-                        {commonTrims.map(trim => (
-                          <option key={trim} value={trim}>{trim}</option>
-                        ))}
-                      </select>
-                      <input 
-                        type="text" 
-                        value={formData.trim} 
-                        onChange={(e) => updateForm('trim', e.target.value)}
-                        className="flex-1 px-4 py-3 border border-slate-300 rounded-2xl" 
-                        placeholder="Or type custom" 
-                      />
-                    </div>
+                    <select 
+                      value={formData.trim} 
+                      onChange={(e) => updateForm('trim', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
+                    >
+                      <option value="">Select Common Trim</option>
+                      {commonTrims.map(trim => (
+                        <option key={trim} value={trim}>{trim}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
