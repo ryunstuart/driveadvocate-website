@@ -507,6 +507,11 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
               className="inline-block bg-white text-emerald-700 px-8 py-3 rounded-2xl font-semibold hover:bg-emerald-50 transition"
             >
               Start a New Deal
+            <button
+              onClick={() => router.push('/onboarding/profile')}
+              className="inline-block bg-white text-emerald-700 px-8 py-3 rounded-2xl font-semibold hover:bg-emerald-50 transition"
+            >
+              Start a New Deal
             </button>
           </div>
         )}
@@ -515,5 +520,34 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
   );
 }
 
+// ─── ROOT ─────────────────────────────────────────────────────────────────────
+export default function Dashboard() {
+  const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+  const [isAdvocate, setIsAdvocate] = useState(false);
+
+  useEffect(() => {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (!currentUser.email) {
+      router.push('/login');
+      return;
+    }
+    setUser(currentUser);
+    setIsAdvocate(ADVOCATE_EMAILS.includes(currentUser.email.toLowerCase()));
+  }, [router]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('currentUser');
+    router.push('/login');
+  };
+
+  if (!user) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="text-slate-400 text-sm">Loading...</div>
+    </div>
+  );
+
+  return isAdvocate
+    ? <AdvocateDashboard user={user} onLogout={handleLogout} />
     : <ClientDashboard user={user} onLogout={handleLogout} />;
 }
