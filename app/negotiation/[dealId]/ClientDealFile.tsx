@@ -26,10 +26,25 @@ interface CallLog {
   rating: number;
 }
 
+interface Offer {
+  id: number;
+  dealershipName: string;
+  price: string;
+  msrp: string;
+  discount: string;
+  notes: string;
+  timestamp: string;
+  status: 'Pending' | 'Best' | 'Rejected';
+}
+
+type DealStatus = 'New' | 'In Progress' | 'Follow Up' | 'Offer Received' | 'Complete' | 'Dead';
+
 interface DealFileState {
   totalTime: number;
   callLogs: CallLog[];
   dealerships: Dealership[];
+  offers: Offer[];
+  dealStatus: DealStatus;
   lastSaved: string;
 }
 
@@ -53,7 +68,17 @@ const RATING_LABELS: Record<number, string> = {
   5: 'Excellent',
 };
 
-// Mock deal data keyed by dealId — replace with API calls later
+const DEAL_STATUSES: DealStatus[] = ['New', 'In Progress', 'Follow Up', 'Offer Received', 'Complete', 'Dead'];
+
+const STATUS_COLORS: Record<DealStatus, string> = {
+  'New': 'bg-blue-100 text-blue-700 border-blue-200',
+  'In Progress': 'bg-amber-100 text-amber-700 border-amber-200',
+  'Follow Up': 'bg-purple-100 text-purple-700 border-purple-200',
+  'Offer Received': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'Complete': 'bg-slate-100 text-slate-700 border-slate-200',
+  'Dead': 'bg-red-100 text-red-600 border-red-200',
+};
+
 const MOCK_DEALS: Record<string, { clientName: string; vehicle: string; vehicleDetails: string; dealerships: Dealership[] }> = {
   'deal-001': {
     clientName: 'Johnathan Reyes',
@@ -74,7 +99,7 @@ const MOCK_DEALS: Record<string, { clientName: string; vehicle: string; vehicleD
     dealerships: [
       { id: 1, name: 'Bommarito Ford', distance: 6.1, phone: '(636) 555-0211', status: 'Not Called' },
       { id: 2, name: 'Plaza Ford', distance: 9.4, phone: '(314) 555-0244', status: 'Not Called' },
-      { id: 3, name: 'O\'Fallon Ford', distance: 11.2, phone: '(636) 555-0288', status: 'Not Called' },
+      { id: 3, name: "O'Fallon Ford", distance: 11.2, phone: '(636) 555-0288', status: 'Not Called' },
       { id: 4, name: 'Auffenberg Ford', distance: 18.7, phone: '(618) 555-0255', status: 'Not Called' },
     ],
   },
@@ -104,78 +129,73 @@ export default function ClientDealFile() {
   const params = useParams();
   const router = useRouter();
   const dealId = params.dealId as string;
-
   const deal = MOCK_DEALS[dealId] || MOCK_DEALS['deal-001'];
 
-  // Load persisted state from localStorage
   const loadState = useCallback((): DealFileState | null => {
     if (typeof window === 'undefined') return null;
     try {
       const saved = localStorage.getItem(`dealfile-${dealId}`);
       return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }, [dealId]);
 
   const saved = loadState();
 
-  const [dealerships, setDealerships] = useState<Dealership[]>(
-    saved?.dealerships || deal.dealerships
-  );
+  const [dealerships, setDealerships] = useState<Dealership[]>(saved?.dealerships || deal.dealerships);
   const [callLogs, setCallLogs] = useState<CallLog[]>(saved?.callLogs || []);
+  const [offers, setOffers] = useState<Offer[]>(saved?.offers || []);
   const [totalTime, setTotalTime] = useState<number>(saved?.totalTime || 0);
+  const [dealStatus, setDealStatus] = useState<DealStatus>(saved?.dealStatus || 'New');
   const [isWorking, setIsWorking] = useState(false);
+  const [showStatusMenu, setShowStatusMenu] = useState(false);
 
-  // Modal state
+  // Call modal
   const [selectedDealership, setSelectedDealership] = useState<Dealership | null>(null);
   const [contactName, setContactName] = useState('');
   const [outcome, setOutcome] = useState(OUTCOMES[0]);
   const [callNotes, setCallNotes] = useState('');
   const [callRating, setCallRating] = useState(3);
 
+  // Offer modal
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [offerDealership, setOfferDealership] = useState('');
+  const [offerPrice, setOfferPrice] = useState('');
+  const [offerMsrp, setOfferMsrp] = useState('');
+  const [offerNotes, setOfferNotes] = useState('');
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-start timer when file opens
+  // Auto-start timer on open
   useEffect(() => {
     setIsWorking(true);
-    timerRef.current = setInterval(() => {
-      setTotalTime(prev => prev + 1);
-    }, 60000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    timerRef.current = setInterval(() => setTotalTime(prev => prev + 1), 60000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
-  // Persist state to localStorage on any change
+  // Persist state
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const state: DealFileState = {
-      totalTime,
-      callLogs,
-      dealerships,
+      totalTime, callLogs, dealerships, offers, dealStatus,
       lastSaved: new Date().toISOString(),
     };
     localStorage.setItem(`dealfile-${dealId}`, JSON.stringify(state));
-  }, [totalTime, callLogs, dealerships, dealId]);
+  }, [totalTime, callLogs, dealerships, offers, dealStatus, dealId]);
 
   const toggleTimer = () => {
     if (isWorking) {
       if (timerRef.current) clearInterval(timerRef.current);
       setIsWorking(false);
     } else {
-      timerRef.current = setInterval(() => {
-        setTotalTime(prev => prev + 1);
-      }, 60000);
+      timerRef.current = setInterval(() => setTotalTime(prev => prev + 1), 60000);
       setIsWorking(true);
     }
   };
 
   const formatTime = (mins: number) => {
+    if (!mins) return '0m';
     if (mins < 60) return `${mins}m`;
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `${h}h ${m}m`;
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   };
 
   const openCallModal = (dealership: Dealership) => {
@@ -188,50 +208,54 @@ export default function ClientDealFile() {
 
   const logCall = () => {
     if (!selectedDealership) return;
-
     const newLog: CallLog = {
-      id: Date.now(),
-      dealershipId: selectedDealership.id,
-      dealershipName: selectedDealership.name,
-      contactName,
-      timestamp: new Date().toLocaleString(),
-      outcome,
-      notes: callNotes,
-      rating: callRating,
+      id: Date.now(), dealershipId: selectedDealership.id,
+      dealershipName: selectedDealership.name, contactName,
+      timestamp: new Date().toLocaleString(), outcome, notes: callNotes, rating: callRating,
     };
-
     setCallLogs(prev => [newLog, ...prev]);
-
-    // Determine new status from outcome
     const newStatus: Dealership['status'] =
-      outcome.includes('voicemail') || outcome.includes('No answer') || outcome.includes('follow-up')
-        ? 'Follow Up'
-        : outcome.includes('not in stock')
-        ? 'No Inventory'
-        : 'Called';
-
-    setDealerships(prev =>
-      prev.map(d =>
-        d.id === selectedDealership.id
-          ? {
-              ...d,
-              status: newStatus,
-              lastCalled: new Date().toLocaleDateString(),
-              lastOutcome: outcome,
-              lastRating: callRating,
-              contactName,
-            }
-          : d
-      )
-    );
-
+      outcome.includes('voicemail') || outcome.includes('No answer') || outcome.includes('follow-up') ? 'Follow Up'
+      : outcome.includes('not in stock') ? 'No Inventory' : 'Called';
+    setDealerships(prev => prev.map(d =>
+      d.id === selectedDealership.id
+        ? { ...d, status: newStatus, lastCalled: new Date().toLocaleDateString(), lastOutcome: outcome, lastRating: callRating, contactName }
+        : d
+    ));
+    // Auto-advance deal status if still New
+    if (dealStatus === 'New') setDealStatus('In Progress');
     setSelectedDealership(null);
+  };
+
+  const logOffer = () => {
+    if (!offerDealership || !offerPrice) return;
+    const msrpNum = parseFloat(offerMsrp.replace(/[^0-9.]/g, ''));
+    const priceNum = parseFloat(offerPrice.replace(/[^0-9.]/g, ''));
+    const discount = msrpNum && priceNum ? `$${(msrpNum - priceNum).toLocaleString()} below MSRP` : '';
+    const newOffer: Offer = {
+      id: Date.now(), dealershipName: offerDealership,
+      price: offerPrice, msrp: offerMsrp, discount,
+      notes: offerNotes, timestamp: new Date().toLocaleString(), status: 'Pending',
+    };
+    setOffers(prev => [newOffer, ...prev]);
+    if (dealStatus !== 'Complete') setDealStatus('Offer Received');
+    setShowOfferModal(false);
+    setOfferDealership(''); setOfferPrice(''); setOfferMsrp(''); setOfferNotes('');
+  };
+
+  const setBestOffer = (offerId: number) => {
+    setOffers(prev => prev.map(o => ({ ...o, status: o.id === offerId ? 'Best' : o.status === 'Best' ? 'Pending' : o.status })));
+  };
+
+  const rejectOffer = (offerId: number) => {
+    setOffers(prev => prev.map(o => o.id === offerId ? { ...o, status: 'Rejected' } : o));
   };
 
   const calledCount = dealerships.filter(d => d.status !== 'Not Called').length;
   const activeCount = dealerships.filter(d => d.status === 'Called' || d.status === 'Follow Up').length;
+  const bestOffer = offers.find(o => o.status === 'Best');
 
-  const statusColors: Record<Dealership['status'], string> = {
+  const dealerStatusColors: Record<Dealership['status'], string> = {
     'Not Called': 'bg-slate-100 text-slate-600',
     'Called': 'bg-emerald-100 text-emerald-700',
     'Follow Up': 'bg-amber-100 text-amber-700',
@@ -245,17 +269,41 @@ export default function ClientDealFile() {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <button
-              onClick={() => router.push('/negotiation')}
-              className="text-emerald-600 hover:underline mb-2 text-sm flex items-center gap-1"
-            >
-              ← Back to Queue
-            </button>
+            <button onClick={() => router.push('/negotiation')} className="text-emerald-600 hover:underline mb-2 text-sm">← Back to Queue</button>
             <h1 className="text-3xl font-bold">{deal.clientName}</h1>
             <p className="text-slate-600 mt-1">{deal.vehicle} • {deal.vehicleDetails}</p>
             <div className="flex items-center gap-2 mt-2">
               <span className="text-xs font-mono text-slate-400">{dealId}</span>
-              <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">Active</span>
+
+              {/* Status badge — clickable */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowStatusMenu(!showStatusMenu)}
+                  className={`text-xs px-3 py-1 rounded-full font-medium border transition hover:opacity-80 ${STATUS_COLORS[dealStatus]}`}
+                >
+                  {dealStatus} ▾
+                </button>
+                {showStatusMenu && (
+                  <div className="absolute left-0 top-8 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-20 min-w-[160px]">
+                    {DEAL_STATUSES.map(s => (
+                      <button
+                        key={s}
+                        onClick={() => { setDealStatus(s); setShowStatusMenu(false); }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition ${dealStatus === s ? 'font-semibold' : ''}`}
+                      >
+                        <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
+                          s === 'New' ? 'bg-blue-400' :
+                          s === 'In Progress' ? 'bg-amber-400' :
+                          s === 'Follow Up' ? 'bg-purple-400' :
+                          s === 'Offer Received' ? 'bg-emerald-400' :
+                          s === 'Complete' ? 'bg-slate-400' : 'bg-red-400'
+                        }`} />
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -266,92 +314,142 @@ export default function ClientDealFile() {
               <div className="text-3xl font-bold font-mono">{formatTime(totalTime)}</div>
               {isWorking && (
                 <div className="flex items-center justify-center gap-1 mt-1">
-                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
                   <span className="text-xs text-emerald-600 font-medium">Tracking</span>
                 </div>
               )}
             </div>
-            <button
-              onClick={toggleTimer}
-              className={`px-5 py-3 rounded-2xl font-medium transition text-sm ${
-                isWorking
-                  ? 'bg-slate-200 text-slate-700 hover:bg-slate-300'
-                  : 'bg-emerald-600 text-white hover:bg-emerald-700'
-              }`}
-            >
+            <button onClick={toggleTimer} className={`px-5 py-3 rounded-2xl font-medium transition text-sm ${isWorking ? 'bg-slate-200 text-slate-700 hover:bg-slate-300' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}>
               {isWorking ? 'Pause' : 'Resume'}
             </button>
           </div>
         </div>
 
-        {/* Main Grid */}
-        <div className="grid lg:grid-cols-3 gap-8">
+        {/* Best offer banner */}
+        {bestOffer && (
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl px-6 py-4 flex items-center justify-between">
+            <div>
+              <span className="text-xs font-semibold text-emerald-600 uppercase tracking-wide">Best Offer</span>
+              <div className="font-semibold text-slate-800 mt-0.5">{bestOffer.dealershipName} — {bestOffer.price}</div>
+              {bestOffer.discount && <div className="text-sm text-emerald-600">{bestOffer.discount}</div>}
+            </div>
+            <span className="text-xs bg-emerald-600 text-white px-3 py-1 rounded-full font-medium">⭐ Best</span>
+          </div>
+        )}
 
-          {/* Left: Dealership List */}
+        {/* Main grid */}
+        <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
+
+            {/* Dealerships */}
             <div className="bg-white rounded-3xl shadow p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold">Dealerships</h2>
                 <div className="text-sm text-slate-500">{calledCount} of {dealerships.length} contacted</div>
               </div>
-
               <div className="space-y-3">
-                {dealerships.map((dealer) => (
-                  <div
-                    key={dealer.id}
-                    className={`border rounded-2xl p-5 transition ${
-                      dealer.status === 'Not Called'
-                        ? 'border-slate-200 hover:border-emerald-300'
-                        : dealer.status === 'Called'
-                        ? 'border-emerald-200 bg-emerald-50/30'
-                        : dealer.status === 'Follow Up'
-                        ? 'border-amber-200 bg-amber-50/30'
-                        : 'border-red-200 bg-red-50/20'
-                    }`}
-                  >
+                {dealerships.map(dealer => (
+                  <div key={dealer.id} className={`border rounded-2xl p-5 transition ${
+                    dealer.status === 'Not Called' ? 'border-slate-200 hover:border-emerald-300' :
+                    dealer.status === 'Called' ? 'border-emerald-200 bg-emerald-50/30' :
+                    dealer.status === 'Follow Up' ? 'border-amber-200 bg-amber-50/30' :
+                    'border-red-200 bg-red-50/20'
+                  }`}>
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
                           <div className="font-semibold">{dealer.name}</div>
-                          <span className={`px-3 py-0.5 rounded-full text-xs font-medium ${statusColors[dealer.status]}`}>
-                            {dealer.status}
-                          </span>
+                          <span className={`px-3 py-0.5 rounded-full text-xs font-medium ${dealerStatusColors[dealer.status]}`}>{dealer.status}</span>
                         </div>
                         <div className="text-sm text-slate-500 mt-1">{dealer.distance} mi • {dealer.phone}</div>
                         {dealer.lastCalled && (
                           <div className="text-xs text-slate-500 mt-1.5">
-                            <span className="font-medium">Last contact:</span> {dealer.lastCalled}
+                            <span className="font-medium">Last:</span> {dealer.lastCalled}
                             {dealer.contactName && <span> · {dealer.contactName}</span>}
                             {dealer.lastOutcome && <span> · {dealer.lastOutcome}</span>}
                           </div>
                         )}
                       </div>
-                      <button
-                        onClick={() => openCallModal(dealer)}
-                        className="ml-4 px-5 py-2 bg-emerald-600 text-white text-sm rounded-2xl hover:bg-emerald-700 transition shrink-0"
-                      >
-                        Log Call
-                      </button>
+                      <div className="flex items-center gap-2 ml-4 shrink-0">
+                        <button
+                          onClick={() => { setOfferDealership(dealer.name); setShowOfferModal(true); }}
+                          className="px-4 py-2 bg-white border border-slate-200 text-slate-600 text-sm rounded-2xl hover:border-emerald-300 hover:text-emerald-600 transition"
+                        >
+                          + Offer
+                        </button>
+                        <button onClick={() => openCallModal(dealer)} className="px-4 py-2 bg-emerald-600 text-white text-sm rounded-2xl hover:bg-emerald-700 transition">
+                          Log Call
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
+            {/* Offer Tracker */}
+            <div className="bg-white rounded-3xl shadow p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold">Offer Tracker <span className="text-slate-400 font-normal text-base">({offers.length})</span></h2>
+                <button onClick={() => setShowOfferModal(true)} className="px-4 py-2 bg-emerald-600 text-white text-sm rounded-2xl hover:bg-emerald-700 transition">
+                  + Log Offer
+                </button>
+              </div>
+
+              {offers.length > 0 ? (
+                <div className="space-y-3">
+                  {offers.map(offer => (
+                    <div key={offer.id} className={`border rounded-2xl p-5 ${
+                      offer.status === 'Best' ? 'border-emerald-300 bg-emerald-50/40' :
+                      offer.status === 'Rejected' ? 'border-red-200 bg-red-50/20 opacity-60' :
+                      'border-slate-200'
+                    }`}>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className="font-semibold">{offer.dealershipName}</div>
+                            {offer.status === 'Best' && <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full">⭐ Best</span>}
+                            {offer.status === 'Rejected' && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Rejected</span>}
+                          </div>
+                          <div className="mt-1">
+                            <span className="text-2xl font-bold text-slate-800">{offer.price}</span>
+                            {offer.msrp && <span className="text-sm text-slate-400 ml-2 line-through">{offer.msrp} MSRP</span>}
+                            {offer.discount && <span className="text-sm text-emerald-600 ml-2 font-medium">{offer.discount}</span>}
+                          </div>
+                          {offer.notes && <div className="text-sm text-slate-500 mt-1">{offer.notes}</div>}
+                          <div className="text-xs text-slate-400 mt-1">{offer.timestamp}</div>
+                        </div>
+                        {offer.status !== 'Rejected' && (
+                          <div className="flex flex-col gap-2 shrink-0">
+                            <button onClick={() => setBestOffer(offer.id)} className={`px-3 py-1.5 text-xs rounded-xl border transition ${offer.status === 'Best' ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-200 hover:border-emerald-300 hover:text-emerald-600'}`}>
+                              {offer.status === 'Best' ? '⭐ Best' : 'Set Best'}
+                            </button>
+                            <button onClick={() => rejectOffer(offer.id)} className="px-3 py-1.5 text-xs rounded-xl border border-slate-200 text-slate-500 hover:border-red-300 hover:text-red-500 transition">
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-400">
+                  <div className="text-4xl mb-3">💰</div>
+                  <p className="text-sm">No offers logged yet. Click "+ Offer" on a dealership or above to add one.</p>
+                </div>
+              )}
+            </div>
+
             {/* Call Log */}
             <div className="bg-white rounded-3xl shadow p-8">
               <h2 className="text-xl font-semibold mb-6">Call Log <span className="text-slate-400 font-normal text-base">({callLogs.length})</span></h2>
-
               {callLogs.length > 0 ? (
                 <div className="space-y-4">
-                  {callLogs.map((log) => (
+                  {callLogs.map(log => (
                     <div key={log.id} className="flex gap-4 border-b border-slate-100 pb-4 last:border-0 last:pb-0">
                       <div className="mt-1 shrink-0">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                          log.rating >= 4 ? 'bg-emerald-100 text-emerald-700' :
-                          log.rating >= 3 ? 'bg-amber-100 text-amber-700' :
-                          'bg-red-100 text-red-600'
-                        }`}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${log.rating >= 4 ? 'bg-emerald-100 text-emerald-700' : log.rating >= 3 ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-600'}`}>
                           {log.rating}
                         </div>
                       </div>
@@ -360,13 +458,9 @@ export default function ClientDealFile() {
                           <div className="font-semibold text-sm">{log.dealershipName}</div>
                           <div className="text-xs text-slate-400 shrink-0">{log.timestamp}</div>
                         </div>
-                        {log.contactName && (
-                          <div className="text-xs text-slate-500 mt-0.5">Contact: {log.contactName}</div>
-                        )}
+                        {log.contactName && <div className="text-xs text-slate-500 mt-0.5">Contact: {log.contactName}</div>}
                         <div className="text-xs font-medium text-emerald-700 mt-1">{log.outcome}</div>
-                        {log.notes && (
-                          <div className="text-sm text-slate-600 mt-1.5 bg-slate-50 rounded-xl p-3">{log.notes}</div>
-                        )}
+                        {log.notes && <div className="text-sm text-slate-600 mt-1.5 bg-slate-50 rounded-xl p-3">{log.notes}</div>}
                       </div>
                     </div>
                   ))}
@@ -374,13 +468,13 @@ export default function ClientDealFile() {
               ) : (
                 <div className="text-center py-8 text-slate-400">
                   <div className="text-4xl mb-3">📞</div>
-                  <p className="text-sm">No calls logged yet. Click "Log Call" on a dealership to get started.</p>
+                  <p className="text-sm">No calls logged yet.</p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Right: File Summary */}
+          {/* Right sidebar */}
           <div className="space-y-6">
             <div className="bg-white rounded-3xl shadow p-8">
               <h3 className="font-semibold mb-5">File Summary</h3>
@@ -389,9 +483,11 @@ export default function ClientDealFile() {
                   <span className="text-slate-500">Deal ID</span>
                   <span className="font-mono text-xs bg-slate-100 px-2 py-0.5 rounded">{dealId}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex items-center justify-between">
                   <span className="text-slate-500">Status</span>
-                  <span className="font-medium text-emerald-600">Active</span>
+                  <button onClick={() => setShowStatusMenu(!showStatusMenu)} className={`text-xs px-3 py-1 rounded-full font-medium border ${STATUS_COLORS[dealStatus]}`}>
+                    {dealStatus} ▾
+                  </button>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Dealerships</span>
@@ -405,6 +501,10 @@ export default function ClientDealFile() {
                   <span className="text-slate-500">Active Leads</span>
                   <span className="font-semibold text-amber-600">{activeCount}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Offers</span>
+                  <span className="font-semibold text-emerald-600">{offers.length}</span>
+                </div>
                 <div className="border-t border-slate-100 pt-4 flex justify-between">
                   <span className="text-slate-500">Time on File</span>
                   <span className="font-semibold">{formatTime(totalTime)}</span>
@@ -416,7 +516,7 @@ export default function ClientDealFile() {
               </div>
             </div>
 
-            {/* Progress bar */}
+            {/* Outreach progress */}
             <div className="bg-white rounded-3xl shadow p-8">
               <h3 className="font-semibold mb-4">Outreach Progress</h3>
               <div className="space-y-3">
@@ -425,8 +525,7 @@ export default function ClientDealFile() {
                     <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                       d.status === 'Called' ? 'bg-emerald-500' :
                       d.status === 'Follow Up' ? 'bg-amber-400' :
-                      d.status === 'No Inventory' ? 'bg-red-400' :
-                      'bg-slate-200'
+                      d.status === 'No Inventory' ? 'bg-red-400' : 'bg-slate-200'
                     }`} />
                     <div className="text-sm truncate flex-1">{d.name}</div>
                     <div className="text-xs text-slate-400 shrink-0">{d.distance}mi</div>
@@ -434,10 +533,7 @@ export default function ClientDealFile() {
                 ))}
               </div>
               <div className="mt-5 bg-slate-100 rounded-full h-2">
-                <div
-                  className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${dealerships.length > 0 ? (calledCount / dealerships.length) * 100 : 0}%` }}
-                />
+                <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${dealerships.length > 0 ? (calledCount / dealerships.length) * 100 : 0}%` }} />
               </div>
               <div className="text-xs text-slate-500 mt-2 text-right">{calledCount}/{dealerships.length} contacted</div>
             </div>
@@ -446,13 +542,16 @@ export default function ClientDealFile() {
             <div className="bg-white rounded-3xl shadow p-8">
               <h3 className="font-semibold mb-4">Actions</h3>
               <div className="space-y-3">
+                <button onClick={() => setShowOfferModal(true)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
+                  💰 Log New Offer
+                </button>
                 <button className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
                   📋 Copy Deal Summary
                 </button>
                 <button className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
                   📧 Send Client Update
                 </button>
-                <button className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-amber-300 hover:bg-amber-50 transition text-sm font-medium">
+                <button onClick={() => { setDealStatus('Complete'); }} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
                   🏁 Mark Deal Complete
                 </button>
               </div>
@@ -461,7 +560,7 @@ export default function ClientDealFile() {
         </div>
       </div>
 
-      {/* Call Log Modal */}
+      {/* Call Modal */}
       {selectedDealership && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl">
@@ -469,83 +568,75 @@ export default function ClientDealFile() {
               <h3 className="text-xl font-semibold">Log Call</h3>
               <p className="text-slate-500 mt-1">{selectedDealership.name} · {selectedDealership.phone}</p>
             </div>
-
             <div className="space-y-5">
-              {/* Contact name */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Contact Name <span className="text-slate-400 font-normal">(optional)</span></label>
-                <input
-                  type="text"
-                  value={contactName}
-                  onChange={e => setContactName(e.target.value)}
-                  placeholder="e.g. Mike from internet sales"
-                  className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500"
-                />
+                <input type="text" value={contactName} onChange={e => setContactName(e.target.value)} placeholder="e.g. Mike from internet sales" className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500" />
               </div>
-
-              {/* Outcome */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Outcome</label>
-                <select
-                  value={outcome}
-                  onChange={e => setOutcome(e.target.value)}
-                  className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 bg-white"
-                >
-                  {OUTCOMES.map(o => (
-                    <option key={o} value={o}>{o}</option>
-                  ))}
+                <select value={outcome} onChange={e => setOutcome(e.target.value)} className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 bg-white">
+                  {OUTCOMES.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
-
-              {/* Notes */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Notes</label>
-                <textarea
-                  value={callNotes}
-                  onChange={e => setCallNotes(e.target.value)}
-                  className="w-full border border-slate-300 rounded-2xl px-4 py-3 h-28 resize-none text-sm focus:outline-none focus:border-emerald-500"
-                  placeholder="Price quoted, VIN, availability date, anything worth noting..."
-                />
+                <textarea value={callNotes} onChange={e => setCallNotes(e.target.value)} className="w-full border border-slate-300 rounded-2xl px-4 py-3 h-28 resize-none text-sm focus:outline-none focus:border-emerald-500" placeholder="Price quoted, VIN, availability date, next steps..." />
               </div>
-
-              {/* Rating */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Dealer Rating <span className="text-slate-400 font-normal">— {RATING_LABELS[callRating]}</span>
                 </label>
                 <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map(r => (
-                    <button
-                      key={r}
-                      onClick={() => setCallRating(r)}
-                      className={`flex-1 py-2.5 rounded-2xl border text-sm font-semibold transition ${
-                        callRating === r
-                          ? r >= 4 ? 'bg-emerald-600 text-white border-emerald-600'
-                          : r === 3 ? 'bg-amber-500 text-white border-amber-500'
-                          : 'bg-red-500 text-white border-red-500'
-                          : 'border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      {r}
-                    </button>
+                  {[1,2,3,4,5].map(r => (
+                    <button key={r} onClick={() => setCallRating(r)} className={`flex-1 py-2.5 rounded-2xl border text-sm font-semibold transition ${callRating === r ? r >= 4 ? 'bg-emerald-600 text-white border-emerald-600' : r === 3 ? 'bg-amber-500 text-white border-amber-500' : 'bg-red-500 text-white border-red-500' : 'border-slate-200 hover:bg-slate-50'}`}>{r}</button>
                   ))}
                 </div>
               </div>
             </div>
-
             <div className="flex gap-3 mt-8">
-              <button
-                onClick={() => setSelectedDealership(null)}
-                className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50 text-sm font-medium"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={logCall}
-                className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 text-sm font-medium"
-              >
-                Save Call Log
-              </button>
+              <button onClick={() => setSelectedDealership(null)} className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50 text-sm font-medium">Cancel</button>
+              <button onClick={logCall} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 text-sm font-medium">Save Call Log</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Offer Modal */}
+      {showOfferModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl">
+            <div className="mb-6">
+              <h3 className="text-xl font-semibold">Log Offer</h3>
+              <p className="text-slate-500 mt-1">Record a price quote from a dealership</p>
+            </div>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Dealership</label>
+                <select value={offerDealership} onChange={e => setOfferDealership(e.target.value)} className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 bg-white">
+                  <option value="">Select dealership</option>
+                  {dealerships.map(d => <option key={d.id} value={d.name}>{d.name}</option>)}
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Quoted Price (OTD)</label>
+                  <input type="text" value={offerPrice} onChange={e => setOfferPrice(e.target.value)} placeholder="$58,500" className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">MSRP <span className="text-slate-400 font-normal">(optional)</span></label>
+                  <input type="text" value={offerMsrp} onChange={e => setOfferMsrp(e.target.value)} placeholder="$62,000" className="w-full border border-slate-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Notes</label>
+                <textarea value={offerNotes} onChange={e => setOfferNotes(e.target.value)} className="w-full border border-slate-300 rounded-2xl px-4 py-3 h-24 resize-none text-sm focus:outline-none focus:border-emerald-500" placeholder="VIN, color, availability, conditions, expiry..." />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-8">
+              <button onClick={() => setShowOfferModal(false)} className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50 text-sm font-medium">Cancel</button>
+              <button onClick={logOffer} disabled={!offerDealership || !offerPrice} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-sm font-medium">Save Offer</button>
             </div>
           </div>
         </div>
