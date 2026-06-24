@@ -30,7 +30,7 @@ const schema = a.schema({
     zipCode: a.string(),
   }).authorization(allow => [
     allow.groups(['advocates', 'admins']),
-    allow.owner().to(['read']),
+    allow.owner().to(['create', 'read']),
   ]),
 
   CallLog: a.model({
@@ -80,7 +80,7 @@ const schema = a.schema({
     submittedAt: a.string(),
   }).authorization(allow => [
     allow.groups(['advocates', 'admins']),
-    allow.owner().to(['read']),
+    allow.owner().to(['create', 'read']),
   ]),
 
   Dealership: a.model({
