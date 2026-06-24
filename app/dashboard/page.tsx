@@ -1,16 +1,8 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
 
 export default function Dashboard() {
-  const router = useRouter();
-
-  const handleLogout = () => {
-    localStorage.removeItem('currentUser');
-    router.push('/');
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 p-8">
       <div className="max-w-6xl mx-auto">
@@ -20,14 +12,6 @@ export default function Dashboard() {
             <img src="/logo.png" alt="DriveAdvocate" className="h-10" />
             <h1 className="text-4xl font-bold text-slate-900">DriveAdvocate</h1>
           </div>
-          
-          {/* Temporary Logout Button for Testing */}
-          <button
-            onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-2xl font-medium flex items-center gap-2 transition-colors"
-          >
-            Logout (Test Mode)
-          </button>
         </div>
 
         {/* Main Dashboard Content */}
@@ -38,7 +22,6 @@ export default function Dashboard() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Placeholder cards */}
             <div className="border border-slate-200 rounded-2xl p-8">
               <h3 className="font-semibold text-xl mb-4">Current Deal Status</h3>
               <p className="text-emerald-600 font-medium">Active Deal ✓</p>
