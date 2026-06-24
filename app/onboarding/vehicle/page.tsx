@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Make {
@@ -16,8 +16,10 @@ interface Model {
 export default function VehicleWizard() {
   const router = useRouter();
 
+  const currentYear = 2026; // Current time is June 2026
+
   const [formData, setFormData] = useState({
-    year: '2025',
+    year: currentYear.toString(),
     make: '',
     model: '',
     trim: '',
@@ -47,6 +49,11 @@ export default function VehicleWizard() {
     'Blind Spot Monitoring', '360 Camera', 'Trailer Backup Assist', 'Power Tailgate'
   ];
 
+  const commonTrims = [
+    'Base', 'LE', 'XLE', 'Limited', 'TRD Off-Road', 'TRD Pro', 'Platinum', 
+    'Lariat', 'King Ranch', 'Raptor', 'SRT', 'GT', 'Premier', 'RS', 'Sport', 'EX', 'LX'
+  ];
+
   const popularMakes = [
     'Toyota', 'Ford', 'Chevrolet', 'Honda', 'Nissan', 'Jeep', 'Ram', 'GMC', 
     'BMW', 'Mercedes-Benz', 'Audi', 'Lexus', 'Hyundai', 'Kia', 'Subaru', 
@@ -64,26 +71,23 @@ export default function VehicleWizard() {
     return images[key] || 'https://picsum.photos/id/1075/800/450';
   };
 
-  // Load Makes + Prioritize Popular Ones
+  // Load Makes (Popular first)
   useEffect(() => {
     fetch('https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json')
       .then(res => res.json())
       .then(data => {
         const allMakes: Make[] = data.Results || [];
 
-        // Prioritize popular makes first
         const prioritized = popularMakes
           .map(name => allMakes.find(m => m.Make_Name.toLowerCase() === name.toLowerCase()))
           .filter(Boolean) as Make[];
 
-        // Add remaining makes (sorted)
         const remaining = allMakes
           .filter(m => !popularMakes.some(p => p.toLowerCase() === m.Make_Name.toLowerCase()))
           .sort((a, b) => a.Make_Name.localeCompare(b.Make_Name))
           .slice(0, 35);
 
-        const finalMakes = [...prioritized, ...remaining];
-        setMakes(finalMakes);
+        setMakes([...prioritized, ...remaining]);
         setLoadingMakes(false);
       })
       .catch(() => setLoadingMakes(false));
@@ -113,6 +117,16 @@ export default function VehicleWizard() {
       })
       .catch(() => setLoadingModels(false));
   }, [formData.make, formData.year, makes]);
+
+  // Load saved data
+  useEffect(() => {
+    const saved = localStorage.getItem('vehicleFormData');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setFormData({ ...parsed, accessories: parsed.accessories || [] });
+      setHasExistingData(true);
+    }
+  }, []);
 
   const updateForm = (key: string, value: any) => {
     const updated = { ...formData, [key]: value };
@@ -147,7 +161,7 @@ export default function VehicleWizard() {
       <div className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-3">Build Your Perfect Vehicle</h1>
-          <p className="text-slate-600">Real NHTSA data • Popular makes first</p>
+          <p className="text-slate-600">New Vehicles Only • {currentYear} and {currentYear - 1}</p>
         </div>
 
         {hasExistingData && (
@@ -166,9 +180,8 @@ export default function VehicleWizard() {
                     <label className="block text-sm font-medium text-slate-600 mb-3">Year</label>
                     <select value={formData.year} onChange={(e) => updateForm('year', e.target.value)}
                       className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
-                      {Array.from({ length: 15 }, (_, i) => 2026 - i).map(y => (
-                        <option key={y} value={y}>{y}</option>
-                      ))}
+                      <option value={currentYear}>{currentYear} (Current)</option>
+                      <option value={currentYear - 1}>{currentYear - 1}</option>
                     </select>
                   </div>
 
@@ -204,13 +217,25 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Trim / Package</label>
-                    <input 
-                      type="text" 
-                      value={formData.trim} 
-                      onChange={(e) => updateForm('trim', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl" 
-                      placeholder="Limited TRD, Lariat, etc." 
-                    />
+                    <div className="flex gap-2">
+                      <select 
+                        value={formData.trim} 
+                        onChange={(e) => updateForm('trim', e.target.value)}
+                        className="flex-1 px-4 py-3 border border-slate-300 rounded-2xl"
+                      >
+                        <option value="">Select Common Trim</option>
+                        {commonTrims.map(trim => (
+                          <option key={trim} value={trim}>{trim}</option>
+                        ))}
+                      </select>
+                      <input 
+                        type="text" 
+                        value={formData.trim} 
+                        onChange={(e) => updateForm('trim', e.target.value)}
+                        className="flex-1 px-4 py-3 border border-slate-300 rounded-2xl" 
+                        placeholder="Or type custom trim" 
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
