@@ -11,13 +11,16 @@ export default function VehicleWizard() {
     make: 'Toyota',
     model: 'Tundra',
     trim: 'Limited TRD',
+    color1: 'White',
+    color2: 'Black',
+    color3: 'Gray',
     accessories: [] as string[],
   });
 
   const [hasExistingData, setHasExistingData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock data - ready for real database population
+  // Mock data
   const years = ['2026', '2025', '2024', '2023', '2022', '2021'];
   const makes = ['Toyota', 'Ford', 'Chevrolet', 'Ram', 'GMC', 'Honda', 'Nissan'];
   
@@ -35,6 +38,8 @@ export default function VehicleWizard() {
     'F-150': ['XL', 'XLT', 'Lariat', 'King Ranch', 'Platinum'],
   };
 
+  const colors = ['White', 'Black', 'Gray', 'Silver', 'Blue', 'Red', 'Green', 'Brown', 'Beige'];
+
   const availableAccessories = [
     'Towing Package', 'Sunroof / Moonroof', 'Leather Seats', 'Adaptive Cruise Control',
     'Bed Liner', 'Running Boards', 'Premium Audio', 'Remote Start',
@@ -42,7 +47,6 @@ export default function VehicleWizard() {
     'Blind Spot Monitoring', '360 Camera', 'Trailer Backup Assist'
   ];
 
-  // Mock image mapping (will be replaced by real DB URLs)
   const getVehicleImage = () => {
     const key = `${formData.make}-${formData.model}`.toLowerCase();
     const images: Record<string, string> = {
@@ -91,7 +95,6 @@ export default function VehicleWizard() {
     currentUser.hasActiveDeal = true;
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-    // Small delay for better UX
     setTimeout(() => {
       router.push('/dashboard');
     }, 600);
@@ -117,12 +120,10 @@ export default function VehicleWizard() {
           <div className="grid lg:grid-cols-5 gap-8">
             {/* Left Column - Selections */}
             <div className="lg:col-span-3 space-y-8">
-              {/* Vehicle Selection */}
+              {/* Vehicle Configuration */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Vehicle Configuration</h2>
-                
                 <div className="grid grid-cols-2 gap-6">
-                  {/* Year & Make */}
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-slate-600 mb-3">Year</label>
@@ -148,7 +149,6 @@ export default function VehicleWizard() {
                     </div>
                   </div>
 
-                  {/* Model & Trim */}
                   <div className="space-y-6">
                     <div>
                       <label className="block text-sm font-medium text-slate-600 mb-3">Model</label>
@@ -165,6 +165,38 @@ export default function VehicleWizard() {
                         {(trims[formData.model] || ['Base']).map(t => <option key={t} value={t}>{t}</option>)}
                       </select>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Color Preferences - NEW */}
+              <div className="bg-white rounded-3xl shadow p-8">
+                <h2 className="text-xl font-semibold mb-6">Color Preferences</h2>
+                <p className="text-slate-500 mb-6 text-sm">Rank your top 3 colors (most to least preferred)</p>
+                
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-3">1st Choice (Most Preferred)</label>
+                    <select value={formData.color1} onChange={(e) => updateForm('color1', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600">
+                      {colors.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-3">2nd Choice</label>
+                    <select value={formData.color2} onChange={(e) => updateForm('color2', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600">
+                      {colors.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-3">3rd Choice</label>
+                    <select value={formData.color3} onChange={(e) => updateForm('color3', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600">
+                      {colors.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -191,7 +223,7 @@ export default function VehicleWizard() {
               </div>
             </div>
 
-            {/* Right Column - Preview */}
+            {/* Preview Sidebar */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-3xl shadow p-8 sticky top-8">
                 <h2 className="text-xl font-semibold mb-6">Your Build Preview</h2>
@@ -204,13 +236,14 @@ export default function VehicleWizard() {
                   />
                 </div>
 
-                <div className="space-y-4">
-                  <div className="text-2xl font-bold">{selectedVehicle}</div>
+                <div className="space-y-4 text-sm">
+                  <div><span className="font-medium">Vehicle:</span> {selectedVehicle}</div>
+                  <div><span className="font-medium">Colors:</span> {formData.color1} → {formData.color2} → {formData.color3}</div>
                   
                   {formData.accessories.length > 0 && (
                     <div>
-                      <p className="text-sm text-slate-500 mb-2">Selected Accessories ({formData.accessories.length})</p>
-                      <div className="flex flex-wrap gap-2">
+                      <span className="font-medium">Accessories ({formData.accessories.length})</span>
+                      <div className="flex flex-wrap gap-2 mt-2">
                         {formData.accessories.map(acc => (
                           <span key={acc} className="text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full">
                             {acc}
