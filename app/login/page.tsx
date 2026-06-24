@@ -67,7 +67,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-10">
+      <div className="max-w-md w-full bg-[#f4f4f4] rounded-3xl shadow-xl p-10">
         <div className="text-center mb-8">
           <img src="/logo.png" alt="DriveAdvocate" className="mx-auto h-12 mb-4" />
           <h1 className="text-3xl font-bold">Welcome to DriveAdvocate</h1>
