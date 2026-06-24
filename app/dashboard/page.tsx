@@ -5,8 +5,8 @@ import React from 'react';
 export default function Dashboard() {
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Top Navigation */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
+      {/* Top Navigation - Matching homepage style */}
+      <nav className="bg-[#f4f4f4] border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img src="/logo.png" alt="DriveAdvocate" className="h-9" />
