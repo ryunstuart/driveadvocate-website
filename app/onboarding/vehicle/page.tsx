@@ -3,14 +3,24 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface Make {
+  Make_ID: number;
+  Make_Name: string;
+}
+
+interface Model {
+  Model_ID: number;
+  Model_Name: string;
+}
+
 export default function VehicleWizard() {
   const router = useRouter();
 
   const [formData, setFormData] = useState({
     year: '2025',
-    make: 'Toyota',
-    model: 'Tundra',
-    trim: 'Limited TRD',
+    make: '',
+    model: '',
+    trim: '',
     exteriorColor1: 'White',
     exteriorColor2: 'Black',
     exteriorColor3: 'Silver',
@@ -20,35 +30,21 @@ export default function VehicleWizard() {
     accessories: [] as string[],
   });
 
+  const [makes, setMakes] = useState<Make[]>([]);
+  const [models, setModels] = useState<Model[]>([]);
+  const [loadingMakes, setLoadingMakes] = useState(true);
+  const [loadingModels, setLoadingModels] = useState(false);
+
   const [hasExistingData, setHasExistingData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Mock data
-  const years = ['2026', '2025', '2024', '2023', '2022', '2021'];
-  const makes = ['Toyota', 'Ford', 'Chevrolet', 'Ram', 'GMC', 'Honda', 'Nissan'];
-  
-  const models: Record<string, string[]> = {
-    'Toyota': ['Tundra', 'Tacoma', '4Runner', 'Camry', 'RAV4', 'Highlander'],
-    'Ford': ['F-150', 'Super Duty', 'Explorer', 'Maverick'],
-    'Chevrolet': ['Silverado', 'Tahoe', 'Colorado', 'Traverse'],
-    'Ram': ['1500', '2500', '3500'],
-    'GMC': ['Sierra', 'Yukon'],
-  };
-
-  const trims: Record<string, string[]> = {
-    'Tundra': ['SR', 'SR5', 'Limited', 'Limited TRD', 'Platinum', '1794 Edition'],
-    'Tacoma': ['SR', 'TRD Sport', 'TRD Off-Road', 'Limited'],
-    'F-150': ['XL', 'XLT', 'Lariat', 'King Ranch', 'Platinum'],
-  };
-
-  const exteriorColors = ['White', 'Black', 'Silver', 'Gray', 'Blue', 'Red', 'Green', 'Brown', 'Midnight Black'];
-  const interiorColors = ['Black', 'Gray', 'Beige', 'Brown', 'Tan', 'Red', 'White'];
+  const exteriorColors = ['White', 'Black', 'Silver', 'Gray', 'Blue', 'Red', 'Green', 'Brown', 'Midnight Black', 'Pearl White'];
+  const interiorColors = ['Black', 'Gray', 'Beige', 'Brown', 'Tan', 'Red', 'White', 'Two-Tone'];
 
   const availableAccessories = [
     'Towing Package', 'Sunroof / Moonroof', 'Leather Seats', 'Adaptive Cruise Control',
-    'Bed Liner', 'Running Boards', 'Premium Audio', 'Remote Start',
-    'All-Weather Floor Mats', 'Power Deployable Running Boards', 'Heated Seats',
-    'Blind Spot Monitoring', '360 Camera', 'Trailer Backup Assist'
+    'Bed Liner', 'Running Boards', 'Premium Audio', 'Remote Start', 'Heated Seats',
+    'Blind Spot Monitoring', '360 Camera', 'Trailer Backup Assist', 'Power Tailgate'
   ];
 
   const getVehicleImage = () => {
@@ -62,6 +58,38 @@ export default function VehicleWizard() {
     return images[key] || 'https://picsum.photos/id/1075/800/450';
   };
 
+  // Load Makes
+  useEffect(() => {
+    fetch('https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json')
+      .then(res => res.json())
+      .then(data => {
+        setMakes(data.Results || []);
+        setLoadingMakes(false);
+      })
+      .catch(() => setLoadingMakes(false));
+  }, []);
+
+  // Load Models when Make or Year changes
+  useEffect(() => {
+    if (!formData.make || !formData.year) return;
+
+    const makeObj = makes.find(m => m.Make_Name === formData.make);
+    if (!makeObj) return;
+
+    setLoadingModels(true);
+    fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeIdYear/makeId/${makeObj.Make_ID}/modelyear/${formData.year}?format=json`)
+      .then(res => res.json())
+      .then(data => {
+        setModels(data.Results || []);
+        if (data.Results?.length > 0 && !formData.model) {
+          updateForm('model', data.Results[0].Model_Name);
+        }
+        setLoadingModels(false);
+      })
+      .catch(() => setLoadingModels(false));
+  }, [formData.make, formData.year, makes]);
+
+  // Load saved data
   useEffect(() => {
     const saved = localStorage.getItem('vehicleFormData');
     if (saved) {
@@ -85,11 +113,10 @@ export default function VehicleWizard() {
     const updatedAccessories = current.includes(accessory)
       ? current.filter(a => a !== accessory)
       : [...current, accessory];
-
     updateForm('accessories', updatedAccessories);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
@@ -104,14 +131,14 @@ export default function VehicleWizard() {
     }, 600);
   };
 
-  const selectedVehicle = `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`;
+  const selectedVehicle = `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim();
 
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-3">Build Your Perfect Vehicle</h1>
-          <p className="text-slate-600 max-w-md mx-auto">We'll negotiate the best price on this exact build</p>
+          <p className="text-slate-600">Powered by real NHTSA vehicle data</p>
         </div>
 
         {hasExistingData && (
@@ -122,53 +149,48 @@ export default function VehicleWizard() {
 
         <form onSubmit={handleSubmit} className="space-y-10">
           <div className="grid lg:grid-cols-5 gap-8">
-            {/* Left Column - Selections */}
+            {/* Left Column */}
             <div className="lg:col-span-3 space-y-8">
-              {/* Vehicle Configuration */}
+              {/* Vehicle Config */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Vehicle Configuration</h2>
                 <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-3">Year</label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {years.map((y) => (
-                          <button key={y} type="button" onClick={() => updateForm('year', y)}
-                            className={`py-3 rounded-2xl border text-center transition-all ${formData.year === y ? 'border-emerald-600 bg-emerald-50 text-emerald-700 font-medium' : 'border-slate-200 hover:border-slate-300'}`}>
-                            {y}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-3">Make</label>
-                      <select value={formData.make} onChange={(e) => {
-                        updateForm('make', e.target.value);
-                        updateForm('model', models[e.target.value]?.[0] || '');
-                      }}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600">
-                        {makes.map(make => <option key={make} value={make}>{make}</option>)}
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-3">Year</label>
+                    <select value={formData.year} onChange={(e) => updateForm('year', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
+                      {Array.from({ length: 15 }, (_, i) => 2026 - i).map(y => (
+                        <option key={y} value={y}>{y}</option>
+                      ))}
+                    </select>
                   </div>
 
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-3">Model</label>
-                      <select value={formData.model} onChange={(e) => updateForm('model', e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600">
-                        {(models[formData.make] || []).map(m => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-3">Make</label>
+                    <select value={formData.make} onChange={(e) => updateForm('make', e.target.value)}
+                      disabled={loadingMakes} className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
+                      <option value="">Select Make</option>
+                      {makes.map(make => (
+                        <option key={make.Make_ID} value={make.Make_Name}>{make.Make_Name}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-3">Trim</label>
-                      <select value={formData.trim} onChange={(e) => updateForm('trim', e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600">
-                        {(trims[formData.model] || ['Base']).map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-3">Model</label>
+                    <select value={formData.model} onChange={(e) => updateForm('model', e.target.value)}
+                      disabled={loadingModels || !formData.make} className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
+                      <option value="">Select Model</option>
+                      {models.map(model => (
+                        <option key={model.Model_ID} value={model.Model_Name}>{model.Model_Name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-600 mb-3">Trim / Package</label>
+                    <input type="text" value={formData.trim} onChange={(e) => updateForm('trim', e.target.value)}
+                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl" placeholder="Limited TRD, Lariat, etc." />
                   </div>
                 </div>
               </div>
@@ -176,19 +198,15 @@ export default function VehicleWizard() {
               {/* Exterior Colors */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Exterior Color Preferences</h2>
-                <p className="text-slate-500 mb-6 text-sm">Rank your top 3 exterior colors</p>
-                
                 <div className="space-y-6">
-                  {[1,2,3].map((rank) => (
+                  {[1, 2, 3].map((rank) => (
                     <div key={rank}>
                       <label className="block text-sm font-medium text-slate-600 mb-3">
-                        {rank}st Choice {rank === 1 && '(Most Preferred)'}
+                        {rank === 1 ? '1st Choice (Most Preferred)' : `${rank}nd Choice`}
                       </label>
-                      <select 
-                        value={formData[`exteriorColor${rank}` as keyof typeof formData] as string} 
+                      <select value={formData[`exteriorColor${rank}` as keyof typeof formData] as string}
                         onChange={(e) => updateForm(`exteriorColor${rank}`, e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600"
-                      >
+                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
                         {exteriorColors.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
@@ -199,19 +217,15 @@ export default function VehicleWizard() {
               {/* Interior Colors */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Interior Color Preferences</h2>
-                <p className="text-slate-500 mb-6 text-sm">Rank your top 3 interior colors</p>
-                
                 <div className="space-y-6">
-                  {[1,2,3].map((rank) => (
+                  {[1, 2, 3].map((rank) => (
                     <div key={rank}>
                       <label className="block text-sm font-medium text-slate-600 mb-3">
-                        {rank}st Choice {rank === 1 && '(Most Preferred)'}
+                        {rank === 1 ? '1st Choice (Most Preferred)' : `${rank}nd Choice`}
                       </label>
-                      <select 
-                        value={formData[`interiorColor${rank}` as keyof typeof formData] as string} 
+                      <select value={formData[`interiorColor${rank}` as keyof typeof formData] as string}
                         onChange={(e) => updateForm(`interiorColor${rank}`, e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600"
-                      >
+                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
                         {interiorColors.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                     </div>
@@ -221,19 +235,13 @@ export default function VehicleWizard() {
 
               {/* Accessories */}
               <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="text-xl font-semibold mb-6">Desired Options & Accessories</h2>
+                <h2 className="text-xl font-semibold mb-6">Desired Accessories</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {availableAccessories.map((acc) => (
-                    <button
-                      key={acc}
-                      type="button"
-                      onClick={() => toggleAccessory(acc)}
+                    <button key={acc} type="button" onClick={() => toggleAccessory(acc)}
                       className={`p-4 text-left border rounded-2xl transition-all text-sm ${
-                        (formData.accessories || []).includes(acc)
-                          ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
+                        (formData.accessories || []).includes(acc) ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-slate-200 hover:border-slate-300'
+                      }`}>
                       {acc}
                     </button>
                   ))}
@@ -244,46 +252,32 @@ export default function VehicleWizard() {
             {/* Preview Sidebar */}
             <div className="lg:col-span-2">
               <div className="bg-white rounded-3xl shadow p-8 sticky top-8">
-                <h2 className="text-xl font-semibold mb-6">Your Build Preview</h2>
+                <h2 className="text-xl font-semibold mb-6">Build Preview</h2>
                 
                 <div className="aspect-video bg-slate-100 rounded-2xl overflow-hidden mb-6">
-                  <img 
-                    src={getVehicleImage()} 
-                    alt={selectedVehicle}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={getVehicleImage()} alt={selectedVehicle} className="w-full h-full object-cover" />
                 </div>
 
-                <div className="space-y-4 text-sm leading-relaxed">
-                  <div><span className="font-medium">Vehicle:</span> {selectedVehicle}</div>
-                  
-                  <div>
-                    <span className="font-medium">Exterior:</span> {formData.exteriorColor1} → {formData.exteriorColor2} → {formData.exteriorColor3}
-                  </div>
-                  <div>
-                    <span className="font-medium">Interior:</span> {formData.interiorColor1} → {formData.interiorColor2} → {formData.interiorColor3}
-                  </div>
-                  
+                <div className="space-y-4 text-sm">
+                  <div><span className="font-medium">Vehicle:</span> {selectedVehicle || 'Please select make & model'}</div>
+                  <div><span className="font-medium">Exterior:</span> {formData.exteriorColor1} → {formData.exteriorColor2} → {formData.exteriorColor3}</div>
+                  <div><span className="font-medium">Interior:</span> {formData.interiorColor1} → {formData.interiorColor2} → {formData.interiorColor3}</div>
+
                   {formData.accessories.length > 0 && (
                     <div>
                       <span className="font-medium">Accessories ({formData.accessories.length})</span>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {formData.accessories.map(acc => (
-                          <span key={acc} className="text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full">
-                            {acc}
-                          </span>
+                          <span key={acc} className="text-xs bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full">{acc}</span>
                         ))}
                       </div>
                     </div>
                   )}
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="mt-10 w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white py-4 rounded-2xl text-lg font-semibold transition flex items-center justify-center gap-3"
-                >
-                  {isSubmitting ? 'Saving Build...' : 'Start Negotiating This Build →'}
+                <button type="submit" disabled={isSubmitting || !formData.make || !formData.model}
+                  className="mt-10 w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white py-4 rounded-2xl text-lg font-semibold transition">
+                  {isSubmitting ? 'Saving...' : 'Start Negotiating This Build →'}
                 </button>
               </div>
             </div>
