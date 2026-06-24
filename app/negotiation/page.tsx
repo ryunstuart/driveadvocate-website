@@ -1,174 +1,252 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function Home() {
-  const [menuOpen, setMenuOpen] = useState(false);
+interface Deal {
+  id: string;
+  clientName: string;
+  vehicle: string;
+  submitted: string;
+  status: 'New' | 'In Progress' | 'Follow Up' | 'Complete';
+  priority: number;
+}
+
+interface DealFileState {
+  totalTime: number;
+  callLogs: { id: number }[];
+  dealerships: { status: string }[];
+}
+
+const BASE_DEALS: Deal[] = [
+  { id: 'deal-001', clientName: 'Johnathan Reyes', vehicle: '2025 Toyota Tundra Limited', submitted: '2026-06-23', status: 'New', priority: 1 },
+  { id: 'deal-002', clientName: 'Maria Gonzalez', vehicle: '2026 Ford F-150 Lariat', submitted: '2026-06-22', status: 'In Progress', priority: 2 },
+  { id: 'deal-003', clientName: 'David Chen', vehicle: '2025 Chevrolet Silverado 1500', submitted: '2026-06-22', status: 'Follow Up', priority: 3 },
+  { id: 'deal-004', clientName: 'Sarah Patel', vehicle: '2025 Ram 1500 Limited', submitted: '2026-06-21', status: 'In Progress', priority: 4 },
+];
+
+function getDealStats(dealId: string): { timeSpent: number; dealershipsContacted: number; callCount: number } {
+  if (typeof window === 'undefined') return { timeSpent: 0, dealershipsContacted: 0, callCount: 0 };
+  try {
+    const saved = localStorage.getItem(`dealfile-${dealId}`);
+    if (!saved) return { timeSpent: 0, dealershipsContacted: 0, callCount: 0 };
+    const state: DealFileState = JSON.parse(saved);
+    const dealershipsContacted = state.dealerships?.filter(d => d.status !== 'Not Called').length || 0;
+    return {
+      timeSpent: state.totalTime || 0,
+      dealershipsContacted,
+      callCount: state.callLogs?.length || 0,
+    };
+  } catch {
+    return { timeSpent: 0, dealershipsContacted: 0, callCount: 0 };
+  }
+}
+
+export default function NegotiationQueue() {
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deals, setDeals] = useState<Deal[]>(BASE_DEALS);
+  const [liveStats, setLiveStats] = useState<Record<string, { timeSpent: number; dealershipsContacted: number; callCount: number }>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const advocateDeals = JSON.parse(localStorage.getItem('advocateDeals') || '[]');
+      const merged = [...BASE_DEALS];
+      advocateDeals.forEach((d: any, i: number) => {
+        if (!merged.find(m => m.id === d.id)) {
+          merged.push({
+            id: d.id,
+            clientName: d.clientName,
+            vehicle: d.vehicle,
+            submitted: d.submitted,
+            status: d.status || 'New',
+            priority: BASE_DEALS.length + i + 1,
+          });
+        }
+      });
+      setDeals(merged);
+      const stats: Record<string, any> = {};
+      merged.forEach(d => { stats[d.id] = getDealStats(d.id); });
+      setLiveStats(stats);
+    } catch (e) {
+      console.error('Failed to load deals', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const filteredDeals = deals
+    .filter(deal =>
+      deal.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      deal.vehicle.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => a.priority - b.priority);
+
+  const totalTime = Object.values(liveStats).reduce((sum, s) => sum + s.timeSpent, 0);
+  const totalCalls = Object.values(liveStats).reduce((sum, s) => sum + s.callCount, 0);
+  const totalDealerships = Object.values(liveStats).reduce((sum, s) => sum + s.dealershipsContacted, 0);
+
+  const formatTime = (mins: number) => {
+    if (!mins) return '0m';
+    if (mins < 60) return `${mins}m`;
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  };
+
+  const statusColors: Record<string, string> = {
+    'New': 'bg-blue-100 text-blue-700',
+    'In Progress': 'bg-amber-100 text-amber-700',
+    'Follow Up': 'bg-purple-100 text-purple-700',
+    'Complete': 'bg-emerald-100 text-emerald-700',
+  };
 
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen bg-slate-50 py-8">
+      <div className="max-w-7xl mx-auto px-6">
 
-      {/* Header */}
-      <header className="bg-[#f4f4f4] text-slate-900 sticky top-0 z-50 border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="DriveAdvocate" className="h-9" />
-            <span className="text-xl font-bold">DriveAdvocate</span>
+        {/* Header */}
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold">Negotiation Queue</h1>
+            <p className="text-slate-500 mt-1">Active client files · sorted by submission date</p>
           </div>
+          <button
+            onClick={() => router.push('/advocate/intake')}
+            className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-medium hover:bg-emerald-700 transition"
+          >
+            + New Client
+          </button>
+        </div>
 
-          {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-            <a href="#how" className="hover:text-emerald-600 transition">How It Works</a>
-            <a href="#pricing" className="hover:text-emerald-600 transition">Pricing</a>
-            <a href="#book" className="hover:text-emerald-600 transition">Book a Call</a>
-            <Link href="/login" className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-2xl text-sm font-semibold transition">
-              Log In
-            </Link>
-          </nav>
-
-          {/* Mobile: Log In + Hamburger */}
-          <div className="flex items-center gap-3 md:hidden">
-            <Link href="/login" className="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-semibold">
-              Log In
-            </Link>
-            <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 rounded-xl hover:bg-slate-200 transition">
-              <div className="w-5 h-0.5 bg-slate-700 mb-1" />
-              <div className="w-5 h-0.5 bg-slate-700 mb-1" />
-              <div className="w-5 h-0.5 bg-slate-700" />
-            </button>
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-3xl shadow p-6">
+            <div className="text-sm text-slate-500">Active Files</div>
+            <div className="text-4xl font-bold mt-1">{deals.length}</div>
+          </div>
+          <div className="bg-white rounded-3xl shadow p-6">
+            <div className="text-sm text-slate-500">Total Time</div>
+            <div className="text-4xl font-bold mt-1">{formatTime(totalTime)}</div>
+          </div>
+          <div className="bg-white rounded-3xl shadow p-6">
+            <div className="text-sm text-slate-500">Calls Logged</div>
+            <div className="text-4xl font-bold mt-1">{totalCalls}</div>
+          </div>
+          <div className="bg-white rounded-3xl shadow p-6">
+            <div className="text-sm text-slate-500">Dealers Contacted</div>
+            <div className="text-4xl font-bold mt-1">{totalDealerships}</div>
           </div>
         </div>
 
-        {/* Mobile menu */}
-        {menuOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-[#f4f4f4] px-6 py-4 space-y-3">
-            <a href="#how" onClick={() => setMenuOpen(false)} className="block text-sm font-medium hover:text-emerald-600 py-2">How It Works</a>
-            <a href="#pricing" onClick={() => setMenuOpen(false)} className="block text-sm font-medium hover:text-emerald-600 py-2">Pricing</a>
-            <a href="#book" onClick={() => setMenuOpen(false)} className="block text-sm font-medium hover:text-emerald-600 py-2">Book a Call</a>
-          </div>
-        )}
-      </header>
-
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white py-16 md:py-24 text-center">
-        <div className="max-w-6xl mx-auto px-6">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">Your Voice at the<br />Dealership Table</h1>
-          <p className="text-lg md:text-2xl text-slate-300 mb-10 max-w-2xl mx-auto">
-            Professional car buying advocates who negotiate for you. Skip the stress and get the deal you deserve.
-          </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <a href="#book" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl text-base md:text-lg font-semibold transition">
-              Book a Free Discovery Call
-            </a>
-            <a href="#how" className="border border-white hover:bg-white hover:text-slate-900 text-white px-8 py-4 rounded-xl text-base md:text-lg font-semibold transition">
-              See How It Works
-            </a>
-          </div>
+        {/* Search */}
+        <div className="mb-6">
+          <input
+            type="text"
+            placeholder="Search by client name or vehicle..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            className="w-full max-w-md px-5 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 bg-white"
+          />
         </div>
-      </div>
 
-      {/* Why Us */}
-      <div className="max-w-6xl mx-auto px-6 py-16 md:py-20">
-        <h2 className="text-3xl md:text-4xl font-bold text-center mb-10">Why Choose DriveAdvocate</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 md:p-8 bg-white rounded-2xl shadow">
-            <div className="text-2xl mb-3">💪</div>
-            <h3 className="font-semibold text-lg mb-2">Expert Negotiation</h3>
-            <p className="text-slate-600 text-sm">We fight for the best price and remove junk fees on your behalf.</p>
-          </div>
-          <div className="p-6 md:p-8 bg-white rounded-2xl shadow">
-            <div className="text-2xl mb-3">⚡</div>
-            <h3 className="font-semibold text-lg mb-2">Total Convenience</h3>
-            <p className="text-slate-600 text-sm">We handle research, paperwork, and coordination — you just approve.</p>
-          </div>
-          <div className="p-6 md:p-8 bg-white rounded-2xl shadow">
-            <div className="text-2xl mb-3">🔍</div>
-            <h3 className="font-semibold text-lg mb-2">Complete Transparency</h3>
-            <p className="text-slate-600 text-sm">We work only for you with clear updates every step of the way.</p>
-          </div>
+        {/* Queue Table */}
+        <div className="bg-white rounded-3xl shadow overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50">
+                <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">#</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Client</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Vehicle</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Submitted</th>
+                <th className="text-center px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                <th className="text-center px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Dealers</th>
+                <th className="text-center px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Calls</th>
+                <th className="text-center px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Time</th>
+                <th className="text-right px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wide">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {loading ? (
+                // Loading skeletons
+                [...Array(4)].map((_, i) => (
+                  <tr key={i}>
+                    <td colSpan={9} className="px-8 py-5">
+                      <div className="flex items-center gap-5 animate-pulse">
+                        <div className="w-8 h-5 bg-slate-200 rounded" />
+                        <div className="flex-1 space-y-2">
+                          <div className="h-4 bg-slate-200 rounded w-32" />
+                          <div className="h-3 bg-slate-100 rounded w-48" />
+                        </div>
+                        <div className="h-6 w-20 bg-slate-200 rounded-full" />
+                        <div className="h-4 w-12 bg-slate-200 rounded" />
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : filteredDeals.length > 0 ? (
+                filteredDeals.map((deal) => {
+                  const stats = liveStats[deal.id] || { timeSpent: 0, dealershipsContacted: 0, callCount: 0 };
+                  return (
+                    <tr
+                      key={deal.id}
+                      onClick={() => router.push(`/negotiation/${deal.id}`)}
+                      className="hover:bg-slate-50 cursor-pointer transition"
+                    >
+                      <td className="px-6 py-5 font-mono font-bold text-emerald-600">#{deal.priority}</td>
+                      <td className="px-6 py-5 font-semibold">{deal.clientName}</td>
+                      <td className="px-6 py-5 text-slate-600 text-sm">{deal.vehicle}</td>
+                      <td className="px-6 py-5 text-sm text-slate-500">{deal.submitted}</td>
+                      <td className="px-6 py-5 text-center">
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${statusColors[deal.status]}`}>
+                          {deal.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-5 text-center font-semibold">{stats.dealershipsContacted}</td>
+                      <td className="px-6 py-5 text-center font-semibold">{stats.callCount}</td>
+                      <td className="px-6 py-5 text-center font-semibold text-sm">{formatTime(stats.timeSpent)}</td>
+                      <td className="px-6 py-5 text-right">
+                        <button
+                          onClick={e => { e.stopPropagation(); router.push(`/negotiation/${deal.id}`); }}
+                          className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 transition"
+                        >
+                          Open File
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td colSpan={9} className="px-8 py-16 text-center">
+                    {searchTerm ? (
+                      <div>
+                        <div className="text-4xl mb-3">🔍</div>
+                        <div className="font-semibold text-slate-700 mb-1">No results found</div>
+                        <div className="text-sm text-slate-400">No deals match "{searchTerm}" — try a different search</div>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-4xl mb-3">📂</div>
+                        <div className="font-semibold text-slate-700 mb-1">Queue is empty</div>
+                        <div className="text-sm text-slate-400 mb-4">No active deals yet — add your first client to get started</div>
+                        <button
+                          onClick={() => router.push('/advocate/intake')}
+                          className="px-6 py-2.5 bg-emerald-600 text-white rounded-2xl text-sm font-medium hover:bg-emerald-700 transition"
+                        >
+                          + Add First Client
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-      </div>
 
-      {/* Pricing */}
-      <div className="bg-slate-50 py-16 md:py-20" id="pricing">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-10">Our Services</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-8 rounded-3xl shadow text-center">
-              <h3 className="text-xl font-semibold mb-2">Research Package</h3>
-              <p className="text-4xl md:text-5xl font-bold text-emerald-600 mb-4">$149</p>
-              <p className="text-slate-600 mb-6 text-sm">Expert market report, target prices, and inventory shortlist.</p>
-              <a href="#book" className="block w-full bg-slate-900 text-white py-3 rounded-2xl text-sm font-medium hover:bg-slate-800 transition">
-                Choose Research
-              </a>
-            </div>
-            <div className="bg-white p-8 rounded-3xl shadow text-center border-2 border-emerald-600 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white px-6 py-1 rounded-full text-sm font-medium whitespace-nowrap">Most Popular</div>
-              <h3 className="text-xl font-semibold mb-2">Negotiation Service</h3>
-              <p className="text-4xl md:text-5xl font-bold text-emerald-600 mb-4">$999</p>
-              <p className="text-slate-600 mb-6 text-sm">Full dealer negotiation, locked OTD price, and coordination.</p>
-              <a href="#book" className="block w-full bg-emerald-600 text-white py-3 rounded-2xl text-sm font-medium hover:bg-emerald-700 transition">
-                Choose Negotiation
-              </a>
-            </div>
-            <div className="bg-white p-8 rounded-3xl shadow text-center">
-              <h3 className="text-xl font-semibold mb-2">Full Concierge</h3>
-              <p className="text-4xl md:text-5xl font-bold text-emerald-600 mb-4">$2,250</p>
-              <p className="text-slate-600 mb-6 text-sm">End-to-end service including sourcing and delivery.</p>
-              <a href="#book" className="block w-full bg-slate-900 text-white py-3 rounded-2xl text-sm font-medium hover:bg-slate-800 transition">
-                Choose Concierge
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* How It Works */}
-      <div className="py-16 md:py-20" id="how">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-10">How It Works</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div>
-              <div className="text-4xl md:text-5xl font-bold mb-3 text-emerald-600">1</div>
-              <h3 className="font-semibold mb-1 text-sm md:text-base">Tell Us What You Want</h3>
-              <p className="text-slate-600 text-xs md:text-sm">Quick call or short form</p>
-            </div>
-            <div>
-              <div className="text-4xl md:text-5xl font-bold mb-3 text-emerald-600">2</div>
-              <h3 className="font-semibold mb-1 text-sm md:text-base">We Research & Negotiate</h3>
-              <p className="text-slate-600 text-xs md:text-sm">We do the hard work with dealers</p>
-            </div>
-            <div>
-              <div className="text-4xl md:text-5xl font-bold mb-3 text-emerald-600">3</div>
-              <h3 className="font-semibold mb-1 text-sm md:text-base">You Review & Approve</h3>
-              <p className="text-slate-600 text-xs md:text-sm">Clear options presented to you</p>
-            </div>
-            <div>
-              <div className="text-4xl md:text-5xl font-bold mb-3 text-emerald-600">4</div>
-              <h3 className="font-semibold mb-1 text-sm md:text-base">Drive Away Happy</h3>
-              <p className="text-slate-600 text-xs md:text-sm">We handle the final details</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Legal Disclaimer */}
-      <div className="bg-slate-100 py-8 text-center text-xs md:text-sm text-slate-500 border-t">
-        <div className="max-w-4xl mx-auto px-6">
-          <p><strong>Legal Disclaimer:</strong> DriveAdvocate provides advocacy and negotiation services only. We do not guarantee specific savings or outcomes. Actual results vary. See our full Service Agreement for details.</p>
-        </div>
-      </div>
-
-      {/* Final CTA */}
-      <div className="bg-slate-900 text-white py-16 md:py-20 text-center" id="book">
-        <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Buy Your Next Car the Smart Way?</h2>
-          <p className="text-slate-300 mb-8 text-sm md:text-base">Join hundreds of buyers who got a better deal with DriveAdvocate.</p>
-          <a href="mailto:hello@driveadvocate.com" className="inline-block bg-emerald-600 hover:bg-emerald-700 px-10 py-4 rounded-2xl text-lg font-semibold transition">
-            Book Your Free Discovery Call
-          </a>
-        </div>
+        <p className="text-xs text-slate-400 mt-4 text-center">
+          Sorted oldest to newest · Click any row to open the client file · Stats update from localStorage
+        </p>
       </div>
     </div>
   );

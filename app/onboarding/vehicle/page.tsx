@@ -81,7 +81,7 @@ export default function VehicleWizard() {
         setMakes(prioritized);
         setLoadingMakes(false);
       })
-      .catch(() => setLoadingMakes(false));
+      .catch(() => { setLoadingMakes(false); setMakesError(true); });
   }, []);
 
   useEffect(() => {
@@ -98,7 +98,7 @@ export default function VehicleWizard() {
         setModels(unique);
         setLoadingModels(false);
       })
-      .catch(() => setLoadingModels(false));
+      .catch(() => { setLoadingModels(false); setModelsError(true); });
   }, [formData.make, formData.year, makes]);
 
   const updateForm = (key: string, value: any) => {
@@ -171,7 +171,7 @@ export default function VehicleWizard() {
         </div>
 
         <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold mb-3">
+          <h1 className="text-4xl font-bold mb-3">
             {clientName ? `${clientName}, build your perfect vehicle` : 'Build Your Perfect Vehicle'}
           </h1>
           <p className="text-slate-500">New vehicles only · Select your preferences below</p>
@@ -184,7 +184,7 @@ export default function VehicleWizard() {
               {/* Vehicle Config */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-lg font-semibold mb-6">Vehicle Configuration</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-2">Year</label>
                     <select value={formData.year} onChange={e => updateForm('year', e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500">
@@ -195,14 +195,14 @@ export default function VehicleWizard() {
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-2">Make</label>
                     <select value={formData.make} onChange={e => updateForm('make', e.target.value)} disabled={loadingMakes} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 disabled:opacity-50">
-                      <option value="">{loadingMakes ? 'Loading...' : 'Select Make'}</option>
+                      <option value="">{loadingMakes ? 'Loading makes...' : makesError ? 'Failed to load — type make below' : 'Select Make'}</option>
                       {makes.map(m => <option key={m.Make_ID} value={m.Make_Name}>{m.Make_Name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-2">Model</label>
                     <select value={formData.model} onChange={e => updateForm('model', e.target.value)} disabled={loadingModels || !formData.make} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 disabled:opacity-50">
-                      <option value="">{loadingModels ? 'Loading...' : 'Select Model'}</option>
+                      <option value="">{loadingModels ? 'Loading models...' : modelsError ? 'Failed to load — type model below' : 'Select Model'}</option>
                       {models.map(m => <option key={m.Model_ID} value={m.Model_Name}>{m.Model_Name}</option>)}
                     </select>
                   </div>
@@ -265,7 +265,7 @@ export default function VehicleWizard() {
               {/* Accessories */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-lg font-semibold mb-6">Desired Accessories</h2>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   {availableAccessories.map(acc => (
                     <button key={acc} type="button" onClick={() => toggleAccessory(acc)}
                       className={`p-4 text-left border rounded-2xl text-sm transition-all ${
