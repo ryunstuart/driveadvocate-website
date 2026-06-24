@@ -45,15 +45,29 @@ function getDealStats(dealId: string): { timeSpent: number; dealershipsContacted
 export default function NegotiationQueue() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [deals] = useState<Deal[]>(BASE_DEALS);
+  const [deals, setDeals] = useState<Deal[]>(BASE_DEALS);
   const [liveStats, setLiveStats] = useState<Record<string, { timeSpent: number; dealershipsContacted: number; callCount: number }>>({});
 
-  // Load live stats from localStorage
   useEffect(() => {
-    const stats: Record<string, { timeSpent: number; dealershipsContacted: number; callCount: number }> = {};
-    BASE_DEALS.forEach(d => {
-      stats[d.id] = getDealStats(d.id);
+    // Merge hardcoded deals with any added via advocate intake form
+    const advocateDeals = JSON.parse(localStorage.getItem('advocateDeals') || '[]');
+    const merged = [...BASE_DEALS];
+    advocateDeals.forEach((d: any, i: number) => {
+      if (!merged.find(m => m.id === d.id)) {
+        merged.push({
+          id: d.id,
+          clientName: d.clientName,
+          vehicle: d.vehicle,
+          submitted: d.submitted,
+          status: d.status || 'New',
+          priority: BASE_DEALS.length + i + 1,
+        });
+      }
     });
+    setDeals(merged);
+
+    const stats: Record<string, any> = {};
+    merged.forEach(d => { stats[d.id] = getDealStats(d.id); });
     setLiveStats(stats);
   }, []);
 
@@ -69,6 +83,7 @@ export default function NegotiationQueue() {
   const totalDealerships = Object.values(liveStats).reduce((sum, s) => sum + s.dealershipsContacted, 0);
 
   const formatTime = (mins: number) => {
+    if (!mins) return '0m';
     if (mins < 60) return `${mins}m`;
     return `${Math.floor(mins / 60)}h ${mins % 60}m`;
   };
@@ -91,7 +106,7 @@ export default function NegotiationQueue() {
             <p className="text-slate-500 mt-1">Active client files · sorted by submission date</p>
           </div>
           <button
-            onClick={() => router.push('/onboarding/profile')}
+            onClick={() => router.push('/advocate/intake')}
             className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-medium hover:bg-emerald-700 transition"
           >
             + New Client
