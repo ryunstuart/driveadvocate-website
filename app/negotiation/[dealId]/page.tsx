@@ -1,7 +1,7 @@
 import ClientDealFile from './ClientDealFile';
 
 export async function generateStaticParams() {
-  return [];
+  return [{ dealId: 'placeholder' }];
 }
 
 export default function DealFilePage() {
