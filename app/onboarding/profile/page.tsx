@@ -93,7 +93,7 @@ export default function Profile() {
           <div className="bg-white rounded-3xl shadow p-8 space-y-6">
             <h2 className="text-lg font-semibold text-slate-700">Contact Information</h2>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-2">First Name</label>
                 <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} className={inputClass('firstName')} placeholder="Jane" />
@@ -117,7 +117,7 @@ export default function Profile() {
               <input type="tel" name="phone" value={formData.phone} onChange={handleChange} className={inputClass('phone')} placeholder="(636) 555-0100" />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-2">ZIP Code</label>
                 <input type="text" name="zipCode" value={formData.zipCode} onChange={handleChange} className={inputClass('zipCode')} placeholder="63301" maxLength={5} />
@@ -137,7 +137,7 @@ export default function Profile() {
           <div className="bg-white rounded-3xl shadow p-8 space-y-6">
             <h2 className="text-lg font-semibold text-slate-700">Deal Parameters</h2>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-2">Search Radius</label>
                 <select name="searchRadius" value={formData.searchRadius} onChange={handleChange} className={inputClass('searchRadius')}>
