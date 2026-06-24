@@ -19,7 +19,6 @@ export default function Login() {
     let user = existingUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
 
     if (user) {
-      // Existing User
       localStorage.setItem('currentUser', JSON.stringify(user));
 
       if (user.hasActiveDeal === true) {
@@ -28,7 +27,6 @@ export default function Login() {
         router.push('/onboarding/vehicle');
       }
     } else {
-      // New User
       const newUser = {
         email: email,
         firstName: '',
@@ -46,7 +44,7 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-10">
+      <div className="max-w-md w-full bg-[#f4f4f4] rounded-3xl shadow-xl p-10">
         <div className="text-center mb-8">
           <img src="/logo.png" alt="DriveAdvocate" className="mx-auto h-12 mb-4" />
           <h1 className="text-3xl font-bold">Welcome to DriveAdvocate</h1>
@@ -72,13 +70,13 @@ export default function Login() {
           <input 
             type="email" 
             placeholder="Email" 
-            className="w-full p-4 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600" 
+            className="w-full p-4 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600 bg-white" 
             required 
           />
           <input 
             type="password" 
             placeholder="Password" 
-            className="w-full p-4 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600" 
+            className="w-full p-4 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600 bg-white" 
             required 
           />
           <button 
