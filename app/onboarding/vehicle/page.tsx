@@ -39,8 +39,29 @@ export default function VehicleWizard() {
   const [hasExistingData, setHasExistingData] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const exteriorColors = ['White', 'Black', 'Silver', 'Gray', 'Blue', 'Red', 'Green', 'Brown', 'Midnight Black', 'Pearl White'];
-  const interiorColors = ['Black', 'Gray', 'Beige', 'Brown', 'Tan', 'Red', 'White', 'Two-Tone'];
+  const exteriorColors = [
+    { name: 'White', hex: '#f8f9fa' },
+    { name: 'Black', hex: '#1f2527' },
+    { name: 'Silver', hex: '#c0c0c0' },
+    { name: 'Gray', hex: '#808080' },
+    { name: 'Blue', hex: '#1e40af' },
+    { name: 'Red', hex: '#b91c1c' },
+    { name: 'Green', hex: '#166534' },
+    { name: 'Brown', hex: '#78350f' },
+    { name: 'Midnight Black', hex: '#0a0a0a' },
+    { name: 'Pearl White', hex: '#f4f4f5' },
+  ];
+
+  const interiorColors = [
+    { name: 'Black', hex: '#1f2527' },
+    { name: 'Gray', hex: '#4b5563' },
+    { name: 'Beige', hex: '#d2b48c' },
+    { name: 'Brown', hex: '#5c4033' },
+    { name: 'Tan', hex: '#c5a880' },
+    { name: 'Red', hex: '#991b1b' },
+    { name: 'White', hex: '#f8f9fa' },
+    { name: 'Two-Tone', hex: '#64748b' },
+  ];
 
   const availableAccessories = [
     'Towing Package', 'Sunroof / Moonroof', 'Leather Seats', 'Adaptive Cruise Control',
@@ -72,7 +93,7 @@ export default function VehicleWizard() {
     return images[key] || 'https://picsum.photos/id/1075/800/450';
   };
 
-  // Load Makes (only popular brands)
+  // Load Makes
   useEffect(() => {
     fetch('https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json')
       .then(res => res.json())
@@ -167,16 +188,13 @@ export default function VehicleWizard() {
         <form onSubmit={handleSubmit} className="space-y-10">
           <div className="grid lg:grid-cols-5 gap-8">
             <div className="lg:col-span-3 space-y-8">
+              {/* Vehicle Configuration */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Vehicle Configuration</h2>
                 <div className="grid grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Year</label>
-                    <select 
-                      value={formData.year} 
-                      onChange={(e) => updateForm('year', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
-                    >
+                    <select value={formData.year} onChange={(e) => updateForm('year', e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
                       <option value={currentYear}>{currentYear} (Current)</option>
                       <option value={currentYear - 1}>{currentYear - 1}</option>
                     </select>
@@ -184,12 +202,7 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Make</label>
-                    <select 
-                      value={formData.make} 
-                      onChange={(e) => updateForm('make', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl" 
-                      disabled={loadingMakes}
-                    >
+                    <select value={formData.make} onChange={(e) => updateForm('make', e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl" disabled={loadingMakes}>
                       <option value="">Select Make</option>
                       {makes.map(make => (
                         <option key={make.Make_ID} value={make.Make_Name}>{make.Make_Name}</option>
@@ -199,12 +212,7 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Model</label>
-                    <select 
-                      value={formData.model} 
-                      onChange={(e) => updateForm('model', e.target.value)}
-                      disabled={loadingModels || !formData.make} 
-                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
-                    >
+                    <select value={formData.model} onChange={(e) => updateForm('model', e.target.value)} disabled={loadingModels || !formData.make} className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
                       <option value="">Select Model</option>
                       {models.map(model => (
                         <option key={model.Model_ID} value={model.Model_Name}>{model.Model_Name}</option>
@@ -214,11 +222,7 @@ export default function VehicleWizard() {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-600 mb-3">Trim / Package</label>
-                    <select 
-                      value={formData.trim} 
-                      onChange={(e) => updateForm('trim', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
-                    >
+                    <select value={formData.trim} onChange={(e) => updateForm('trim', e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl">
                       <option value="">Select Common Trim</option>
                       {commonTrims.map(trim => (
                         <option key={trim} value={trim}>{trim}</option>
@@ -228,43 +232,67 @@ export default function VehicleWizard() {
                 </div>
               </div>
 
-              {/* Exterior Colors */}
+              {/* Exterior Colors with Swatches */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Exterior Color Preferences</h2>
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {[1,2,3].map(rank => (
                     <div key={rank}>
-                      <label className="block text-sm font-medium text-slate-600 mb-3">
+                      <label className="block text-sm font-medium text-slate-600 mb-4">
                         {rank}st Choice {rank === 1 && '(Most Preferred)'}
                       </label>
-                      <select 
-                        value={(formData as any)[`exteriorColor${rank}`]}
-                        onChange={(e) => updateForm(`exteriorColor${rank}`, e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
-                      >
-                        {exteriorColors.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
+                      <div className="flex flex-wrap gap-3">
+                        {exteriorColors.map((color) => (
+                          <button
+                            key={color.name}
+                            type="button"
+                            onClick={() => updateForm(`exteriorColor${rank}`, color.name)}
+                            className={`w-12 h-12 rounded-2xl border-4 transition-all hover:scale-110 ${
+                              (formData as any)[`exteriorColor${rank}`] === color.name 
+                                ? 'border-emerald-600 scale-110' 
+                                : 'border-white'
+                            }`}
+                            style={{ backgroundColor: color.hex }}
+                            title={color.name}
+                          />
+                        ))}
+                      </div>
+                      <p className="mt-2 text-sm font-medium text-slate-700">
+                        {(formData as any)[`exteriorColor${rank}`]}
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Interior Colors */}
+              {/* Interior Colors with Swatches */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Interior Color Preferences</h2>
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {[1,2,3].map(rank => (
                     <div key={rank}>
-                      <label className="block text-sm font-medium text-slate-600 mb-3">
+                      <label className="block text-sm font-medium text-slate-600 mb-4">
                         {rank}st Choice {rank === 1 && '(Most Preferred)'}
                       </label>
-                      <select 
-                        value={(formData as any)[`interiorColor${rank}`]}
-                        onChange={(e) => updateForm(`interiorColor${rank}`, e.target.value)}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl"
-                      >
-                        {interiorColors.map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
+                      <div className="flex flex-wrap gap-3">
+                        {interiorColors.map((color) => (
+                          <button
+                            key={color.name}
+                            type="button"
+                            onClick={() => updateForm(`interiorColor${rank}`, color.name)}
+                            className={`w-12 h-12 rounded-2xl border-4 transition-all hover:scale-110 ${
+                              (formData as any)[`interiorColor${rank}`] === color.name 
+                                ? 'border-emerald-600 scale-110' 
+                                : 'border-white'
+                            }`}
+                            style={{ backgroundColor: color.hex }}
+                            title={color.name}
+                          />
+                        ))}
+                      </div>
+                      <p className="mt-2 text-sm font-medium text-slate-700">
+                        {(formData as any)[`interiorColor${rank}`]}
+                      </p>
                     </div>
                   ))}
                 </div>
