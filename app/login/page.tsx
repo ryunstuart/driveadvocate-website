@@ -11,36 +11,38 @@ export default function Login() {
     e.preventDefault();
 
     const emailInput = (e.target as HTMLFormElement).querySelector('input[type="email"]') as HTMLInputElement;
-    const email = emailInput.value.trim();
+    const email = emailInput.value.trim().toLowerCase();
 
     if (!email) return;
 
     let users = JSON.parse(localStorage.getItem('users') || '[]');
-    let user = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+    let userIndex = users.findIndex((u: any) => u.email.toLowerCase() === email);
+    let user = userIndex !== -1 ? users[userIndex] : null;
 
     if (user) {
-      // Returning User
+      // Returning User - Preserve existing flags
       localStorage.setItem('currentUser', JSON.stringify(user));
 
-      if (user.hasActiveDeal) {
+      if (user.hasActiveDeal === true) {
         router.push('/dashboard');
       } else {
         router.push('/onboarding/vehicle');
       }
     } else {
-      // Brand New User
+      // New User
       const newUser = {
-        email,
+        email: email,
         firstName: '',
         hasActiveDeal: false,
         hasCompletedOnboarding: false,
         createdAt: new Date().toISOString()
       };
 
-      localStorage.setItem('users', JSON.stringify([...users, newUser]));
+      users.push(newUser);
+      localStorage.setItem('users', JSON.stringify(users));
       localStorage.setItem('currentUser', JSON.stringify(newUser));
 
-      router.push('/onboarding'); // Full profile
+      router.push('/onboarding');
     }
   };
 
@@ -74,10 +76,6 @@ export default function Login() {
             {isLogin ? 'Log In' : 'Create Account'}
           </button>
         </form>
-
-        <p className="text-center text-sm text-slate-500 mt-8">
-          By signing up, you agree to our Terms and Privacy Policy.
-        </p>
       </div>
     </div>
   );
