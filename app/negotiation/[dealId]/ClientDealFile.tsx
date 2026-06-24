@@ -49,9 +49,7 @@ export default function ClientDealFile() {
   const toggleTimer = () => {
     setIsWorking(!isWorking);
     if (!isWorking) {
-      const interval = setInterval(() => {
-        setTotalTime(prev => prev + 1);
-      }, 60000);
+      setInterval(() => setTotalTime(prev => prev + 1), 60000);
     }
   };
 
@@ -89,15 +87,9 @@ export default function ClientDealFile() {
   return (
     <div className="min-h-screen bg-slate-50 py-8">
       <div className="max-w-6xl mx-auto px-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <button 
-              onClick={() => router.push('/negotiation')}
-              className="text-emerald-600 hover:underline mb-2 text-sm"
-            >
-              ← Back to Queue
-            </button>
+            <button onClick={() => router.push('/negotiation')} className="text-emerald-600 hover:underline mb-2 text-sm">← Back to Queue</button>
             <h1 className="text-3xl font-bold">{clientName}</h1>
             <p className="text-slate-600">{vehicle} • {vehicleDetails}</p>
           </div>
@@ -107,57 +99,33 @@ export default function ClientDealFile() {
               <div className="text-xs text-slate-500">TIME WORKED</div>
               <div className="text-3xl font-bold">{totalTime} <span className="text-lg">min</span></div>
             </div>
-            <button
-              onClick={toggleTimer}
-              className={`px-6 py-3 rounded-2xl font-medium transition ${isWorking 
-                ? 'bg-red-500 text-white hover:bg-red-600' 
-                : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}
-            >
+            <button onClick={toggleTimer} className={`px-6 py-3 rounded-2xl font-medium transition ${isWorking ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-emerald-600 text-white hover:bg-emerald-700'}`}>
               {isWorking ? 'Stop Timer' : 'Start Working'}
             </button>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Dealerships List */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-3xl shadow p-8">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold">Nearby Dealerships</h2>
-                <div className="text-sm text-slate-500">
-                  {calledCount} of {dealerships.length} contacted
-                </div>
+                <div className="text-sm text-slate-500">{calledCount} of {dealerships.length} contacted</div>
               </div>
 
               <div className="space-y-3">
                 {dealerships.map((dealer) => (
-                  <div 
-                    key={dealer.id} 
-                    className="flex items-center justify-between border border-slate-200 rounded-2xl p-5 hover:border-emerald-300 transition"
-                  >
+                  <div key={dealer.id} className="flex items-center justify-between border border-slate-200 rounded-2xl p-5 hover:border-emerald-300 transition">
                     <div>
                       <div className="font-semibold">{dealer.name}</div>
                       <div className="text-sm text-slate-500">{dealer.distance} miles away • {dealer.phone}</div>
-                      {dealer.lastCalled && (
-                        <div className="text-xs text-emerald-600 mt-1">Last called: {dealer.lastCalled}</div>
-                      )}
+                      {dealer.lastCalled && <div className="text-xs text-emerald-600 mt-1">Last called: {dealer.lastCalled}</div>}
                     </div>
-
                     <div className="flex items-center gap-3">
-                      <span className={`px-4 py-1 rounded-full text-xs font-medium ${
-                        dealer.status === 'Not Called' ? 'bg-slate-100 text-slate-600' :
-                        dealer.status === 'Called' ? 'bg-emerald-100 text-emerald-700' :
-                        'bg-amber-100 text-amber-700'
-                      }`}>
+                      <span className={`px-4 py-1 rounded-full text-xs font-medium ${dealer.status === 'Not Called' ? 'bg-slate-100 text-slate-600' : dealer.status === 'Called' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                         {dealer.status}
                       </span>
-
-                      <button 
-                        onClick={() => openCallModal(dealer)}
-                        className="px-5 py-2 bg-emerald-600 text-white text-sm rounded-2xl hover:bg-emerald-700 transition"
-                      >
-                        Log Call
-                      </button>
+                      <button onClick={() => openCallModal(dealer)} className="px-5 py-2 bg-emerald-600 text-white text-sm rounded-2xl hover:bg-emerald-700 transition">Log Call</button>
                     </div>
                   </div>
                 ))}
@@ -165,27 +133,14 @@ export default function ClientDealFile() {
             </div>
           </div>
 
-          {/* Summary Sidebar */}
           <div className="space-y-6">
             <div className="bg-white rounded-3xl shadow p-8">
               <h3 className="font-semibold mb-4">File Summary</h3>
               <div className="space-y-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Deal ID</span>
-                  <span className="font-mono">{dealId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Status</span>
-                  <span className="font-medium text-emerald-600">Active</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Dealerships Contacted</span>
-                  <span className="font-semibold">{calledCount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Total Time</span>
-                  <span className="font-semibold">{totalTime} minutes</span>
-                </div>
+                <div className="flex justify-between"><span className="text-slate-600">Deal ID</span><span className="font-mono">{dealId}</span></div>
+                <div className="flex justify-between"><span className="text-slate-600">Status</span><span className="font-medium text-emerald-600">Active</span></div>
+                <div className="flex justify-between"><span className="text-slate-600">Dealerships Contacted</span><span className="font-semibold">{calledCount}</span></div>
+                <div className="flex justify-between"><span className="text-slate-600">Total Time</span><span className="font-semibold">{totalTime} minutes</span></div>
               </div>
             </div>
 
@@ -209,7 +164,6 @@ export default function ClientDealFile() {
         </div>
       </div>
 
-      {/* Call Modal */}
       {selectedDealership && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl w-full max-w-md p-8">
@@ -219,47 +173,21 @@ export default function ClientDealFile() {
             <div className="space-y-5">
               <div>
                 <label className="block text-sm font-medium mb-2">Notes / Outcome</label>
-                <textarea
-                  value={callNotes}
-                  onChange={(e) => setCallNotes(e.target.value)}
-                  className="w-full border border-slate-300 rounded-2xl p-4 h-28 resize-none"
-                  placeholder="Price quoted, availability, next steps..."
-                />
+                <textarea value={callNotes} onChange={(e) => setCallNotes(e.target.value)} className="w-full border border-slate-300 rounded-2xl p-4 h-28 resize-none" placeholder="Price quoted, availability, next steps..." />
               </div>
-
               <div>
                 <label className="block text-sm font-medium mb-2">Rating</label>
                 <div className="flex gap-2">
                   {[1,2,3,4,5].map(r => (
-                    <button
-                      key={r}
-                      onClick={() => setCallRating(r)}
-                      className={`w-10 h-10 rounded-2xl border text-sm font-medium transition ${
-                        callRating === r 
-                          ? 'bg-emerald-600 text-white border-emerald-600' 
-                          : 'border-slate-300 hover:bg-slate-100'
-                      }`}
-                    >
-                      {r}
-                    </button>
+                    <button key={r} onClick={() => setCallRating(r)} className={`w-10 h-10 rounded-2xl border text-sm font-medium transition ${callRating === r ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-300 hover:bg-slate-100'}`}>{r}</button>
                   ))}
                 </div>
               </div>
             </div>
 
             <div className="flex gap-3 mt-8">
-              <button 
-                onClick={() => setSelectedDealership(null)}
-                className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={logCall}
-                className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700"
-              >
-                Save Call Log
-              </button>
+              <button onClick={() => setSelectedDealership(null)} className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50">Cancel</button>
+              <button onClick={logCall} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700">Save Call Log</button>
             </div>
           </div>
         </div>
