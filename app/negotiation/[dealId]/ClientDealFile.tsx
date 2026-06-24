@@ -387,26 +387,115 @@ export default function ClientDealFile() {
               </div>
             </div>
 
-            {/* Offer Tracker */}
+            {/* Offer Tracker + Comparison */}
             <div className="bg-white rounded-3xl shadow p-8">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Offer Tracker <span className="text-slate-400 font-normal text-base">({offers.length})</span></h2>
+                <h2 className="text-xl font-semibold">Offer Comparison <span className="text-slate-400 font-normal text-base">({offers.length})</span></h2>
                 <button onClick={() => setShowOfferModal(true)} className="px-4 py-2 bg-emerald-600 text-white text-sm rounded-2xl hover:bg-emerald-700 transition">
                   + Log Offer
                 </button>
               </div>
 
               {offers.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
+                  {/* Comparison table — shows when 2+ active offers */}
+                  {offers.filter(o => o.status !== 'Rejected').length >= 2 && (
+                    <div className="mb-6">
+                      <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Side-by-Side Comparison</div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-slate-200">
+                              <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500 uppercase tracking-wide w-32">Metric</th>
+                              {offers.filter(o => o.status !== 'Rejected').map(offer => (
+                                <th key={offer.id} className={`text-center py-3 px-4 text-xs font-semibold uppercase tracking-wide ${offer.status === 'Best' ? 'text-emerald-600' : 'text-slate-500'}`}>
+                                  <div>{offer.dealershipName}</div>
+                                  {offer.status === 'Best' && <div className="text-xs font-normal text-emerald-500 normal-case mt-0.5">⭐ Best Pick</div>}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            <tr className="hover:bg-slate-50">
+                              <td className="py-3 px-4 text-slate-500 font-medium">Price (OTD)</td>
+                              {offers.filter(o => o.status !== 'Rejected').map(offer => {
+                                const allPrices = offers.filter(o => o.status !== 'Rejected').map(o => parseFloat(o.price.replace(/[^0-9.]/g, ''))).filter(Boolean);
+                                const thisPrice = parseFloat(offer.price.replace(/[^0-9.]/g, ''));
+                                const isLowest = allPrices.length > 0 && thisPrice === Math.min(...allPrices);
+                                return (
+                                  <td key={offer.id} className={`py-3 px-4 text-center font-bold text-lg ${isLowest ? 'text-emerald-600' : 'text-slate-800'}`}>
+                                    {offer.price}
+                                    {isLowest && <div className="text-xs font-normal text-emerald-500">Lowest</div>}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                            <tr className="hover:bg-slate-50">
+                              <td className="py-3 px-4 text-slate-500 font-medium">MSRP</td>
+                              {offers.filter(o => o.status !== 'Rejected').map(offer => (
+                                <td key={offer.id} className="py-3 px-4 text-center text-slate-400 line-through">
+                                  {offer.msrp || '—'}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr className="hover:bg-slate-50">
+                              <td className="py-3 px-4 text-slate-500 font-medium">Savings</td>
+                              {offers.filter(o => o.status !== 'Rejected').map(offer => {
+                                const allDiscounts = offers.filter(o => o.status !== 'Rejected').map(o => {
+                                  const m = parseFloat(o.msrp?.replace(/[^0-9.]/g, '') || '0');
+                                  const p = parseFloat(o.price?.replace(/[^0-9.]/g, '') || '0');
+                                  return m && p ? m - p : 0;
+                                });
+                                const msrpNum = parseFloat(offer.msrp?.replace(/[^0-9.]/g, '') || '0');
+                                const priceNum = parseFloat(offer.price?.replace(/[^0-9.]/g, '') || '0');
+                                const discount = msrpNum && priceNum ? msrpNum - priceNum : 0;
+                                const isBestSavings = discount > 0 && discount === Math.max(...allDiscounts);
+                                return (
+                                  <td key={offer.id} className={`py-3 px-4 text-center font-semibold ${discount > 0 ? isBestSavings ? 'text-emerald-600' : 'text-slate-700' : 'text-slate-400'}`}>
+                                    {discount > 0 ? `$${discount.toLocaleString()}` : '—'}
+                                    {isBestSavings && discount > 0 && <div className="text-xs font-normal text-emerald-500">Most savings</div>}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                            <tr className="hover:bg-slate-50">
+                              <td className="py-3 px-4 text-slate-500 font-medium">Notes</td>
+                              {offers.filter(o => o.status !== 'Rejected').map(offer => (
+                                <td key={offer.id} className="py-3 px-4 text-center text-xs text-slate-500">
+                                  {offer.notes || '—'}
+                                </td>
+                              ))}
+                            </tr>
+                            <tr>
+                              <td className="py-3 px-4 text-slate-500 font-medium">Action</td>
+                              {offers.filter(o => o.status !== 'Rejected').map(offer => (
+                                <td key={offer.id} className="py-3 px-4 text-center">
+                                  <button
+                                    onClick={() => setBestOffer(offer.id)}
+                                    className={`px-3 py-1.5 text-xs rounded-xl border transition ${offer.status === 'Best' ? 'bg-emerald-600 text-white border-emerald-600' : 'border-slate-200 hover:border-emerald-300 hover:text-emerald-600'}`}
+                                  >
+                                    {offer.status === 'Best' ? '⭐ Best Pick' : 'Set as Best'}
+                                  </button>
+                                </td>
+                              ))}
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="border-t border-slate-100 mt-4 pt-4" />
+                    </div>
+                  )}
+
+                  {/* Individual offer cards */}
                   {offers.map(offer => (
                     <div key={offer.id} className={`border rounded-2xl p-5 ${
                       offer.status === 'Best' ? 'border-emerald-300 bg-emerald-50/40' :
-                      offer.status === 'Rejected' ? 'border-red-200 bg-red-50/20 opacity-60' :
+                      offer.status === 'Rejected' ? 'border-red-200 bg-red-50/20 opacity-50' :
                       'border-slate-200'
                     }`}>
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <div className="font-semibold">{offer.dealershipName}</div>
                             {offer.status === 'Best' && <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full">⭐ Best</span>}
                             {offer.status === 'Rejected' && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">Rejected</span>}
