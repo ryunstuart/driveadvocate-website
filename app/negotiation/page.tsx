@@ -106,10 +106,16 @@ export default function NegotiationQueue() {
 
         {/* Header */}
         <div className="flex items-end justify-between mb-8">
-          <div>
-            <h1 className="text-4xl font-bold">Negotiation Queue</h1>
-            <p className="text-slate-500 mt-1">Active client files · sorted by submission date</p>
-          </div>
+  <div>
+    <button
+      onClick={() => router.push('/dashboard')}
+      className="text-emerald-600 hover:underline text-sm mb-2 block"
+    >
+      ← Back to Dashboard
+    </button>
+    <h1 className="text-4xl font-bold">Negotiation Queue</h1>
+    <p className="text-slate-500 mt-1">Active client files · sorted by submission date</p>
+  </div>
           <button
             onClick={() => router.push('/advocate/intake')}
             className="px-6 py-3 bg-emerald-600 text-white rounded-2xl font-medium hover:bg-emerald-700 transition"
