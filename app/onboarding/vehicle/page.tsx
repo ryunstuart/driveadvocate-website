@@ -47,6 +47,12 @@ export default function VehicleWizard() {
     'Blind Spot Monitoring', '360 Camera', 'Trailer Backup Assist', 'Power Tailgate'
   ];
 
+  const popularMakes = [
+    'Toyota', 'Ford', 'Chevrolet', 'Honda', 'Nissan', 'Jeep', 'Ram', 'GMC', 
+    'BMW', 'Mercedes-Benz', 'Audi', 'Lexus', 'Hyundai', 'Kia', 'Subaru', 
+    'Volkswagen', 'Mazda', 'Tesla', 'Dodge', 'Cadillac', 'Porsche', 'Volvo'
+  ];
+
   const getVehicleImage = () => {
     const key = `${formData.make}-${formData.model}`.toLowerCase();
     const images: Record<string, string> = {
@@ -58,16 +64,26 @@ export default function VehicleWizard() {
     return images[key] || 'https://picsum.photos/id/1075/800/450';
   };
 
-  // Load Makes - Limited
+  // Load Makes + Prioritize Popular Ones
   useEffect(() => {
     fetch('https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json')
       .then(res => res.json())
       .then(data => {
-        const results: Make[] = data.Results || [];
-        const sorted = results
+        const allMakes: Make[] = data.Results || [];
+
+        // Prioritize popular makes first
+        const prioritized = popularMakes
+          .map(name => allMakes.find(m => m.Make_Name.toLowerCase() === name.toLowerCase()))
+          .filter(Boolean) as Make[];
+
+        // Add remaining makes (sorted)
+        const remaining = allMakes
+          .filter(m => !popularMakes.some(p => p.toLowerCase() === m.Make_Name.toLowerCase()))
           .sort((a, b) => a.Make_Name.localeCompare(b.Make_Name))
-          .slice(0, 60);
-        setMakes(sorted);
+          .slice(0, 35);
+
+        const finalMakes = [...prioritized, ...remaining];
+        setMakes(finalMakes);
         setLoadingMakes(false);
       })
       .catch(() => setLoadingMakes(false));
@@ -131,7 +147,7 @@ export default function VehicleWizard() {
       <div className="max-w-5xl mx-auto px-6">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold mb-3">Build Your Perfect Vehicle</h1>
-          <p className="text-slate-600">Real NHTSA data</p>
+          <p className="text-slate-600">Real NHTSA data • Popular makes first</p>
         </div>
 
         {hasExistingData && (
@@ -143,7 +159,6 @@ export default function VehicleWizard() {
         <form onSubmit={handleSubmit} className="space-y-10">
           <div className="grid lg:grid-cols-5 gap-8">
             <div className="lg:col-span-3 space-y-8">
-              {/* Vehicle Configuration */}
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="text-xl font-semibold mb-6">Vehicle Configuration</h2>
                 <div className="grid grid-cols-2 gap-6">
