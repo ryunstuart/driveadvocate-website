@@ -21,7 +21,7 @@ export default function Home() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
             <a href="#how" className="hover:text-emerald-600 transition">How It Works</a>
             <a href="#pricing" className="hover:text-emerald-600 transition">Pricing</a>
-            <a href="#book" className="hover:text-emerald-600 transition">Book a Call</a>
+            <a href="/book" className="hover:text-emerald-600 transition">Book a Call</a>
             <Link href="/login" className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2.5 rounded-2xl text-sm font-semibold transition">
               Log In
             </Link>
@@ -45,7 +45,7 @@ export default function Home() {
           <div className="md:hidden border-t border-slate-200 bg-[#f4f4f4] px-6 py-4 space-y-3">
             <a href="#how" onClick={() => setMenuOpen(false)} className="block text-sm font-medium hover:text-emerald-600 py-2">How It Works</a>
             <a href="#pricing" onClick={() => setMenuOpen(false)} className="block text-sm font-medium hover:text-emerald-600 py-2">Pricing</a>
-            <a href="#book" onClick={() => setMenuOpen(false)} className="block text-sm font-medium hover:text-emerald-600 py-2">Book a Call</a>
+            <a href="/book" onClick={() => setMenuOpen(false)} className="block text-sm font-medium hover:text-emerald-600 py-2">Book a Call</a>
           </div>
         )}
       </header>
@@ -58,7 +58,7 @@ export default function Home() {
             Professional car buying advocates who negotiate for you. Skip the stress and get the deal you deserve.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <a href="#book" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl text-base md:text-lg font-semibold transition">
+            <a href="/book" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-xl text-base md:text-lg font-semibold transition">
               Book a Free Discovery Call
             </a>
             <a href="#how" className="border border-white hover:bg-white hover:text-slate-900 text-white px-8 py-4 rounded-xl text-base md:text-lg font-semibold transition">
@@ -99,7 +99,7 @@ export default function Home() {
               <h3 className="text-xl font-semibold mb-2">Research Package</h3>
               <p className="text-4xl md:text-5xl font-bold text-emerald-600 mb-4">$149</p>
               <p className="text-slate-600 mb-6 text-sm">Expert market report, target prices, and inventory shortlist.</p>
-              <a href="#book" className="block w-full bg-slate-900 text-white py-3 rounded-2xl text-sm font-medium hover:bg-slate-800 transition">
+              <a href="/book" className="block w-full bg-slate-900 text-white py-3 rounded-2xl text-sm font-medium hover:bg-slate-800 transition">
                 Choose Research
               </a>
             </div>
@@ -108,7 +108,7 @@ export default function Home() {
               <h3 className="text-xl font-semibold mb-2">Negotiation Service</h3>
               <p className="text-4xl md:text-5xl font-bold text-emerald-600 mb-4">$999</p>
               <p className="text-slate-600 mb-6 text-sm">Full dealer negotiation, locked OTD price, and coordination.</p>
-              <a href="#book" className="block w-full bg-emerald-600 text-white py-3 rounded-2xl text-sm font-medium hover:bg-emerald-700 transition">
+              <a href="/book" className="block w-full bg-emerald-600 text-white py-3 rounded-2xl text-sm font-medium hover:bg-emerald-700 transition">
                 Choose Negotiation
               </a>
             </div>
@@ -116,7 +116,7 @@ export default function Home() {
               <h3 className="text-xl font-semibold mb-2">Full Concierge</h3>
               <p className="text-4xl md:text-5xl font-bold text-emerald-600 mb-4">$2,250</p>
               <p className="text-slate-600 mb-6 text-sm">End-to-end service including sourcing and delivery.</p>
-              <a href="#book" className="block w-full bg-slate-900 text-white py-3 rounded-2xl text-sm font-medium hover:bg-slate-800 transition">
+              <a href="/book" className="block w-full bg-slate-900 text-white py-3 rounded-2xl text-sm font-medium hover:bg-slate-800 transition">
                 Choose Concierge
               </a>
             </div>
