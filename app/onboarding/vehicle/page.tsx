@@ -56,6 +56,8 @@ export default function VehicleWizard() {
   const [models, setModels] = useState<Model[]>([]);
   const [loadingMakes, setLoadingMakes] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [makesError, setMakesError] = useState(false);
+  const [modelsError, setModelsError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [clientName, setClientName] = useState('');
 
