@@ -19,14 +19,16 @@ export default function Login() {
     let user = existingUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
 
     if (user) {
+      // === EXISTING USER ===
       localStorage.setItem('currentUser', JSON.stringify(user));
 
       if (user.hasActiveDeal === true) {
         router.push('/dashboard');
       } else {
-        router.push('/onboarding/vehicle');
+        router.push('/onboarding/vehicle');   // Skip profile
       }
     } else {
+      // === NEW USER ===
       const newUser = {
         email: email,
         firstName: '',
@@ -38,7 +40,7 @@ export default function Login() {
       localStorage.setItem('users', JSON.stringify([...existingUsers, newUser]));
       localStorage.setItem('currentUser', JSON.stringify(newUser));
 
-      router.push('/onboarding');
+      router.push('/onboarding');   // Full profile + vehicle
     }
   };
 
@@ -50,7 +52,6 @@ export default function Login() {
           <h1 className="text-3xl font-bold">Welcome to DriveAdvocate</h1>
         </div>
 
-        {/* Toggle */}
         <div className="flex mb-8 border-b border-slate-200">
           <button 
             onClick={() => setIsLogin(true)} 
@@ -70,13 +71,13 @@ export default function Login() {
           <input 
             type="email" 
             placeholder="Email" 
-            className="w-full p-4 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600 bg-white" 
+            className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-600" 
             required 
           />
           <input 
             type="password" 
             placeholder="Password" 
-            className="w-full p-4 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600 bg-white" 
+            className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-600" 
             required 
           />
           <button 
