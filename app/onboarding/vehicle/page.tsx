@@ -65,9 +65,11 @@ export default function VehicleWizard() {
     fetch('https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json')
       .then(res => res.json())
       .then(data => {
-        const sortedMakes = (data.Results || [])
-          .sort((a, b) => a.Make_Name.localeCompare(b.Make_Name))
-          .slice(0, 60);
+        const results = data.Results || [];
+        const sortedMakes = [...results].sort((a: Make, b: Make) => 
+          a.Make_Name.localeCompare(b.Make_Name)
+        ).slice(0, 60);
+        
         setMakes(sortedMakes);
         setLoadingMakes(false);
       })
@@ -87,12 +89,12 @@ export default function VehicleWizard() {
       .then(data => {
         let modelList: Model[] = data.Results || [];
 
-        // Clean duplicates and sort - type safe
+        // Remove duplicates and sort
         const uniqueModels = Array.from(
           new Map(modelList.map(item => [item.Model_Name, item])).values()
         );
 
-        uniqueModels.sort((a, b) => a.Model_Name.localeCompare(b.Model_Name));
+        uniqueModels.sort((a: Model, b: Model) => a.Model_Name.localeCompare(b.Model_Name));
         
         setModels(uniqueModels);
         
