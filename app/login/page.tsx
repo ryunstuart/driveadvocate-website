@@ -15,32 +15,32 @@ export default function Login() {
 
     if (!email) return;
 
-    const existingUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    let user = existingUsers.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+    let users = JSON.parse(localStorage.getItem('users') || '[]');
+    let user = users.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
 
     if (user) {
-      // === EXISTING USER ===
+      // Returning User
       localStorage.setItem('currentUser', JSON.stringify(user));
 
-      if (user.hasActiveDeal === true) {
+      if (user.hasActiveDeal) {
         router.push('/dashboard');
       } else {
-        router.push('/onboarding/vehicle');   // Skip profile
+        router.push('/onboarding/vehicle');
       }
     } else {
-      // === NEW USER ===
+      // Brand New User
       const newUser = {
-        email: email,
+        email,
         firstName: '',
         hasActiveDeal: false,
         hasCompletedOnboarding: false,
         createdAt: new Date().toISOString()
       };
 
-      localStorage.setItem('users', JSON.stringify([...existingUsers, newUser]));
+      localStorage.setItem('users', JSON.stringify([...users, newUser]));
       localStorage.setItem('currentUser', JSON.stringify(newUser));
 
-      router.push('/onboarding');   // Full profile + vehicle
+      router.push('/onboarding'); // Full profile
     }
   };
 
@@ -68,22 +68,9 @@ export default function Login() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <input 
-            type="email" 
-            placeholder="Email" 
-            className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-600" 
-            required 
-          />
-          <input 
-            type="password" 
-            placeholder="Password" 
-            className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-600" 
-            required 
-          />
-          <button 
-            type="submit" 
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold text-lg transition"
-          >
+          <input type="email" placeholder="Email" className="w-full p-4 border border-slate-300 rounded-2xl bg-white" required />
+          <input type="password" placeholder="Password" className="w-full p-4 border border-slate-300 rounded-2xl bg-white" required />
+          <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold text-lg">
             {isLogin ? 'Log In' : 'Create Account'}
           </button>
         </form>
