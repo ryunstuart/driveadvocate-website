@@ -11,9 +11,12 @@ export default function VehicleWizard() {
     make: 'Toyota',
     model: 'Tundra',
     trim: 'Limited TRD',
-    color1: 'White',
-    color2: 'Black',
-    color3: 'Gray',
+    exteriorColor1: 'White',
+    exteriorColor2: 'Black',
+    exteriorColor3: 'Silver',
+    interiorColor1: 'Black',
+    interiorColor2: 'Gray',
+    interiorColor3: 'Beige',
     accessories: [] as string[],
   });
 
@@ -38,7 +41,8 @@ export default function VehicleWizard() {
     'F-150': ['XL', 'XLT', 'Lariat', 'King Ranch', 'Platinum'],
   };
 
-  const colors = ['White', 'Black', 'Gray', 'Silver', 'Blue', 'Red', 'Green', 'Brown', 'Beige'];
+  const exteriorColors = ['White', 'Black', 'Silver', 'Gray', 'Blue', 'Red', 'Green', 'Brown', 'Midnight Black'];
+  const interiorColors = ['Black', 'Gray', 'Beige', 'Brown', 'Tan', 'Red', 'White'];
 
   const availableAccessories = [
     'Towing Package', 'Sunroof / Moonroof', 'Leather Seats', 'Adaptive Cruise Control',
@@ -169,35 +173,49 @@ export default function VehicleWizard() {
                 </div>
               </div>
 
-              {/* Color Preferences - NEW */}
+              {/* Exterior Colors */}
               <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="text-xl font-semibold mb-6">Color Preferences</h2>
-                <p className="text-slate-500 mb-6 text-sm">Rank your top 3 colors (most to least preferred)</p>
+                <h2 className="text-xl font-semibold mb-6">Exterior Color Preferences</h2>
+                <p className="text-slate-500 mb-6 text-sm">Rank your top 3 exterior colors</p>
                 
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-3">1st Choice (Most Preferred)</label>
-                    <select value={formData.color1} onChange={(e) => updateForm('color1', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600">
-                      {colors.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
+                  {[1,2,3].map((rank) => (
+                    <div key={rank}>
+                      <label className="block text-sm font-medium text-slate-600 mb-3">
+                        {rank}st Choice {rank === 1 && '(Most Preferred)'}
+                      </label>
+                      <select 
+                        value={formData[`exteriorColor${rank}` as keyof typeof formData] as string} 
+                        onChange={(e) => updateForm(`exteriorColor${rank}`, e.target.value)}
+                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600"
+                      >
+                        {exteriorColors.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-3">2nd Choice</label>
-                    <select value={formData.color2} onChange={(e) => updateForm('color2', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600">
-                      {colors.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-3">3rd Choice</label>
-                    <select value={formData.color3} onChange={(e) => updateForm('color3', e.target.value)}
-                      className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600">
-                      {colors.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
+              {/* Interior Colors */}
+              <div className="bg-white rounded-3xl shadow p-8">
+                <h2 className="text-xl font-semibold mb-6">Interior Color Preferences</h2>
+                <p className="text-slate-500 mb-6 text-sm">Rank your top 3 interior colors</p>
+                
+                <div className="space-y-6">
+                  {[1,2,3].map((rank) => (
+                    <div key={rank}>
+                      <label className="block text-sm font-medium text-slate-600 mb-3">
+                        {rank}st Choice {rank === 1 && '(Most Preferred)'}
+                      </label>
+                      <select 
+                        value={formData[`interiorColor${rank}` as keyof typeof formData] as string} 
+                        onChange={(e) => updateForm(`interiorColor${rank}`, e.target.value)}
+                        className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-600"
+                      >
+                        {interiorColors.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -236,9 +254,15 @@ export default function VehicleWizard() {
                   />
                 </div>
 
-                <div className="space-y-4 text-sm">
+                <div className="space-y-4 text-sm leading-relaxed">
                   <div><span className="font-medium">Vehicle:</span> {selectedVehicle}</div>
-                  <div><span className="font-medium">Colors:</span> {formData.color1} → {formData.color2} → {formData.color3}</div>
+                  
+                  <div>
+                    <span className="font-medium">Exterior:</span> {formData.exteriorColor1} → {formData.exteriorColor2} → {formData.exteriorColor3}
+                  </div>
+                  <div>
+                    <span className="font-medium">Interior:</span> {formData.interiorColor1} → {formData.interiorColor2} → {formData.interiorColor3}
+                  </div>
                   
                   {formData.accessories.length > 0 && (
                     <div>
