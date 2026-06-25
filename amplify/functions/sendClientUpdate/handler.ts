@@ -56,16 +56,16 @@ export const handler = async (event: any) => {
             <p style="margin: 0; color: #64748b; font-size: 14px;">Deal Status</p>
             <p style="margin: 4px 0 0; color: #059669; font-weight: bold; font-size: 18px;">${dealStatus}</p>
           </div>
-          <p style="color: #64748b; font-size: 14px;">Questions? Reply to this email or contact us at hello@driveadvocate.com</p>
+          <p style="color: #64748b; font-size: 14px;">Questions? Reply to this email or contact us at info@driveadvocate.com</p>
           <p style="color: #334155; font-size: 14px; margin-top: 24px;">&mdash; ${advocateName || 'Your DriveAdvocate Team'}</p>
         </div>
       </div>
     `;
 
-    const textBody = `Hi ${clientName},\n\n${message}\n\nDeal Status: ${dealStatus}\n\nQuestions? Contact us at hello@driveadvocate.com\n\n— ${advocateName || 'DriveAdvocate'}`;
+    const textBody = `Hi ${clientName},\n\n${message}\n\nDeal Status: ${dealStatus}\n\nQuestions? Contact us at info@driveadvocate.com\n\n— ${advocateName || 'DriveAdvocate'}`;
 
     await ses.send(new SendEmailCommand({
-      Source: 'hello@driveadvocate.com',
+      Source: 'updates@driveadvocate.com',
       Destination: { ToAddresses: [clientEmail] },
       Message: {
         Subject: { Data: 'Update on your DriveAdvocate deal' },

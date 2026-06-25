@@ -124,7 +124,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Buy Your Next Car the Smart Way?</h2>
           <p className="text-slate-300 mb-8 text-sm md:text-base">Join hundreds of buyers who got a better deal with DriveAdvocate.</p>
-          <a href="mailto:hello@driveadvocate.com" className="inline-block bg-emerald-600 hover:bg-emerald-700 px-10 py-4 rounded-2xl text-lg font-semibold transition">
+          <a href="mailto:info@driveadvocate.com" className="inline-block bg-emerald-600 hover:bg-emerald-700 px-10 py-4 rounded-2xl text-lg font-semibold transition">
             Book Your Free Discovery Call
           </a>
         </div>

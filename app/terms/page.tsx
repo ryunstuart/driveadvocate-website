@@ -7,7 +7,7 @@ import Footer from '@/app/components/Footer';
 
 const LAST_UPDATED = 'June 24, 2026';
 const COMPANY = 'DriveAdvocate';
-const EMAIL = 'hello@driveadvocate.com';
+const EMAIL = 'info@driveadvocate.com';
 
 export default function TermsOfService() {
   const router = useRouter();

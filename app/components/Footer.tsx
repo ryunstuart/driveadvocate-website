@@ -15,7 +15,7 @@ export default function Footer() {
           <nav className="flex items-center gap-6 text-sm">
             <Link href="/book" className="hover:text-white transition">Book a Call</Link>
             <Link href="/terms" className="hover:text-white transition">Terms of Service</Link>
-            <a href="mailto:hello@driveadvocate.com" className="hover:text-white transition">Contact</a>
+            <a href="mailto:info@driveadvocate.com" className="hover:text-white transition">Contact</a>
           </nav>
         </div>
         <div className="mt-8 pt-6 border-t border-slate-800 text-center text-xs text-slate-500">

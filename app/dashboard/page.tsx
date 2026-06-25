@@ -491,7 +491,7 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
           <div className="bg-slate-800 rounded-3xl p-8 text-white text-center">
             <h3 className="text-xl font-semibold mb-2">Have questions about your deal?</h3>
             <p className="text-slate-300 text-sm mb-6">Your advocate will reach out soon. In the meantime you can reach us directly.</p>
-            <a href="mailto:hello@driveadvocate.com" className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-2xl font-medium transition">
+            <a href="mailto:info@driveadvocate.com" className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-2xl font-medium transition">
               Contact Your Advocate
             </a>
           </div>
