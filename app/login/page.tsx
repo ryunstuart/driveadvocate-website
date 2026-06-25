@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, signUp, confirmSignUp, signOut, fetchAuthSession } from 'aws-amplify/auth';
+import {
+  signIn, signUp, confirmSignUp, signOut, fetchAuthSession,
+  resendSignUpCode, resetPassword, confirmResetPassword,
+} from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 
-type AuthView = 'login' | 'signup' | 'confirm';
+type AuthView = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset';
 
 export default function Login() {
   const router = useRouter();
@@ -15,14 +18,25 @@ export default function Login() {
   useEffect(() => {
     signOut().catch(() => {});
   }, []);
+
   const [view, setView] = useState<AuthView>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +143,55 @@ export default function Login() {
     }
   };
 
+  const handleResendCode = useCallback(async () => {
+    if (resendCooldown > 0) return;
+    setError('');
+    setSuccess('');
+    try {
+      await resendSignUpCode({ username: email.trim().toLowerCase() });
+      setSuccess('A new code has been sent to your email.');
+      setResendCooldown(60);
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend code. Please try again.');
+    }
+  }, [email, resendCooldown]);
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await resetPassword({ username: email.trim().toLowerCase() });
+      setView('reset');
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset code. Please check your email.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await confirmResetPassword({
+        username: email.trim().toLowerCase(),
+        confirmationCode: resetCode,
+        newPassword,
+      });
+      setSuccess('Password reset successfully. You can now log in.');
+      setPassword('');
+      setResetCode('');
+      setNewPassword('');
+      setView('login');
+    } catch (err: any) {
+      setError(err.message || 'Password reset failed. Please check your code.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header variant="public" />
@@ -140,31 +203,45 @@ export default function Login() {
           <h1 className="text-3xl font-bold">
             {view === 'login' ? 'Welcome Back' :
              view === 'signup' ? 'Create Account' :
-             'Check Your Email'}
+             view === 'confirm' ? 'Check Your Email' :
+             view === 'forgot' ? 'Forgot Password' :
+             'Reset Password'}
           </h1>
           {view === 'confirm' && (
             <p className="text-slate-500 text-sm mt-2">
               We sent a confirmation code to <strong>{email}</strong>
             </p>
           )}
+          {view === 'forgot' && (
+            <p className="text-slate-500 text-sm mt-2">
+              Enter your email and we'll send you a reset code.
+            </p>
+          )}
+          {view === 'reset' && (
+            <p className="text-slate-500 text-sm mt-2">
+              Enter the code sent to <strong>{email}</strong> and your new password.
+            </p>
+          )}
         </div>
 
-        {view !== 'confirm' && (
+        {(view === 'login' || view === 'signup') && (
           <div className="flex mb-8 border-b border-slate-200">
             <button
-              onClick={() => { setView('login'); setError(''); }}
+              onClick={() => { setView('login'); setError(''); setSuccess(''); }}
               className={`flex-1 pb-4 text-lg font-medium transition ${view === 'login' ? 'border-b-2 border-emerald-600 text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
             >
               Log In
             </button>
             <button
-              onClick={() => { setView('signup'); setError(''); }}
+              onClick={() => { setView('signup'); setError(''); setSuccess(''); }}
               className={`flex-1 pb-4 text-lg font-medium transition ${view === 'signup' ? 'border-b-2 border-emerald-600 text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
             >
               Create Account
             </button>
           </div>
         )}
+
+        {success && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-2xl mb-5">{success}</div>}
 
         {view === 'login' && (
           <form onSubmit={handleLogin} className="space-y-5">
@@ -173,6 +250,9 @@ export default function Login() {
             {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
             <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
               {loading ? 'Signing in...' : 'Log In'}
+            </button>
+            <button type="button" onClick={() => { setView('forgot'); setError(''); setSuccess(''); }} className="w-full py-2 text-sm text-slate-500 hover:text-emerald-600 transition">
+              Forgot your password?
             </button>
           </form>
         )}
@@ -199,8 +279,43 @@ export default function Login() {
             <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
               {loading ? 'Confirming...' : 'Confirm Account'}
             </button>
-            <button type="button" onClick={() => setView('signup')} className="w-full py-3 text-sm text-slate-500 hover:text-slate-700 transition">
+            <button
+              type="button"
+              onClick={handleResendCode}
+              disabled={resendCooldown > 0}
+              className="w-full py-3 text-sm text-emerald-600 hover:text-emerald-700 disabled:text-slate-400 transition font-medium"
+            >
+              {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Didn\'t get the code? Resend'}
+            </button>
+            <button type="button" onClick={() => { setView('signup'); setError(''); setSuccess(''); }} className="w-full py-2 text-sm text-slate-500 hover:text-slate-700 transition">
               ← Back to sign up
+            </button>
+          </form>
+        )}
+
+        {view === 'forgot' && (
+          <form onSubmit={handleForgotPassword} className="space-y-5">
+            <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
+            <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
+              {loading ? 'Sending code...' : 'Send Reset Code'}
+            </button>
+            <button type="button" onClick={() => { setView('login'); setError(''); setSuccess(''); }} className="w-full py-3 text-sm text-slate-500 hover:text-slate-700 transition">
+              ← Back to log in
+            </button>
+          </form>
+        )}
+
+        {view === 'reset' && (
+          <form onSubmit={handleResetPassword} className="space-y-5">
+            <input type="text" placeholder="Enter reset code" value={resetCode} onChange={e => setResetCode(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition text-center text-2xl tracking-widest" />
+            <input type="password" placeholder="New password (min 8 characters)" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8} className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
+            <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
+              {loading ? 'Resetting...' : 'Reset Password'}
+            </button>
+            <button type="button" onClick={() => { setView('login'); setError(''); setSuccess(''); }} className="w-full py-3 text-sm text-slate-500 hover:text-slate-700 transition">
+              ← Back to log in
             </button>
           </form>
         )}
