@@ -82,6 +82,7 @@ export default function Header({ variant = 'public', showBack }: HeaderProps) {
               <>
                 <button onClick={() => router.push('/dashboard')} className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition hidden md:block">Dashboard</button>
                 <button onClick={() => router.push('/negotiation')} className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition hidden md:block">Queue</button>
+                <button onClick={() => router.push('/account')} className="text-sm font-medium text-slate-600 hover:text-emerald-600 transition hidden md:block">Settings</button>
               </>
             )}
             <button
