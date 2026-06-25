@@ -153,6 +153,7 @@ export default function ClientDealFile() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [completeSavings, setCompleteSavings] = useState('');
   const [completeNotes, setCompleteNotes] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSyncTime = useRef<number>(0);
@@ -460,6 +461,41 @@ export default function ClientDealFile() {
         totalTimeMinutes: totalTime,
         notes: completeNotes || undefined,
       }).catch(console.error);
+    }
+  };
+
+  const copyDealSummary = async () => {
+    const lines = [
+      `DEAL SUMMARY`,
+      `────────────────────────────`,
+      `Client: ${dealInfo.clientName}`,
+      `Deal ID: ${dealId}`,
+      `Status: ${dealStatus}`,
+      ``,
+      `Vehicle: ${dealInfo.vehicle}`,
+      dealInfo.vehicleDetails ? `Details: ${dealInfo.vehicleDetails}` : '',
+      ``,
+      `Dealerships Contacted: ${dealerships.filter(d => d.status !== 'Not Called').length} of ${dealerships.length}`,
+      `Calls Logged: ${callLogs.length}`,
+      `Time on File: ${formatTime(totalTime)}`,
+    ].filter(Boolean);
+
+    if (offers.length > 0) {
+      lines.push('', `OFFERS (${offers.length})`, `────────────────────────────`);
+      offers.forEach(o => {
+        const status = o.status === 'Best' ? ' ⭐ BEST' : o.status === 'Rejected' ? ' (Rejected)' : '';
+        lines.push(`${o.dealershipName}: ${o.price}${o.discount ? ` — ${o.discount}` : ''}${status}`);
+      });
+    }
+
+    lines.push('', `Generated: ${new Date().toLocaleString()}`);
+
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      console.error('Failed to copy to clipboard');
     }
   };
 
@@ -811,7 +847,9 @@ export default function ClientDealFile() {
               <h3 className="font-semibold mb-4">Actions</h3>
               <div className="space-y-3">
                 <button onClick={() => setShowOfferModal(true)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">💰 Log New Offer</button>
-                <button className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">📋 Copy Deal Summary</button>
+                <button onClick={copyDealSummary} className={`w-full text-left px-4 py-3 rounded-2xl border transition text-sm font-medium ${copied ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50'}`}>
+                  {copied ? '✓ Copied!' : '📋 Copy Deal Summary'}
+                </button>
                 <button className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">📧 Send Client Update</button>
                 <button onClick={() => setShowCompleteModal(true)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">🏁 Mark Deal Complete</button>
               </div>

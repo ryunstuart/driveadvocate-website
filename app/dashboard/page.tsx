@@ -258,24 +258,49 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
   const [dealStatus, setDealStatus] = useState<string>('New');
   const [offers, setOffers] = useState<any[]>([]);
 
+  const fetchDealData = async (dealId: string) => {
+    try {
+      const [dealResult, offersResult] = await Promise.all([
+        dataClient.models.Deal.get({ id: dealId }),
+        dataClient.models.Offer.list({ filter: { dealId: { eq: dealId } } }),
+      ]);
+
+      if (dealResult.data) {
+        const s = dealResult.data.status || 'New';
+        setDealStatus(STATUS_DISPLAY[s] || s);
+      }
+
+      if (offersResult.data) {
+        setOffers(offersResult.data.map(o => {
+          const price = o.quotedPrice;
+          const msrp = o.msrp || 0;
+          const disc = msrp && price ? msrp - price : 0;
+          return {
+            dealershipName: o.dealershipName,
+            price: '$' + price.toLocaleString('en-US', { minimumFractionDigits: 0 }),
+            msrp: msrp ? '$' + msrp.toLocaleString('en-US', { minimumFractionDigits: 0 }) : '',
+            discount: disc > 0 ? `$${disc.toLocaleString('en-US')} below MSRP` : '',
+            notes: o.notes || '',
+            status: o.status || 'Pending',
+          };
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to fetch deal data from AppSync', err);
+    }
+  };
+
   useEffect(() => {
     setVehicle(JSON.parse(localStorage.getItem('vehicleFormData') || '{}'));
     setProfile(JSON.parse(localStorage.getItem('profileData') || '{}'));
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const activeDealId = currentUser.activeDealId;
+
     if (activeDealId) {
-      const dealFile = JSON.parse(localStorage.getItem(`dealfile-${activeDealId}`) || '{}');
-      if (dealFile.dealStatus) setDealStatus(dealFile.dealStatus);
-      if (dealFile.offers) setOffers(dealFile.offers);
-    } else {
-      const pendingDeals = JSON.parse(localStorage.getItem('pendingDeals') || '[]');
-      const myDeal = pendingDeals.find((d: any) => d.email === currentUser.email);
-      if (myDeal) {
-        const dealFile = JSON.parse(localStorage.getItem(`dealfile-${myDeal.id}`) || '{}');
-        if (dealFile.dealStatus) setDealStatus(dealFile.dealStatus);
-        if (dealFile.offers) setOffers(dealFile.offers);
-      }
+      fetchDealData(activeDealId);
+      const pollInterval = setInterval(() => fetchDealData(activeDealId), 60000);
+      return () => clearInterval(pollInterval);
     }
   }, []);
 
