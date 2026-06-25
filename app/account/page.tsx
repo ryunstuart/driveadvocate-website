@@ -8,6 +8,7 @@ import {
 } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function AccountSettings() {
   const router = useRouter();
@@ -28,6 +29,9 @@ export default function AccountSettings() {
   const [passwordMsg, setPasswordMsg] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -207,24 +211,39 @@ export default function AccountSettings() {
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-2">Current Password</label>
-              <input
-                type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} required
-                className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition text-sm"
-              />
+              <div className="relative">
+                <input
+                  type={showOldPassword ? 'text' : 'password'} value={oldPassword} onChange={e => setOldPassword(e.target.value)} required
+                  className="w-full px-4 py-3 pr-12 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition text-sm"
+                />
+                <button type="button" onClick={() => setShowOldPassword(!showOldPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                  {showOldPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-2">New Password</label>
-              <input
-                type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8}
-                className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition text-sm"
-              />
+              <div className="relative">
+                <input
+                  type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8}
+                  className="w-full px-4 py-3 pr-12 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition text-sm"
+                />
+                <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-600 mb-2">Confirm New Password</label>
-              <input
-                type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8}
-                className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition text-sm"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8}
+                  className="w-full px-4 py-3 pr-12 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition text-sm"
+                />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
           </div>
 

@@ -9,6 +9,7 @@ import {
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
+import { Eye, EyeOff } from 'lucide-react';
 
 type AuthView = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset';
 
@@ -31,6 +32,8 @@ export default function Login() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -246,7 +249,12 @@ export default function Login() {
         {view === 'login' && (
           <form onSubmit={handleLogin} className="space-y-5">
             <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
-            <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
+            <div className="relative">
+              <input type={showPassword ? 'text' : 'password'} placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-4 pr-12 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
             <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
               {loading ? 'Signing in...' : 'Log In'}
@@ -264,7 +272,12 @@ export default function Login() {
               <input type="text" placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
             </div>
             <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
-            <input type="password" placeholder="Password (min 8 characters)" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
+            <div className="relative">
+              <input type={showPassword ? 'text' : 'password'} placeholder="Password (min 8 characters)" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} className="w-full p-4 pr-12 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
             <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
               {loading ? 'Creating account...' : 'Create Account'}
@@ -309,7 +322,12 @@ export default function Login() {
         {view === 'reset' && (
           <form onSubmit={handleResetPassword} className="space-y-5">
             <input type="text" placeholder="Enter reset code" value={resetCode} onChange={e => setResetCode(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition text-center text-2xl tracking-widest" />
-            <input type="password" placeholder="New password (min 8 characters)" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8} className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
+            <div className="relative">
+              <input type={showNewPassword ? 'text' : 'password'} placeholder="New password (min 8 characters)" value={newPassword} onChange={e => setNewPassword(e.target.value)} required minLength={8} className="w-full p-4 pr-12 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
+              <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+                {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
             <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
               {loading ? 'Resetting...' : 'Reset Password'}
