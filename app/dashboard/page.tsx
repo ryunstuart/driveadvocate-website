@@ -227,6 +227,7 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
               <h3 className="font-semibold mb-4">Quick Actions</h3>
               <div className="space-y-2">
                 <button onClick={() => router.push('/negotiation')} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">📋 Open Negotiation Queue</button>
+                <button onClick={() => router.push('/clients')} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">👥 View All Clients</button>
                 <button onClick={() => router.push('/advocate/intake')} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">➕ Add New Client</button>
                 <button onClick={() => router.push(`/negotiation/${firstPriorityDeal?.id}`)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">🔥 Open Priority #1 File</button>
               </div>
