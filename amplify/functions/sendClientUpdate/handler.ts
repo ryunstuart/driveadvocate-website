@@ -43,6 +43,20 @@ export const handler = async (event: any) => {
       return { success: false, error: 'No client email on file' };
     }
 
+    const clientTableName = process.env.CLIENT_TABLE_NAME;
+    if (clientTableName) {
+      const clientResult = await db.send(new ScanCommand({
+        TableName: clientTableName,
+        FilterExpression: 'email = :email',
+        ExpressionAttributeValues: { ':email': clientEmail },
+        Limit: 1,
+      }));
+      const clientRecord = clientResult.Items?.[0];
+      if (clientRecord?.emailNotifications === false) {
+        return { success: true, error: null };
+      }
+    }
+
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #0f172a; padding: 24px; border-radius: 8px 8px 0 0;">

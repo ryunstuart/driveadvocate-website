@@ -11,6 +11,7 @@ const schema = a.schema({
     zipCode: a.string(),
     profileCompleted: a.boolean(),
     onboardingCompleted: a.boolean(),
+    emailNotifications: a.boolean(),
   }).authorization(allow => [
     allow.groups(['advocates', 'admins']),
     allow.owner().to(['create', 'read', 'update']),

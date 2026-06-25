@@ -27,6 +27,23 @@ if (dealTable) {
   );
 }
 
+const clientTable = Object.values(backend.data.resources.tables).find(
+  (table) => table.tableName.includes('Client-')
+);
+
+if (clientTable) {
+  backend.sendClientUpdate.addEnvironment(
+    'CLIENT_TABLE_NAME',
+    clientTable.tableName,
+  );
+  backend.sendClientUpdate.resources.lambda.addToRolePolicy(
+    new PolicyStatement({
+      actions: ['dynamodb:Scan'],
+      resources: [clientTable.tableArn],
+    }),
+  );
+}
+
 backend.sendClientUpdate.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['ses:SendEmail', 'ses:SendRawEmail'],

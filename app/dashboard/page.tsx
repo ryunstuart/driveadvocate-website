@@ -258,7 +258,19 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
   const [dealStatus, setDealStatus] = useState<string>('New');
   const [offers, setOffers] = useState<any[]>([]);
 
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [secondsAgo, setSecondsAgo] = useState(0);
+  const [isPolling, setIsPolling] = useState(false);
+  const [pollError, setPollError] = useState(false);
+
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [notifSaved, setNotifSaved] = useState(false);
+  const [clientRecordId, setClientRecordId] = useState<string | null>(null);
+
+  const [pastDeals, setPastDeals] = useState<any[]>([]);
+
   const fetchDealData = async (dealId: string) => {
+    setIsPolling(true);
     try {
       const [dealResult, offersResult] = await Promise.all([
         dataClient.models.Deal.get({ id: dealId }),
@@ -285,8 +297,14 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
           };
         }));
       }
+
+      setLastUpdated(new Date());
+      setPollError(false);
     } catch (err) {
       console.error('Failed to fetch deal data from AppSync', err);
+      setPollError(true);
+    } finally {
+      setIsPolling(false);
     }
   };
 
@@ -296,13 +314,93 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
 
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const activeDealId = currentUser.activeDealId;
+    const clientEmail = currentUser.email;
 
     if (activeDealId) {
       fetchDealData(activeDealId);
       const pollInterval = setInterval(() => fetchDealData(activeDealId), 60000);
+
+      // Load past deals + client preferences
+      (async () => {
+        try {
+          if (clientEmail) {
+            const { data: allDeals } = await dataClient.models.Deal.list({
+              filter: { clientId: { eq: clientEmail } },
+            });
+            const completed = (allDeals || []).filter(d =>
+              d.id !== activeDealId && (d.status === 'Complete' || d.status === 'Dead')
+            );
+            if (completed.length > 0) {
+              const pastWithVehicles = await Promise.all(completed.map(async (d) => {
+                let vehicleName = 'Vehicle';
+                let bestOfferPrice = '';
+                try {
+                  const { data: vps } = await dataClient.models.VehiclePreference.list({ filter: { dealId: { eq: d.id } } });
+                  if (vps.length > 0) vehicleName = [vps[0].year, vps[0].make, vps[0].model, vps[0].trim].filter(Boolean).join(' ');
+                  const { data: ofrs } = await dataClient.models.Offer.list({ filter: { dealId: { eq: d.id } } });
+                  const best = ofrs.find(o => o.status === 'Best');
+                  if (best) bestOfferPrice = '$' + best.quotedPrice.toLocaleString('en-US', { minimumFractionDigits: 0 });
+                } catch {}
+                return {
+                  id: d.id,
+                  vehicle: vehicleName,
+                  status: STATUS_DISPLAY[d.status || 'Complete'] || 'Complete',
+                  submitted: d.submittedAt?.split('T')[0] || '',
+                  bestOffer: bestOfferPrice,
+                };
+              }));
+              setPastDeals(pastWithVehicles);
+            }
+
+            const { data: clients } = await dataClient.models.Client.list({
+              filter: { email: { eq: clientEmail } },
+            });
+            if (clients.length > 0) {
+              setClientRecordId(clients[0].id);
+              setEmailNotifications(clients[0].emailNotifications !== false);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load client preferences', err);
+        }
+      })();
+
       return () => clearInterval(pollInterval);
     }
   }, []);
+
+  useEffect(() => {
+    if (!lastUpdated) return;
+    const tick = setInterval(() => {
+      setSecondsAgo(Math.floor((Date.now() - lastUpdated.getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [lastUpdated]);
+
+  const handleManualRefresh = () => {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    if (currentUser.activeDealId) fetchDealData(currentUser.activeDealId);
+  };
+
+  const toggleEmailNotifications = async () => {
+    if (!clientRecordId) return;
+    const newValue = !emailNotifications;
+    setEmailNotifications(newValue);
+    try {
+      await dataClient.models.Client.update({ id: clientRecordId, emailNotifications: newValue });
+      setNotifSaved(true);
+      setTimeout(() => setNotifSaved(false), 2000);
+    } catch (err) {
+      console.error('Failed to update notification preference', err);
+      setEmailNotifications(!newValue);
+    }
+  };
+
+  const formatSecondsAgo = (s: number) => {
+    if (s < 5) return 'just now';
+    if (s < 60) return `${s}s ago`;
+    return `${Math.floor(s / 60)}m ago`;
+  };
 
   const vehicleSummary = `${vehicle.year || ''} ${vehicle.make || ''} ${vehicle.model || ''} ${vehicle.trim || ''}`.trim();
   const bestOffer = offers.find(o => o.status === 'Best');
@@ -337,13 +435,24 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
       <Header variant="authenticated" />
 
       <div className="max-w-4xl mx-auto px-6 py-10 flex-1 w-full">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold">{getGreeting()}, {profile.firstName || user.firstName || 'there'} 👋</h1>
-          <p className="text-slate-500 mt-1">
-            {dealStatus === 'Complete' ? 'Your deal is done — enjoy your new vehicle!' :
-             dealStatus === 'Offer Received' ? 'Your advocate has found an offer for you.' :
-             'Your advocate is working on your deal.'}
-          </p>
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <h1 className="text-4xl font-bold">{getGreeting()}, {profile.firstName || user.firstName || 'there'} 👋</h1>
+            <p className="text-slate-500 mt-1">
+              {dealStatus === 'Complete' ? 'Your deal is done — enjoy your new vehicle!' :
+               dealStatus === 'Offer Received' ? 'Your advocate has found an offer for you.' :
+               'Your advocate is working on your deal.'}
+            </p>
+          </div>
+          {/* Item 13: Polling status */}
+          <div className="flex items-center gap-3 text-xs text-slate-400 shrink-0">
+            {pollError && <span className="text-amber-600">Connection issue — retrying</span>}
+            {isPolling && <span className="w-3 h-3 border-2 border-slate-300 border-t-emerald-600 rounded-full animate-spin" />}
+            {lastUpdated && !pollError && <span>Updated {formatSecondsAgo(secondsAgo)}</span>}
+            <button onClick={handleManualRefresh} disabled={isPolling} className="text-emerald-600 hover:text-emerald-700 font-medium disabled:text-slate-300">
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Status header card */}
@@ -486,6 +595,50 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
             </div>
           </div>
         </div>
+
+        {/* Item 14: Email notification toggle */}
+        {clientRecordId && (
+          <div className="bg-white rounded-3xl shadow p-6 mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-sm">Deal update emails</h3>
+              <p className="text-xs text-slate-400 mt-0.5">Receive email updates when your advocate has news</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {notifSaved && <span className="text-xs text-emerald-600 font-medium">Saved</span>}
+              <button
+                onClick={toggleEmailNotifications}
+                className={`relative w-12 h-7 rounded-full transition-colors ${emailNotifications ? 'bg-emerald-600' : 'bg-slate-300'}`}
+              >
+                <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${emailNotifications ? 'left-[22px]' : 'left-0.5'}`} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Item 15: Past deals */}
+        {pastDeals.length > 0 && (
+          <div className="bg-white rounded-3xl shadow p-6 mb-6">
+            <h3 className="font-semibold mb-5">Past Deals</h3>
+            <div className="space-y-3">
+              {pastDeals.map(d => (
+                <div key={d.id} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0 last:pb-0">
+                  <div>
+                    <div className="font-medium text-sm">{d.vehicle}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">Submitted {d.submitted}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {d.bestOffer && <span className="text-sm font-semibold text-emerald-600">{d.bestOffer}</span>}
+                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${
+                      d.status === 'Complete' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {d.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {dealStatus !== 'Complete' && (
           <div className="bg-slate-800 rounded-3xl p-8 text-white text-center">
