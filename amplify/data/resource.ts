@@ -81,6 +81,7 @@ const schema = a.schema({
   }).authorization(allow => [
     allow.groups(['advocates', 'admins']),
     allow.owner().to(['create', 'read']),
+    allow.guest().to(['read']),
   ]),
 
   Dealership: a.model({
