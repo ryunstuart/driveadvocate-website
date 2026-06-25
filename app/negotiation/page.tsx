@@ -4,13 +4,14 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
+import { dataClient } from '@/app/lib/amplify-data';
 
 interface Deal {
   id: string;
   clientName: string;
   vehicle: string;
   submitted: string;
-  status: 'New' | 'In Progress' | 'Follow Up' | 'Complete';
+  status: string;
   priority: number;
 }
 
@@ -20,12 +21,21 @@ interface DealFileState {
   dealerships: { status: string }[];
 }
 
-const BASE_DEALS: Deal[] = [
-  { id: 'deal-001', clientName: 'Johnathan Reyes', vehicle: '2025 Toyota Tundra Limited', submitted: '2026-06-23', status: 'New', priority: 1 },
-  { id: 'deal-002', clientName: 'Maria Gonzalez', vehicle: '2026 Ford F-150 Lariat', submitted: '2026-06-22', status: 'In Progress', priority: 2 },
-  { id: 'deal-003', clientName: 'David Chen', vehicle: '2025 Chevrolet Silverado 1500', submitted: '2026-06-22', status: 'Follow Up', priority: 3 },
-  { id: 'deal-004', clientName: 'Sarah Patel', vehicle: '2025 Ram 1500 Limited', submitted: '2026-06-21', status: 'In Progress', priority: 4 },
-];
+// const BASE_DEALS: Deal[] = [
+//   { id: 'deal-001', clientName: 'Johnathan Reyes', vehicle: '2025 Toyota Tundra Limited', submitted: '2026-06-23', status: 'New', priority: 1 },
+//   { id: 'deal-002', clientName: 'Maria Gonzalez', vehicle: '2026 Ford F-150 Lariat', submitted: '2026-06-22', status: 'In Progress', priority: 2 },
+//   { id: 'deal-003', clientName: 'David Chen', vehicle: '2025 Chevrolet Silverado 1500', submitted: '2026-06-22', status: 'Follow Up', priority: 3 },
+//   { id: 'deal-004', clientName: 'Sarah Patel', vehicle: '2025 Ram 1500 Limited', submitted: '2026-06-21', status: 'In Progress', priority: 4 },
+// ];
+
+const STATUS_DISPLAY: Record<string, string> = {
+  'New': 'New',
+  'InProgress': 'In Progress',
+  'FollowUp': 'Follow Up',
+  'OfferReceived': 'Offer Received',
+  'Complete': 'Complete',
+  'Dead': 'Dead',
+};
 
 function getDealStats(dealId: string): { timeSpent: number; dealershipsContacted: number; callCount: number } {
   if (typeof window === 'undefined') return { timeSpent: 0, dealershipsContacted: 0, callCount: 0 };
@@ -47,35 +57,59 @@ function getDealStats(dealId: string): { timeSpent: number; dealershipsContacted
 export default function NegotiationQueue() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-  const [deals, setDeals] = useState<Deal[]>(BASE_DEALS);
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [liveStats, setLiveStats] = useState<Record<string, { timeSpent: number; dealershipsContacted: number; callCount: number }>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const advocateDeals = JSON.parse(localStorage.getItem('advocateDeals') || '[]');
-      const merged = [...BASE_DEALS];
-      advocateDeals.forEach((d: any, i: number) => {
-        if (!merged.find(m => m.id === d.id)) {
-          merged.push({
-            id: d.id,
-            clientName: d.clientName,
-            vehicle: d.vehicle,
-            submitted: d.submitted,
-            status: d.status || 'New',
-            priority: BASE_DEALS.length + i + 1,
-          });
-        }
-      });
-      setDeals(merged);
-      const stats: Record<string, any> = {};
-      merged.forEach(d => { stats[d.id] = getDealStats(d.id); });
-      setLiveStats(stats);
-    } catch (e) {
-      console.error('Failed to load deals', e);
-    } finally {
-      setLoading(false);
+    async function loadDeals() {
+      try {
+        const { data: appSyncDeals } = await dataClient.models.Deal.list();
+
+        const mapped: Deal[] = await Promise.all(
+          appSyncDeals.map(async (d, i) => {
+            let vehicle = 'Vehicle TBD';
+            try {
+              const { data: vps } = await dataClient.models.VehiclePreference.list({
+                filter: { dealId: { eq: d.id } },
+              });
+              if (vps.length > 0) {
+                const vp = vps[0];
+                vehicle = [vp.year, vp.make, vp.model, vp.trim].filter(Boolean).join(' ') || 'Vehicle TBD';
+              }
+            } catch {
+              // VehiclePreference lookup failed — use fallback
+            }
+
+            const submitted = d.submittedAt
+              ? d.submittedAt.split('T')[0]
+              : d.createdAt?.split('T')[0] || '';
+
+            return {
+              id: d.id,
+              clientName: d.clientName,
+              vehicle,
+              submitted,
+              status: STATUS_DISPLAY[d.status || 'New'] || d.status || 'New',
+              priority: d.priority ?? i + 1,
+            };
+          })
+        );
+
+        mapped.sort((a, b) => a.priority - b.priority);
+        setDeals(mapped);
+
+        const stats: Record<string, any> = {};
+        mapped.forEach(d => { stats[d.id] = getDealStats(d.id); });
+        setLiveStats(stats);
+      } catch (e) {
+        console.error('Failed to load deals from AppSync', e);
+      } finally {
+        setLoading(false);
+      }
     }
+
+    loadDeals();
   }, []);
 
   const filteredDeals = deals
@@ -99,7 +133,9 @@ export default function NegotiationQueue() {
     'New': 'bg-blue-100 text-blue-700',
     'In Progress': 'bg-amber-100 text-amber-700',
     'Follow Up': 'bg-purple-100 text-purple-700',
+    'Offer Received': 'bg-orange-100 text-orange-700',
     'Complete': 'bg-emerald-100 text-emerald-700',
+    'Dead': 'bg-slate-100 text-slate-500',
   };
 
   return (
@@ -111,7 +147,7 @@ export default function NegotiationQueue() {
         <div className="flex items-end justify-between mb-8">
   <div>
     <h1 className="text-4xl font-bold">Negotiation Queue</h1>
-    <p className="text-slate-500 mt-1">Active client files · sorted by submission date</p>
+    <p className="text-slate-500 mt-1">Active client files · sorted by priority</p>
   </div>
           <button
             onClick={() => router.push('/advocate/intake')}
@@ -170,7 +206,6 @@ export default function NegotiationQueue() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                // Loading skeletons
                 [...Array(4)].map((_, i) => (
                   <tr key={i}>
                     <td colSpan={9} className="px-8 py-5">
@@ -200,7 +235,7 @@ export default function NegotiationQueue() {
                       <td className="px-6 py-5 text-slate-600 text-sm">{deal.vehicle}</td>
                       <td className="px-6 py-5 text-sm text-slate-500">{deal.submitted}</td>
                       <td className="px-6 py-5 text-center">
-                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${statusColors[deal.status]}`}>
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${statusColors[deal.status] || 'bg-slate-100 text-slate-600'}`}>
                           {deal.status}
                         </span>
                       </td>
@@ -248,7 +283,7 @@ export default function NegotiationQueue() {
         </div>
 
         <p className="text-xs text-slate-400 mt-4 text-center">
-          Sorted oldest to newest · Click any row to open the client file · Stats update from localStorage
+          Sorted by priority · Click any row to open the client file
         </p>
       </div>
       <Footer />

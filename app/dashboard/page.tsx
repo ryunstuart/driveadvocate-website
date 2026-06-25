@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
+import { dataClient } from '@/app/lib/amplify-data';
 
 const ADVOCATE_EMAILS = ['ryun.stuart@gmail.com', 'advocate@driveadvocate.com'];
 
@@ -13,7 +14,7 @@ interface Deal {
   clientName: string;
   vehicle: string;
   submitted: string;
-  status: 'New' | 'In Progress' | 'Follow Up' | 'Complete';
+  status: string;
   priority: number;
 }
 
@@ -25,12 +26,14 @@ interface DealFileState {
   dealStatus: string;
 }
 
-const BASE_DEALS: Deal[] = [
-  { id: 'deal-001', clientName: 'Johnathan Reyes', vehicle: '2025 Toyota Tundra Limited', submitted: '2026-06-23', status: 'New', priority: 1 },
-  { id: 'deal-002', clientName: 'Maria Gonzalez', vehicle: '2026 Ford F-150 Lariat', submitted: '2026-06-22', status: 'In Progress', priority: 2 },
-  { id: 'deal-003', clientName: 'David Chen', vehicle: '2025 Chevrolet Silverado 1500', submitted: '2026-06-22', status: 'Follow Up', priority: 3 },
-  { id: 'deal-004', clientName: 'Sarah Patel', vehicle: '2025 Ram 1500 Limited', submitted: '2026-06-21', status: 'In Progress', priority: 4 },
-];
+const STATUS_DISPLAY: Record<string, string> = {
+  'New': 'New',
+  'InProgress': 'In Progress',
+  'FollowUp': 'Follow Up',
+  'OfferReceived': 'Offer Received',
+  'Complete': 'Complete',
+  'Dead': 'Dead',
+};
 
 function getDealStats(dealId: string) {
   try {
@@ -61,24 +64,52 @@ function getGreeting() {
 // ─── ADVOCATE DASHBOARD ───────────────────────────────────────────────────────
 function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void }) {
   const router = useRouter();
-  const [deals, setDeals] = useState<Deal[]>(BASE_DEALS);
+  const [deals, setDeals] = useState<Deal[]>([]);
   const [stats, setStats] = useState<Record<string, any>>({});
   const [pendingDeals, setPendingDeals] = useState<any[]>([]);
 
   useEffect(() => {
-    const advocateDeals = JSON.parse(localStorage.getItem('advocateDeals') || '[]');
-    const merged = [...BASE_DEALS];
-    advocateDeals.forEach((d: any, i: number) => {
-      if (!merged.find(m => m.id === d.id)) {
-        merged.push({ id: d.id, clientName: d.clientName, vehicle: d.vehicle, submitted: d.submitted, status: d.status || 'New', priority: BASE_DEALS.length + i + 1 });
-      }
-    });
-    setDeals(merged);
+    async function loadDeals() {
+      try {
+        const { data: appSyncDeals } = await dataClient.models.Deal.list();
+        const mapped: Deal[] = await Promise.all(
+          appSyncDeals.map(async (d, i) => {
+            let vehicle = 'Vehicle TBD';
+            try {
+              const { data: vps } = await dataClient.models.VehiclePreference.list({
+                filter: { dealId: { eq: d.id } },
+              });
+              if (vps.length > 0) {
+                const vp = vps[0];
+                vehicle = [vp.year, vp.make, vp.model, vp.trim].filter(Boolean).join(' ') || 'Vehicle TBD';
+              }
+            } catch {}
 
-    const s: Record<string, any> = {};
-    merged.forEach(d => { s[d.id] = getDealStats(d.id); });
-    setStats(s);
-    setPendingDeals(JSON.parse(localStorage.getItem('pendingDeals') || '[]'));
+            const submitted = d.submittedAt
+              ? d.submittedAt.split('T')[0]
+              : d.createdAt?.split('T')[0] || '';
+
+            return {
+              id: d.id,
+              clientName: d.clientName,
+              vehicle,
+              submitted,
+              status: STATUS_DISPLAY[d.status || 'New'] || d.status || 'New',
+              priority: d.priority ?? i + 1,
+            };
+          })
+        );
+        mapped.sort((a, b) => a.priority - b.priority);
+        setDeals(mapped);
+
+        const s: Record<string, any> = {};
+        mapped.forEach(d => { s[d.id] = getDealStats(d.id); });
+        setStats(s);
+      } catch (e) {
+        console.error('Failed to load deals from AppSync', e);
+      }
+    }
+    loadDeals();
   }, []);
 
   const totalTime = Object.values(stats).reduce((sum: number, s: any) => sum + (s.timeSpent || 0), 0);
@@ -91,7 +122,9 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
     'New': 'bg-blue-100 text-blue-700',
     'In Progress': 'bg-amber-100 text-amber-700',
     'Follow Up': 'bg-purple-100 text-purple-700',
+    'Offer Received': 'bg-orange-100 text-orange-700',
     'Complete': 'bg-emerald-100 text-emerald-700',
+    'Dead': 'bg-slate-100 text-slate-500',
   };
 
   return (
@@ -182,7 +215,7 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
             <div className="bg-white rounded-3xl shadow p-6">
               <h3 className="font-semibold mb-4">Queue Breakdown</h3>
               <div className="space-y-3">
-                {(['New', 'In Progress', 'Follow Up', 'Complete'] as const).map(status => (
+                {(['New', 'In Progress', 'Follow Up', 'Offer Received', 'Complete'] as const).map(status => (
                   <div key={status} className="flex items-center justify-between">
                     <span className={`text-xs px-3 py-1 rounded-full font-medium ${statusColors[status]}`}>{status}</span>
                     <span className="font-semibold">{deals.filter(d => d.status === status).length}</span>
