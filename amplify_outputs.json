@@ -112,6 +112,13 @@
               "isRequired": false,
               "attributes": []
             },
+            "emailNotifications": {
+              "name": "emailNotifications",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
             "createdAt": {
               "name": "createdAt",
               "isArray": false,
@@ -1174,7 +1181,57 @@
           ]
         }
       },
-      "nonModels": {}
+      "nonModels": {
+        "SendClientUpdateReturnType": {
+          "name": "SendClientUpdateReturnType",
+          "fields": {
+            "success": {
+              "name": "success",
+              "isArray": false,
+              "type": "Boolean",
+              "isRequired": false,
+              "attributes": []
+            },
+            "error": {
+              "name": "error",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false,
+              "attributes": []
+            }
+          }
+        }
+      },
+      "mutations": {
+        "sendClientUpdate": {
+          "name": "sendClientUpdate",
+          "isArray": false,
+          "type": {
+            "nonModel": "SendClientUpdateReturnType"
+          },
+          "isRequired": false,
+          "arguments": {
+            "dealId": {
+              "name": "dealId",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "message": {
+              "name": "message",
+              "isArray": false,
+              "type": "String",
+              "isRequired": true
+            },
+            "advocateName": {
+              "name": "advocateName",
+              "isArray": false,
+              "type": "String",
+              "isRequired": false
+            }
+          }
+        }
+      }
     }
   },
   "version": "1.4"
