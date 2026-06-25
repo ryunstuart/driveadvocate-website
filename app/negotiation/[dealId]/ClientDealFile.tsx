@@ -155,6 +155,12 @@ export default function ClientDealFile() {
   const [completeNotes, setCompleteNotes] = useState('');
   const [copied, setCopied] = useState(false);
 
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailMessage, setEmailMessage] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState('');
+
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSyncTime = useRef<number>(0);
 
@@ -461,6 +467,52 @@ export default function ClientDealFile() {
         totalTimeMinutes: totalTime,
         notes: completeNotes || undefined,
       }).catch(console.error);
+    }
+  };
+
+  const getDefaultEmailMessage = () => {
+    const statusMessages: Record<string, string> = {
+      'New': `I've received your vehicle request and I'm reviewing your build now. I'll start reaching out to dealerships in your area shortly.`,
+      'In Progress': `I'm actively contacting dealerships in your area. I'll update you as soon as I have pricing and availability information.`,
+      'Follow Up': `I'm following up with several dealerships on your vehicle. Waiting on responses and will have an update for you soon.`,
+      'Offer Received': `Great news — I've received a competitive offer on your vehicle. I'll be in touch shortly to walk through the details with you.`,
+      'Complete': `Your deal is finalized! Thank you for choosing DriveAdvocate. It was a pleasure working with you.`,
+      'Dead': `Your deal file has been closed. If you'd like to start a new search, feel free to reach out anytime.`,
+    };
+    return statusMessages[dealStatus] || 'Here\'s an update on your deal.';
+  };
+
+  const openEmailModal = () => {
+    setEmailMessage(getDefaultEmailMessage());
+    setEmailError('');
+    setEmailSent(false);
+    setShowEmailModal(true);
+  };
+
+  const sendEmail = async () => {
+    if (!emailMessage.trim()) return;
+    setEmailSending(true);
+    setEmailError('');
+    try {
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      const result = await dataClient.mutations.sendClientUpdate({
+        dealId,
+        message: emailMessage,
+        advocateName: currentUser.firstName ? `${currentUser.firstName} at DriveAdvocate` : undefined,
+      });
+      if (result.data?.success) {
+        setEmailSent(true);
+        setTimeout(() => {
+          setShowEmailModal(false);
+          setEmailSent(false);
+        }, 3000);
+      } else {
+        setEmailError(result.data?.error || 'Failed to send email');
+      }
+    } catch (err: any) {
+      setEmailError(err.message || 'Failed to send email');
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -850,7 +902,7 @@ export default function ClientDealFile() {
                 <button onClick={copyDealSummary} className={`w-full text-left px-4 py-3 rounded-2xl border transition text-sm font-medium ${copied ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50'}`}>
                   {copied ? '✓ Copied!' : '📋 Copy Deal Summary'}
                 </button>
-                <button className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">📧 Send Client Update</button>
+                <button onClick={openEmailModal} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">📧 Send Client Update</button>
                 <button onClick={() => setShowCompleteModal(true)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">🏁 Mark Deal Complete</button>
               </div>
             </div>
@@ -982,6 +1034,54 @@ export default function ClientDealFile() {
               <button onClick={() => setShowCompleteModal(false)} className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50 text-sm font-medium">Cancel</button>
               <button onClick={handleComplete} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 text-sm font-semibold">Confirm Complete 🏁</button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl">
+            {emailSent ? (
+              <div className="text-center py-8">
+                <div className="text-5xl mb-4">✉️</div>
+                <h3 className="text-2xl font-bold text-emerald-600 mb-2">Sent!</h3>
+                <p className="text-slate-500 text-sm">The client update email has been delivered.</p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold">Send Client Update</h3>
+                  <p className="text-slate-500 mt-1 text-sm">Send an email update to {dealInfo.clientName}</p>
+                </div>
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Message</label>
+                    <textarea
+                      value={emailMessage}
+                      onChange={e => setEmailMessage(e.target.value)}
+                      className="w-full border border-slate-300 rounded-2xl px-4 py-3 h-36 resize-none text-sm focus:outline-none focus:border-emerald-500"
+                      placeholder="Write your update message..."
+                    />
+                  </div>
+                  <div className="bg-slate-50 rounded-2xl p-4 text-sm text-slate-500">
+                    The email will include the current deal status ({dealStatus}) and your name as the advocate.
+                  </div>
+                  {emailError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{emailError}</div>
+                  )}
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <button onClick={() => setShowEmailModal(false)} className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50 text-sm font-medium">Cancel</button>
+                  <button
+                    onClick={sendEmail}
+                    disabled={emailSending || !emailMessage.trim()}
+                    className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-sm font-semibold"
+                  >
+                    {emailSending ? 'Sending...' : 'Send Email'}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

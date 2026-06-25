@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
+import { sendClientUpdate } from '../functions/sendClientUpdate/resource';
 
 const schema = a.schema({
 
@@ -127,6 +128,20 @@ const schema = a.schema({
   }).authorization(allow => [
     allow.groups(['advocates', 'admins']),
   ]),
+
+  sendClientUpdate: a
+    .mutation()
+    .arguments({
+      dealId: a.string().required(),
+      message: a.string().required(),
+      advocateName: a.string(),
+    })
+    .returns(a.customType({
+      success: a.boolean(),
+      error: a.string(),
+    }))
+    .authorization(allow => [allow.groups(['advocates', 'admins'])])
+    .handler(a.handler.function(sendClientUpdate)),
 
 });
 
