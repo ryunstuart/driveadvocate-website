@@ -7,7 +7,6 @@ import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
 
-const ADVOCATE_EMAILS = ['ryun.stuart@gmail.com', 'advocate@driveadvocate.com'];
 
 interface Deal {
   id: string;
@@ -528,7 +527,7 @@ export default function Dashboard() {
       return;
     }
     setUser(currentUser);
-    setIsAdvocate(ADVOCATE_EMAILS.includes(currentUser.email.toLowerCase()));
+    setIsAdvocate(currentUser.isAdvocate === true);
   }, [router]);
 
   const handleLogout = async () => {
