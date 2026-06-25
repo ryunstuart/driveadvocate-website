@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
+import { dataClient } from '@/app/lib/amplify-data';
 
 interface Make { Make_ID: number; Make_Name: string; }
 interface Model { Model_ID: number; Model_Name: string; }
@@ -46,6 +47,7 @@ export default function AdvocateIntake() {
   const [loadingMakes, setLoadingMakes] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
@@ -133,50 +135,70 @@ export default function AdvocateIntake() {
     return e;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) {
       setErrors(errs);
-      // Scroll to first error
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     setIsSubmitting(true);
+    setSubmitError('');
 
-    const dealId = `deal-${Date.now()}`;
-    const vehicleSummary = `${form.year} ${form.make} ${form.model} ${form.trim}`.trim();
-    const vehicleDetails = `${form.exteriorColor1} Ext · ${form.interiorColor1} Int`;
+    try {
+      const { data: existingDeals } = await dataClient.models.Deal.list();
+      const priority = (existingDeals?.length || 0) + 1;
 
-    const newDeal = {
-      id: dealId,
-      clientName: `${form.firstName} ${form.lastName}`.trim(),
-      email: form.email,
-      phone: form.phone,
-      vehicle: vehicleSummary,
-      vehicleDetails,
-      submitted: new Date().toISOString().split('T')[0],
-      status: 'New',
-      budget: form.budget,
-      timeline: form.timeline,
-      searchRadius: form.searchRadius,
-      serviceLevel: form.serviceLevel,
-      notes: form.notes,
-      zip: form.zipCode,
-      city: form.city,
-      state: form.state,
-      accessories: form.accessories,
-      exteriorColors: [form.exteriorColor1, form.exteriorColor2, form.exteriorColor3],
-      interiorColors: [form.interiorColor1, form.interiorColor2, form.interiorColor3],
-    };
+      const clientName = `${form.firstName} ${form.lastName}`.trim();
+      const clientEmail = form.email.trim().toLowerCase();
 
-    // Save to advocate deals queue in localStorage
-    const advocateDeals = JSON.parse(localStorage.getItem('advocateDeals') || '[]');
-    advocateDeals.unshift(newDeal);
-    localStorage.setItem('advocateDeals', JSON.stringify(advocateDeals));
+      const { data: deal, errors: dealErrors } = await dataClient.models.Deal.create({
+        clientId: clientEmail,
+        clientName,
+        clientEmail,
+        status: 'New',
+        priority,
+        serviceLevel: form.serviceLevel,
+        budget: form.budget,
+        timeline: form.timeline,
+        searchRadius: parseInt(form.searchRadius, 10),
+        notes: form.notes || undefined,
+        submittedAt: new Date().toISOString(),
+        totalTimeMinutes: 0,
+      });
 
-    setTimeout(() => router.push('/negotiation'), 600);
+      if (dealErrors?.length || !deal) {
+        throw new Error(dealErrors?.[0]?.message || 'Failed to create deal');
+      }
+
+      const exteriorColors = [form.exteriorColor1, form.exteriorColor2, form.exteriorColor3].filter(Boolean);
+      const interiorColors = [form.interiorColor1, form.interiorColor2, form.interiorColor3].filter(Boolean);
+
+      const { errors: vpErrors } = await dataClient.models.VehiclePreference.create({
+        dealId: deal.id,
+        year: form.year,
+        make: form.make,
+        model: form.model,
+        trim: form.trim || undefined,
+        exteriorColors,
+        interiorColors,
+        accessories: form.accessories.length > 0 ? form.accessories : undefined,
+        zipCode: form.zipCode,
+        searchRadius: parseInt(form.searchRadius, 10),
+      });
+
+      if (vpErrors?.length) {
+        throw new Error(vpErrors[0]?.message || 'Failed to create vehicle preference');
+      }
+
+      router.push('/negotiation');
+    } catch (err: any) {
+      console.error('Intake submission failed:', err);
+      setSubmitError(err.message || 'Something went wrong. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   const inputClass = (field: string) =>
@@ -205,6 +227,13 @@ export default function AdvocateIntake() {
             </div>
           )}
         </div>
+
+        {submitError && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl px-6 py-4 text-red-700 text-sm flex items-center justify-between">
+            <span>{submitError}</span>
+            <button onClick={() => setSubmitError('')} className="text-red-500 hover:text-red-700 text-xs font-medium ml-4">Dismiss</button>
+          </div>
+        )}
 
         {Object.keys(errors).length > 0 && (
           <div className="mb-6 bg-red-50 border border-red-200 rounded-2xl px-6 py-4 text-red-700 text-sm">
