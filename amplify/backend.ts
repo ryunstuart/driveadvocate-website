@@ -109,3 +109,19 @@ backend.searchDealInventory.resources.lambda.addToRolePolicy(
     resources: ['arn:aws:ssm:us-east-1:870924848445:parameter/driveadvocate/*'],
   }),
 );
+
+// --- SSR API route permissions (Cognito group lookup) ---
+
+const userPoolArn = `arn:aws:cognito-idp:us-east-1:870924848445:userpool/${backend.auth.resources.userPool.userPoolId}`;
+
+const authRole = backend.auth.resources.authenticatedUserIamRole;
+authRole.addToPrincipalPolicy(new PolicyStatement({
+  actions: ['cognito-idp:AdminListGroupsForUser'],
+  resources: [userPoolArn],
+}));
+
+const unauthRole = backend.auth.resources.unauthenticatedUserIamRole;
+unauthRole.addToPrincipalPolicy(new PolicyStatement({
+  actions: ['cognito-idp:AdminListGroupsForUser'],
+  resources: [userPoolArn],
+}));
