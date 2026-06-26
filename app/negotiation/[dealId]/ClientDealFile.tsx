@@ -833,7 +833,7 @@ export default function ClientDealFile() {
                             <div className="font-semibold">{dealer.name}</div>
                             <span className={`px-3 py-0.5 rounded-full text-xs font-medium ${dealerStatusColors[dealer.status]}`}>{dealer.status}</span>
                           </div>
-                          <div className="text-sm text-slate-500 mt-1">{dealer.distance} mi • {dealer.phone}</div>
+                          <div className="text-sm text-slate-500 mt-1">{dealer.distance} mi • <a href={`tel:${dealer.phone}`} className="text-emerald-600 hover:underline" onClick={e => e.stopPropagation()}>{dealer.phone}</a></div>
                           {dealer.lastCalled && (
                             <div className="text-xs text-slate-500 mt-1.5">
                               <span className="font-medium">Last:</span> {dealer.lastCalled}
@@ -1077,7 +1077,7 @@ export default function ClientDealFile() {
           <div className="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl">
             <div className="mb-6">
               <h3 className="text-xl font-semibold">Log Call</h3>
-              <p className="text-slate-500 mt-1">{selectedDealership.name} · {selectedDealership.phone}</p>
+              <p className="text-slate-500 mt-1">{selectedDealership.name} · <a href={`tel:${selectedDealership.phone}`} className="text-emerald-600 hover:underline">{selectedDealership.phone}</a></p>
             </div>
             <div className="space-y-5">
               <div>
