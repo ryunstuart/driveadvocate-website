@@ -153,8 +153,10 @@ export default function ClientDealFile() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAppSyncDeal, setIsAppSyncDeal] = useState(false);
   const [dealInfo, setDealInfo] = useState({ clientName: '', vehicle: '', vehicleDetails: '' });
+  const [vehiclePref, setVehiclePref] = useState<{ make: string; model: string; year: string; zipCode: string; searchRadius: number } | null>(null);
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
   const [inventory, setInventory] = useState<InventoryListing[]>([]);
+  const [inventorySearching, setInventorySearching] = useState(false);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [totalTime, setTotalTime] = useState(0);
@@ -218,6 +220,14 @@ export default function ClientDealFile() {
             const ext = (vp.exteriorColors || []).join(', ');
             const int = (vp.interiorColors || []).join(', ');
             vehicleDetails = [ext && `${ext} Ext`, int && `${int} Int`].filter(Boolean).join(' • ');
+            if (vp.make && vp.model && vp.zipCode) {
+              setVehiclePref({
+                make: vp.make, model: vp.model,
+                year: vp.year || '2020',
+                zipCode: vp.zipCode,
+                searchRadius: vp.searchRadius || 100,
+              });
+            }
           }
           setDealInfo({ clientName: d.clientName, vehicle, vehicleDetails });
 
@@ -549,6 +559,31 @@ export default function ClientDealFile() {
     }
   };
 
+  const triggerInventorySearch = async () => {
+    if (!vehiclePref || inventorySearching) return;
+    setInventorySearching(true);
+    try {
+      await dataClient.mutations.searchDealInventory({
+        dealId,
+        make: vehiclePref.make,
+        model: vehiclePref.model,
+        year: vehiclePref.year,
+        zip: vehiclePref.zipCode,
+        radius: vehiclePref.searchRadius,
+        carType: 'used',
+      });
+      const invRes = await fetch(`/api/inventory?dealId=${dealId}`);
+      if (invRes.ok) {
+        const invData = await invRes.json();
+        setInventory(invData.listings || []);
+      }
+    } catch (err) {
+      console.error('Inventory search failed:', err);
+    } finally {
+      setInventorySearching(false);
+    }
+  };
+
   const copyDealSummary = async () => {
     const lines = [
       `DEAL SUMMARY`,
@@ -686,10 +721,16 @@ export default function ClientDealFile() {
           <div className="lg:col-span-2 space-y-6">
 
             {/* Inventory Listings */}
-            {inventory.length > 0 && (
-              <div className="bg-white rounded-3xl shadow p-8">
+            <div className="bg-white rounded-3xl shadow p-8">
+              {inventory.length > 0 ? (
+                <>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">Inventory <span className="text-slate-400 font-normal text-base">({inventory.length} listings)</span></h2>
+                  {vehiclePref && (
+                    <button onClick={triggerInventorySearch} disabled={inventorySearching} className="px-4 py-2 text-sm border border-slate-200 rounded-2xl hover:border-emerald-300 hover:text-emerald-600 disabled:text-slate-400 transition">
+                      {inventorySearching ? 'Refreshing...' : 'Refresh'}
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-4">
                   {inventory.map(listing => (
@@ -731,8 +772,34 @@ export default function ClientDealFile() {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-4xl mb-3">🔍</div>
+                  <h2 className="font-semibold text-slate-700 mb-1">No inventory loaded yet</h2>
+                  <p className="text-sm text-slate-400 mb-4">
+                    {vehiclePref
+                      ? 'Search for matching vehicles near the client to populate this section.'
+                      : 'Inventory populates when a client submits through the vehicle wizard.'}
+                  </p>
+                  {vehiclePref && (
+                    <button
+                      onClick={triggerInventorySearch}
+                      disabled={inventorySearching}
+                      className="px-6 py-2.5 bg-emerald-600 text-white rounded-2xl text-sm font-medium hover:bg-emerald-700 disabled:bg-slate-300 transition"
+                    >
+                      {inventorySearching ? 'Searching...' : 'Search Inventory Now'}
+                    </button>
+                  )}
+                  {inventorySearching && (
+                    <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
+                      <span className="w-4 h-4 border-2 border-slate-300 border-t-emerald-600 rounded-full animate-spin" />
+                      Searching {vehiclePref?.make} {vehiclePref?.model} near {vehiclePref?.zipCode}...
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Dealerships (localStorage) */}
             {dealerships.length > 0 && (
@@ -976,6 +1043,11 @@ export default function ClientDealFile() {
             <div className="bg-white rounded-3xl shadow p-8">
               <h3 className="font-semibold mb-4">Actions</h3>
               <div className="space-y-3">
+                {vehiclePref && (
+                  <button onClick={triggerInventorySearch} disabled={inventorySearching} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
+                    {inventorySearching ? '🔄 Searching...' : '🔍 Refresh Inventory'}
+                  </button>
+                )}
                 <button onClick={() => setShowOfferModal(true)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">💰 Log New Offer</button>
                 <button onClick={copyDealSummary} className={`w-full text-left px-4 py-3 rounded-2xl border transition text-sm font-medium ${copied ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50'}`}>
                   {copied ? '✓ Copied!' : '📋 Copy Deal Summary'}
