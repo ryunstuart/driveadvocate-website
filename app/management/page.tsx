@@ -56,13 +56,12 @@ export default function ManagementDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const { username } = await getCurrentUser();
-        const session = await fetchAuthSession();
-        const issuer = (session.tokens?.accessToken?.payload?.iss as string) || '';
-        const poolId = issuer.split('/').pop() || '';
-        const groupsRes = await fetch(`/api/user/groups?username=${encodeURIComponent(username)}&poolId=${encodeURIComponent(poolId)}`);
-        const { groups } = await groupsRes.json();
-        if (!groups.includes('admins')) { router.push('/dashboard'); return; }
+        const ADMIN_EMAILS = ['ryun@driveadvocate.com'];
+        await getCurrentUser();
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        if (!currentUser.isAdmin && !ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {
+          router.push('/dashboard'); return;
+        }
       } catch { router.push('/login'); return; }
 
       try {

@@ -65,18 +65,14 @@ export default function Login() {
     }
   };
 
-  const completeLogin = async (normalizedEmail: string) => {
-    const { username, userId } = await getCurrentUser();
-    const session = await fetchAuthSession();
-    const issuer = (session.tokens?.accessToken?.payload?.iss as string) || '';
-    const poolId = issuer.split('/').pop() || '';
-    console.log('getCurrentUser:', { username, userId, poolId });
-    const res = await fetch(`/api/user/groups?username=${encodeURIComponent(username)}&email=${encodeURIComponent(normalizedEmail)}&poolId=${encodeURIComponent(poolId)}`);
-    const { groups } = await res.json();
-    console.log('Server-side groups:', groups);
+  const ADMIN_EMAILS = ['ryun@driveadvocate.com'];
 
-    const isAdvocate = groups.includes('advocates') || groups.includes('admins');
-    const isAdmin = groups.includes('admins');
+  const completeLogin = async (normalizedEmail: string) => {
+    const session = await fetchAuthSession();
+    const groups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
+
+    const isAdmin = ADMIN_EMAILS.includes(normalizedEmail) || groups.includes('admins');
+    const isAdvocate = groups.includes('advocates') || isAdmin;
 
     let clientFirstName = '';
     if (!isAdvocate) {
