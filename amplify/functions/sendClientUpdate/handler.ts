@@ -80,6 +80,7 @@ export const handler = async (event: any) => {
 
     await ses.send(new SendEmailCommand({
       Source: 'updates@driveadvocate.com',
+      ReplyToAddresses: ['info@driveadvocate.com'],
       Destination: { ToAddresses: [clientEmail] },
       Message: {
         Subject: { Data: 'Update on your DriveAdvocate deal' },
