@@ -14,5 +14,9 @@ export const auth = defineAuth({
       mutable: true,
     },
   },
+  multifactor: {
+    mode: 'OPTIONAL',
+    totp: true,
+  },
   groups: ['advocates', 'admins', 'clients'],
 });
