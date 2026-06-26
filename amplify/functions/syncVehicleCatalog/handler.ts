@@ -1,4 +1,4 @@
-import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
+import { SSMClient, GetParameterCommand, PutParameterCommand } from '@aws-sdk/client-ssm';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 
@@ -8,6 +8,7 @@ const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' 
 });
 const TABLE_NAME = process.env.VEHICLE_CATALOG_TABLE || 'VehicleCatalog';
 const BASE_URL = 'https://carapi.app/api';
+const JWT_CACHE_KEY = '/driveadvocate/carapi/jwt-cache';
 
 async function getSSMParam(name: string): Promise<string> {
   const result = await ssm.send(new GetParameterCommand({ Name: name, WithDecryption: true }));
@@ -15,15 +16,39 @@ async function getSSMParam(name: string): Promise<string> {
 }
 
 async function getJWT(): Promise<string> {
+  try {
+    const cached = await ssm.send(new GetParameterCommand({ Name: JWT_CACHE_KEY, WithDecryption: true })).catch(() => null);
+    if (cached?.Parameter?.Value) {
+      const parts = cached.Parameter.Value.split('.');
+      if (parts.length === 3) {
+        const payload: any = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+        if (payload.exp * 1000 > Date.now() + 3600000) {
+          console.log('Using cached CarAPI JWT');
+          return cached.Parameter.Value;
+        }
+      }
+    }
+  } catch {}
+
+  console.log('Fetching new CarAPI JWT');
   const token = await getSSMParam('/driveadvocate/carapi/token');
   const secret = await getSSMParam('/driveadvocate/carapi/secret');
-  const res = await fetch(`${BASE_URL}/auth/login`, {
+  const res: Response = await fetch(`${BASE_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ api_token: token, api_secret: secret }),
   });
   if (!res.ok) throw new Error(`CarAPI auth failed: ${res.status}`);
-  return res.text();
+  const jwt = await res.text();
+
+  await ssm.send(new PutParameterCommand({
+    Name: JWT_CACHE_KEY,
+    Value: jwt,
+    Type: 'SecureString',
+    Overwrite: true,
+  }));
+
+  return jwt;
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -73,12 +98,12 @@ export const handler = async () => {
     for (let mi = 0; mi < makes.length; mi++) {
       const make = makes[mi];
       const makeName = make.name;
-      if (mi > 0) await sleep(2000);
+      if (mi > 0) await sleep(1000);
       const models = await fetchAllPages(`/models/v2?year=${year}&make=${encodeURIComponent(makeName)}`, jwt);
 
       for (const model of models) {
         const modelName = model.name;
-        await sleep(300);
+        await sleep(100);
 
         const trims = await fetchAllPages(`/trims/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt);
         const extColors = await fetchAllPages(`/exterior-colors/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt);
