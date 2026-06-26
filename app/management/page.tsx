@@ -56,7 +56,7 @@ export default function ManagementDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const ADMIN_EMAILS = ['ryun@driveadvocate.com'];
+        const ADMIN_EMAILS = ['ryun@driveadvocate.com', 'keith@driveadvocate.com'];
         await getCurrentUser();
         const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
         if (!currentUser.isAdmin && !ADMIN_EMAILS.includes(currentUser.email?.toLowerCase())) {

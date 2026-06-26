@@ -65,7 +65,7 @@ export default function Login() {
     }
   };
 
-  const ADMIN_EMAILS = ['ryun@driveadvocate.com'];
+  const ADMIN_EMAILS = ['ryun@driveadvocate.com', 'keith@driveadvocate.com'];
 
   const completeLogin = async (normalizedEmail: string) => {
     const session = await fetchAuthSession();
