@@ -3,15 +3,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  signIn, signUp, confirmSignUp, signOut, fetchAuthSession,
-  resendSignUpCode, resetPassword, confirmResetPassword,
+  signIn, signUp, confirmSignUp, confirmSignIn, signOut, fetchAuthSession,
+  resendSignUpCode, resetPassword, confirmResetPassword, fetchMFAPreference,
 } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { Eye, EyeOff } from 'lucide-react';
 
-type AuthView = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset';
+type AuthView = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset' | 'mfa';
 
 export default function Login() {
   const router = useRouter();
@@ -34,6 +34,7 @@ export default function Login() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -47,38 +48,58 @@ export default function Login() {
     setLoading(true);
     try {
       const normalizedEmail = email.trim().toLowerCase();
-      await signIn({ username: normalizedEmail, password });
+      const signInResult = await signIn({ username: normalizedEmail, password });
 
-      const session = await fetchAuthSession();
-      const groups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
-      const isAdvocate = groups.includes('advocates') || groups.includes('admins');
-
-      let clientFirstName = '';
-      if (!isAdvocate) {
-        try {
-          const { data: clients } = await dataClient.models.Client.list({
-            filter: { email: { eq: normalizedEmail } },
-          });
-          if (clients.length > 0) {
-            clientFirstName = clients[0].firstName;
-          }
-        } catch (err) {
-          console.error('Failed to fetch client record:', err);
-        }
+      if (signInResult.nextStep?.signInStep === 'CONFIRM_SIGN_IN_WITH_TOTP_CODE') {
+        setView('mfa');
+        setLoading(false);
+        return;
       }
 
-      const isAdmin = groups.includes('admins');
-      const currentUser = {
-        email: normalizedEmail,
-        firstName: clientFirstName,
-        isAdvocate,
-        isAdmin,
-        hasActiveDeal: !isAdvocate,
-      };
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      router.push('/dashboard');
+      await completeLogin(normalizedEmail);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const completeLogin = async (normalizedEmail: string) => {
+    const session = await fetchAuthSession();
+    const groups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
+    const isAdvocate = groups.includes('advocates') || groups.includes('admins');
+    const isAdmin = groups.includes('admins');
+
+    let clientFirstName = '';
+    if (!isAdvocate) {
+      try {
+        const { data: clients } = await dataClient.models.Client.list({ filter: { email: { eq: normalizedEmail } } });
+        if (clients.length > 0) clientFirstName = clients[0].firstName;
+      } catch {}
+    }
+
+    const currentUser = { email: normalizedEmail, firstName: clientFirstName, isAdvocate, isAdmin, hasActiveDeal: !isAdvocate };
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+    if (isAdvocate) {
+      try {
+        const mfaPref = await fetchMFAPreference();
+        if (!mfaPref.preferred) { router.push('/mfa-setup'); return; }
+      } catch {}
+    }
+
+    router.push('/dashboard');
+  };
+
+  const handleMFAChallenge = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await confirmSignIn({ challengeResponse: mfaCode });
+      await completeLogin(email.trim().toLowerCase());
+    } catch (err: any) {
+      setError('Invalid code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -210,6 +231,7 @@ export default function Login() {
              view === 'signup' ? 'Create Account' :
              view === 'confirm' ? 'Check Your Email' :
              view === 'forgot' ? 'Forgot Password' :
+             view === 'mfa' ? 'Verify Identity' :
              'Reset Password'}
           </h1>
           {view === 'confirm' && (
@@ -336,6 +358,29 @@ export default function Login() {
             </button>
             <button type="button" onClick={() => { setView('login'); setError(''); setSuccess(''); }} className="w-full py-3 text-sm text-slate-500 hover:text-slate-700 transition">
               ← Back to log in
+            </button>
+          </form>
+        )}
+
+        {view === 'mfa' && (
+          <form onSubmit={handleMFAChallenge} className="space-y-5">
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-3">🔐</div>
+              <h2 className="text-xl font-bold">Two-Factor Authentication</h2>
+              <p className="text-slate-500 text-sm mt-1">Enter the 6-digit code from your authenticator app</p>
+            </div>
+            <input
+              type="text"
+              value={mfaCode}
+              onChange={e => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              placeholder="000000"
+              maxLength={6}
+              autoFocus
+              className="w-full p-4 border border-slate-300 rounded-2xl text-center text-3xl tracking-widest font-mono bg-white focus:outline-none focus:border-emerald-500 transition"
+            />
+            {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
+            <button type="submit" disabled={loading || mfaCode.length !== 6} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
+              {loading ? 'Verifying...' : 'Verify Code'}
             </button>
           </form>
         )}

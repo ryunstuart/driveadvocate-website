@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   fetchUserAttributes, fetchAuthSession,
   updateUserAttributes, updatePassword, getCurrentUser,
+  fetchMFAPreference, updateMFAPreference,
 } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
@@ -32,6 +33,7 @@ export default function AccountSettings() {
   const [passwordMsg, setPasswordMsg] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
+  const [mfaEnabled, setMfaEnabled] = useState(false);
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -50,6 +52,11 @@ export default function AccountSettings() {
 
         const userGroups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
         setGroups(userGroups);
+
+        try {
+          const mfaPref = await fetchMFAPreference();
+          setMfaEnabled(mfaPref.preferred === 'TOTP');
+        } catch {}
       } catch (err) {
         console.error('Failed to load user attributes', err);
         router.push('/login');
@@ -260,6 +267,42 @@ export default function AccountSettings() {
             {changingPassword ? 'Changing...' : 'Change Password'}
           </button>
         </form>
+
+        {/* MFA */}
+        {groups.some(g => g === 'advocates' || g === 'admins') && (
+          <div className="bg-white rounded-3xl shadow p-8">
+            <h2 className="text-lg font-semibold mb-4">Two-Factor Authentication</h2>
+            {mfaEnabled ? (
+              <div>
+                <div className="flex items-center gap-2 text-emerald-600 mb-4">
+                  <span className="text-lg">✓</span>
+                  <span className="font-medium">Authenticator app enabled</span>
+                </div>
+                <button
+                  onClick={async () => {
+                    try {
+                      await updateMFAPreference({ totp: 'DISABLED' });
+                      setMfaEnabled(false);
+                    } catch (err) { console.error('Failed to disable MFA', err); }
+                  }}
+                  className="text-sm text-red-500 hover:underline"
+                >
+                  Disable 2FA
+                </button>
+              </div>
+            ) : (
+              <div>
+                <p className="text-slate-500 text-sm mb-4">Add an extra layer of security to your advocate account</p>
+                <button
+                  onClick={() => router.push('/mfa-setup')}
+                  className="px-6 py-3 bg-emerald-600 text-white rounded-2xl text-sm font-medium hover:bg-emerald-700 transition"
+                >
+                  Enable 2FA
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
       <Footer />
