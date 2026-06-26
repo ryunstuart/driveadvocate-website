@@ -92,8 +92,10 @@ export const handler = async () => {
 
   for (const year of years) {
     console.log(`Syncing year ${year}...`);
-    const makes = await fetchAllPages(`/makes/v2?year=${year}`, jwt);
-    console.log(`  ${makes.length} makes`);
+    const BATCH_FILTER = ['Toyota', 'Nissan', 'Subaru', 'Tesla', 'Volkswagen', 'Lexus'];
+    const allMakes = await fetchAllPages(`/makes/v2?year=${year}`, jwt);
+    const makes = BATCH_FILTER.length > 0 ? allMakes.filter((m: any) => BATCH_FILTER.includes(m.name)) : allMakes;
+    console.log(`  ${makes.length} makes (filtered from ${allMakes.length})`);
 
     for (let mi = 0; mi < makes.length; mi++) {
       const make = makes[mi];
