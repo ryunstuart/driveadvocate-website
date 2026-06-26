@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getCurrentUser } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
@@ -40,6 +41,9 @@ const availableAccessories = [
 
 export default function AdvocateIntake() {
   const router = useRouter();
+
+  useEffect(() => { getCurrentUser().catch(() => router.push('/login')); }, [router]);
+
   const currentYear = 2026;
 
   const [makes, setMakes] = useState<Make[]>([]);

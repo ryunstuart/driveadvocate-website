@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { getCurrentUser } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
@@ -10,6 +11,9 @@ type SubmitState = 'loading' | 'success' | 'error';
 
 export default function Confirm() {
   const router = useRouter();
+
+  useEffect(() => { getCurrentUser().catch(() => router.push('/login')); }, [router]);
+
   const [profile, setProfile] = useState<any>({});
   const [vehicle, setVehicle] = useState<any>({});
   const [submitState, setSubmitState] = useState<SubmitState>('loading');

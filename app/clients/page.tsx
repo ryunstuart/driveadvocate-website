@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getCurrentUser } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
@@ -42,6 +43,9 @@ function formatTime(mins: number) {
 
 export default function ClientsPage() {
   const router = useRouter();
+
+  useEffect(() => { getCurrentUser().catch(() => router.push('/login')); }, [router]);
+
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');

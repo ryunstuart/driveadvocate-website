@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getCurrentUser } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 
 export default function Profile() {
   const router = useRouter();
+
+  useEffect(() => { getCurrentUser().catch(() => router.push('/login')); }, [router]);
 
   const [formData, setFormData] = useState({
     firstName: '',

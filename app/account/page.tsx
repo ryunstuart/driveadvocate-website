@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   fetchUserAttributes, fetchAuthSession,
-  updateUserAttributes, updatePassword,
+  updateUserAttributes, updatePassword, getCurrentUser,
 } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
@@ -12,6 +12,9 @@ import { Eye, EyeOff } from 'lucide-react';
 
 export default function AccountSettings() {
   const router = useRouter();
+
+  useEffect(() => { getCurrentUser().catch(() => router.push('/login')); }, [router]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profileMsg, setProfileMsg] = useState('');

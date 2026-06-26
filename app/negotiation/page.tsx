@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { getCurrentUser } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
@@ -45,6 +46,9 @@ function getDealStats(dealId: string): { timeSpent: number; dealershipsContacted
 
 export default function NegotiationQueue() {
   const router = useRouter();
+
+  useEffect(() => { getCurrentUser().catch(() => router.push('/login')); }, [router]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [deals, setDeals] = useState<Deal[]>([]);
   const [liveStats, setLiveStats] = useState<Record<string, { timeSpent: number; dealershipsContacted: number; callCount: number }>>({});

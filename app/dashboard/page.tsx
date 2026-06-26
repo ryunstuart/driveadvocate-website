@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'aws-amplify/auth';
+import { signOut, getCurrentUser } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
@@ -675,6 +675,7 @@ export default function Dashboard() {
   const [isAdvocate, setIsAdvocate] = useState(false);
 
   useEffect(() => {
+    getCurrentUser().catch(() => { router.push('/login'); return; });
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     if (!currentUser.email) {
       router.push('/login');

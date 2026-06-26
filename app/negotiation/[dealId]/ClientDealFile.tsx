@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { getCurrentUser } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
@@ -151,6 +152,8 @@ export default function ClientDealFile() {
   const params = useParams();
   const router = useRouter();
   const dealId = params.dealId as string;
+
+  useEffect(() => { getCurrentUser().catch(() => router.push('/login')); }, [router]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isAppSyncDeal, setIsAppSyncDeal] = useState(false);
