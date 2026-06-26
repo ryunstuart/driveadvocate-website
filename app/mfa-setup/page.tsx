@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser, setUpTOTP, verifyTOTPSetup, updateMFAPreference } from 'aws-amplify/auth';
 import { QRCodeSVG } from 'qrcode.react';
@@ -16,7 +16,12 @@ export default function MFASetup() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const setupStarted = useRef(false);
+
   useEffect(() => {
+    if (setupStarted.current) return;
+    setupStarted.current = true;
+
     (async () => {
       const fromLogin = sessionStorage.getItem('mfaSetupRequired');
       if (fromLogin) sessionStorage.removeItem('mfaSetupRequired');
@@ -28,12 +33,13 @@ export default function MFASetup() {
         setSetupUri(uri.toString());
         setSecretKey(totpSetup.sharedSecret);
         setStep('qr');
-      } catch (err) {
+      } catch (err: any) {
         console.error('MFA setup failed:', err);
-        if (!fromLogin) router.push('/login');
+        setError(err.message || 'Failed to initialize MFA setup. Please try again.');
+        setStep('qr');
       }
     })();
-  }, [router]);
+  }, []);
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
