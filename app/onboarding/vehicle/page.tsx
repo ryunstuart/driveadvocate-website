@@ -51,14 +51,16 @@ export default function VehicleWizard() {
   // Step 1
   const [vehicleType, setVehicleType] = useState('');
   // Step 2
-  const [year, setYear] = useState('2020');
+  const [year, setYear] = useState('');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [trim, setTrim] = useState('');
+  const [allCatalogData, setAllCatalogData] = useState<any[]>([]);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
   const [makes, setMakes] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
   const [trims, setTrims] = useState<TrimOption[]>([]);
-  const [loadingMakes, setLoadingMakes] = useState(false);
+  const [loadingMakes] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
   const [loadingTrims, setLoadingTrims] = useState(false);
   // Step 3
@@ -103,80 +105,79 @@ export default function VehicleWizard() {
     }
   }, []);
 
-  // Load makes from VehicleCatalog when year changes
+  // Load full catalog on mount — client-side filtering is instant
   useEffect(() => {
-    if (!year) return;
-    setLoadingMakes(true);
+    (async () => {
+      try {
+        const res = await fetch('/api/catalog/all');
+        if (res.ok) {
+          const data = await res.json();
+          setAllCatalogData(data.items || []);
+        }
+      } catch {}
+      setCatalogLoaded(true);
+    })();
+  }, []);
+
+  // Filter makes when year or vehicleType changes
+  useEffect(() => {
+    if (!year) { setMakes([]); return; }
     setMake(''); setModel(''); setTrim('');
     setModels([]); setTrims([]);
 
-    (async () => {
-      try {
-        const res = await fetch(`/api/catalog/makes?year=${year}`);
-        if (res.ok) {
-          const data = await res.json();
-          setMakes(data.makes || []);
-        } else {
-          setMakes(['Acura', 'Alfa Romeo', 'Aston Martin', 'Audi', 'BMW', 'Bentley', 'Bugatti', 'Buick', 'Cadillac', 'Chevrolet', 'Chrysler', 'Dodge', 'FIAT', 'Ferrari', 'Ford', 'GMC', 'Genesis', 'Honda', 'Hyundai']);
-        }
-      } catch {
-        setMakes(['Chevrolet', 'Ford', 'GMC', 'Honda', 'Hyundai', 'Dodge', 'Buick', 'Cadillac']);
-      } finally {
-        setLoadingMakes(false);
-      }
-    })();
-  }, [year]);
+    const selectedType = VEHICLE_TYPES.find(t => t.id === vehicleType);
+    const bodyKeywords = selectedType?.bodyTypes || [];
 
-  // Load models when make changes
+    const filtered = allCatalogData.filter((item: any) => {
+      if (item.year !== year) return false;
+      if (bodyKeywords.length === 0) return true;
+      const trimDescriptions = (item.trims || []).map((t: any) => (t.description || '').toLowerCase()).join(' ');
+      const modelLower = (item.model || '').toLowerCase();
+      return bodyKeywords.some(kw => trimDescriptions.includes(kw.toLowerCase()) || modelLower.includes(kw.toLowerCase()));
+    });
+
+    const uniqueMakes = [...new Set(filtered.map((item: any) => item.make as string))].sort();
+    setMakes(uniqueMakes);
+  }, [year, vehicleType, allCatalogData]);
+
+  // Filter models when make changes
   useEffect(() => {
     if (!make || !year) return;
-    setLoadingModels(true);
     setModel(''); setTrim('');
     setTrims([]);
 
-    (async () => {
-      try {
-        const res = await fetch(`/api/catalog/models?year=${year}&make=${encodeURIComponent(make)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setModels(data.models || []);
-          setExtColors(data.exteriorColors?.length > 0 ? data.exteriorColors : DEFAULT_EXT_COLORS);
-          setIntColors(data.interiorColors?.length > 0 ? data.interiorColors : DEFAULT_INT_COLORS);
-        } else {
-          setModels([]);
-        }
-      } catch {
-        setModels([]);
-      } finally {
-        setLoadingModels(false);
-      }
-    })();
-  }, [make, year]);
+    const filtered = allCatalogData.filter((item: any) => item.year === year && item.make === make);
+    const modelNames = filtered.map((item: any) => item.model as string).sort();
+    setModels(modelNames);
 
-  // Load trims when model changes
+    const allExt: any[] = [];
+    const allInt: any[] = [];
+    for (const item of filtered) {
+      if (item.exteriorColors) allExt.push(...item.exteriorColors);
+      if (item.interiorColors) allInt.push(...item.interiorColors);
+    }
+    setExtColors(allExt.length > 0 ? [...new Map(allExt.map((c: any) => [c.name, c])).values()] : DEFAULT_EXT_COLORS);
+    setIntColors(allInt.length > 0 ? [...new Map(allInt.map((c: any) => [c.name, c])).values()] : DEFAULT_INT_COLORS);
+  }, [make, year, allCatalogData]);
+
+  // Filter trims when model changes
   useEffect(() => {
     if (!make || !model || !year) return;
-    setLoadingTrims(true);
     setTrim('');
+    setLoadingTrims(true);
 
-    (async () => {
-      try {
-        const res = await fetch(`/api/catalog/trims?year=${year}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setTrims(data.trims || []);
-          if (data.exteriorColors?.length > 0) setExtColors(data.exteriorColors);
-          if (data.interiorColors?.length > 0) setIntColors(data.interiorColors);
-        } else {
-          setTrims([]);
-        }
-      } catch {
-        setTrims([]);
-      } finally {
-        setLoadingTrims(false);
-      }
-    })();
-  }, [make, model, year]);
+    const item = allCatalogData.find((d: any) => d.year === year && d.make === make && d.model === model);
+    if (item) {
+      const rawTrims: any[] = item.trims || [];
+      const uniqueTrims = [...new Map(rawTrims.map((t: any) => [t.name, { name: t.name, msrp: t.msrp || 0, description: t.description || '' }])).values()];
+      setTrims(uniqueTrims);
+      if (item.exteriorColors?.length > 0) setExtColors(item.exteriorColors);
+      if (item.interiorColors?.length > 0) setIntColors(item.interiorColors);
+    } else {
+      setTrims([]);
+    }
+    setLoadingTrims(false);
+  }, [make, model, year, allCatalogData]);
 
   const toggleAccessory = (acc: string) => {
     setAccessories(prev => prev.includes(acc) ? prev.filter(a => a !== acc) : [...prev, acc]);
@@ -227,7 +228,7 @@ export default function VehicleWizard() {
   const vehicleSummary = [year, make, model, trim].filter(Boolean).join(' ');
   const canProceed: Record<number, boolean> = {
     1: !!vehicleType,
-    2: !!make && !!model,
+    2: !!year && !!make && !!model,
     3: !!extColor1,
     4: true,
     5: !!budget && !!timeline && !!zipCode,
@@ -296,6 +297,7 @@ export default function VehicleWizard() {
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-2">Year</label>
                   <select value={year} onChange={e => setYear(e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
+                    <option value="">Select Year</option>
                     <option value="2020">2020</option>
                     <option value="2019">2019</option>
                     <option value="2018">2018</option>
@@ -306,8 +308,8 @@ export default function VehicleWizard() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-2">Make</label>
-                  <select value={make} onChange={e => setMake(e.target.value)} disabled={loadingMakes} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
-                    <option value="">{loadingMakes ? 'Loading...' : 'Select Make'}</option>
+                  <select value={make} onChange={e => setMake(e.target.value)} disabled={!year || loadingMakes} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
+                    <option value="">{!year ? 'Select year first' : loadingMakes ? 'Loading...' : 'Select Make'}</option>
                     {makes.map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
@@ -324,15 +326,14 @@ export default function VehicleWizard() {
                   <label className="block text-sm font-medium text-slate-600 mb-2">Trim</label>
                   <select value={trim} onChange={e => setTrim(e.target.value)} disabled={loadingTrims || !model} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
                     <option value="">{loadingTrims ? 'Loading...' : 'Select Trim (optional)'}</option>
-                    {trims.map(t => <option key={t.name} value={t.name}>{t.name}{t.msrp ? ` — $${t.msrp.toLocaleString()}` : ''}</option>)}
+                    {trims.map(t => <option key={t.name} value={t.name}>{t.name}</option>)}
                   </select>
                 </div>
               </div>
-              {selectedTrim && (
+              {selectedTrim && selectedTrim.description && (
                 <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
                   <div className="text-sm font-semibold text-emerald-800">{selectedTrim.name}</div>
                   <div className="text-xs text-slate-600 mt-0.5">{selectedTrim.description}</div>
-                  {selectedTrim.msrp > 0 && <div className="text-lg font-bold text-emerald-600 mt-1">MSRP: ${selectedTrim.msrp.toLocaleString()}</div>}
                 </div>
               )}
               {vehicleSummary.length > 5 && (

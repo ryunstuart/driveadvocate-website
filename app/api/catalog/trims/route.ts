@@ -19,8 +19,11 @@ export async function GET(request: NextRequest) {
     const item = result.Item;
     if (!item) return NextResponse.json({ trims: [], exteriorColors: [], interiorColors: [] });
 
+    const rawTrims: any[] = item.trims || [];
+    const uniqueTrims = [...new Map(rawTrims.map((t: any) => [t.name, t])).values()];
+
     return NextResponse.json({
-      trims: item.trims || [],
+      trims: uniqueTrims,
       exteriorColors: item.exteriorColors || [],
       interiorColors: item.interiorColors || [],
     });
