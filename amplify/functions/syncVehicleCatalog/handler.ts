@@ -73,17 +73,16 @@ export const handler = async () => {
     for (let mi = 0; mi < makes.length; mi++) {
       const make = makes[mi];
       const makeName = make.name;
-      if (mi > 0) await sleep(500);
+      if (mi > 0) await sleep(2000);
       const models = await fetchAllPages(`/models/v2?year=${year}&make=${encodeURIComponent(makeName)}`, jwt);
 
       for (const model of models) {
         const modelName = model.name;
+        await sleep(300);
 
-        const [trims, extColors, intColors] = await Promise.all([
-          fetchAllPages(`/trims/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt),
-          fetchAllPages(`/exterior-colors/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt),
-          fetchAllPages(`/interior-colors/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt),
-        ]);
+        const trims = await fetchAllPages(`/trims/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt);
+        const extColors = await fetchAllPages(`/exterior-colors/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt);
+        const intColors = await fetchAllPages(`/interior-colors/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt);
 
         const uniqueExtColors = [...new Map(extColors.map((c: any) => [c.name, { name: c.name, rgb: c.rgb || null }])).values()];
         const uniqueIntColors = [...new Map(intColors.map((c: any) => [c.name, { name: c.name, rgb: c.rgb || null }])).values()];
