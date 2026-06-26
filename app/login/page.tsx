@@ -107,7 +107,22 @@ export default function Login() {
     setLoading(true);
     try {
       await confirmSignIn({ challengeResponse: mfaCode });
-      await completeLogin(email.trim().toLowerCase());
+
+      const normalizedEmail = email.trim().toLowerCase();
+      const session = await fetchAuthSession({ forceRefresh: true });
+      const idGroups = (session.tokens?.idToken?.payload?.['cognito:groups'] as string[]) || [];
+      const accessGroups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
+      const groups = idGroups.length >= accessGroups.length ? idGroups : accessGroups;
+      console.log('Post-MFA groups:', groups);
+
+      const isAdmin = groups.includes('admins');
+      const isAdvocate = groups.includes('advocates') || groups.includes('admins');
+
+      const currentUser = { email: normalizedEmail, firstName: '', isAdvocate, isAdmin, hasActiveDeal: !isAdvocate };
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      console.log('Post-MFA stored:', currentUser);
+
+      router.push('/dashboard');
     } catch (err: any) {
       setError('Invalid code. Please try again.');
     } finally {
