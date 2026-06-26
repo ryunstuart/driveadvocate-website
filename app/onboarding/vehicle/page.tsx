@@ -12,13 +12,22 @@ interface VehicleType { id: string; label: string; icon: string; bodyTypes: stri
 interface TrimOption { name: string; msrp: number; description: string; }
 interface ColorOption { name: string; rgb: string | null; }
 
+const BODY_TYPE_PATTERNS: Record<string, RegExp> = {
+  car: /\b(sedan|coupe|hatchback|convertible|wagon)\b/i,
+  suv: /\bsuv\b/i,
+  crossover: /\bsuv\b/i,
+  truck: /\b(supercrew|crew cab|crewmax|double cab|extended cab|regular cab|access cab|cab plus|club cab|king cab|mega cab|quad cab|supercab|xtracab)\b/i,
+  van: /\b(van|minivan)\b/i,
+  ev: /\b(hybrid|electric|plug-in)\b/i,
+};
+
 const VEHICLE_TYPES: VehicleType[] = [
-  { id: 'car', label: 'Cars', icon: '🚗', bodyTypes: ['Sedan', 'Coupe', 'Hatchback', 'Convertible', 'Wagon'] },
-  { id: 'suv', label: 'SUVs', icon: '🚙', bodyTypes: ['SUV'] },
-  { id: 'crossover', label: 'Crossovers', icon: '🏎️', bodyTypes: ['SUV'] },
-  { id: 'truck', label: 'Trucks', icon: '🛻', bodyTypes: ['SuperCrew', 'Crew Cab', 'CrewMax', 'Double Cab', 'Extended Cab', 'Regular Cab', 'Access Cab', 'Cab Plus', 'Club Cab', 'King Cab', 'Mega Cab', 'Quad Cab', 'SuperCab', 'Xtracab'] },
-  { id: 'van', label: 'Vans', icon: '🚐', bodyTypes: ['Minivan', 'Cargo Van', 'Passenger Van'] },
-  { id: 'ev', label: 'Electric / Hybrid', icon: '⚡', bodyTypes: ['hybrid', 'electric', 'plug-in'] },
+  { id: 'car', label: 'Cars', icon: '🚗', bodyTypes: [] },
+  { id: 'suv', label: 'SUVs', icon: '🚙', bodyTypes: [] },
+  { id: 'crossover', label: 'Crossovers', icon: '🏎️', bodyTypes: [] },
+  { id: 'truck', label: 'Trucks', icon: '🛻', bodyTypes: [] },
+  { id: 'van', label: 'Vans', icon: '🚐', bodyTypes: [] },
+  { id: 'ev', label: 'Electric / Hybrid', icon: '⚡', bodyTypes: [] },
 ];
 
 const DEFAULT_EXT_COLORS: ColorOption[] = [
@@ -125,21 +134,13 @@ export default function VehicleWizard() {
     setMake(''); setModel(''); setTrim('');
     setModels([]); setTrims([]);
 
-    const selectedType = VEHICLE_TYPES.find(t => t.id === vehicleType);
-    const bodyKeywords = selectedType?.bodyTypes || [];
+    const pattern = BODY_TYPE_PATTERNS[vehicleType];
 
     const filtered = allCatalogData.filter((item: any) => {
       if (item.year !== year) return false;
-      if (bodyKeywords.length === 0) return true;
+      if (!pattern) return true;
       const descriptions: string[] = (item.trims || []).map((t: any) => (t.description || ''));
-      return descriptions.some(desc => {
-        const descLower = desc.toLowerCase();
-        return bodyKeywords.some(kw => {
-          const kwLower = kw.toLowerCase();
-          if (kwLower === 'suv') return descLower.includes(' suv ') || descLower.includes(' suv(') || descLower.endsWith(' suv');
-          return descLower.includes(kwLower);
-        });
-      });
+      return descriptions.some(desc => pattern.test(desc));
     });
 
     const uniqueMakes = [...new Set(filtered.map((item: any) => item.make as string))].sort();
@@ -162,8 +163,10 @@ export default function VehicleWizard() {
       if (item.exteriorColors) allExt.push(...item.exteriorColors);
       if (item.interiorColors) allInt.push(...item.interiorColors);
     }
-    setExtColors(allExt.length > 0 ? [...new Map(allExt.map((c: any) => [c.name, c])).values()] : DEFAULT_EXT_COLORS);
-    setIntColors(allInt.length > 0 ? [...new Map(allInt.map((c: any) => [c.name, c])).values()] : DEFAULT_INT_COLORS);
+    const dedupedExt = [...new Map(allExt.map((c: any) => [c.name || c.rgb || Math.random(), c])).values()];
+    const dedupedInt = [...new Map(allInt.map((c: any) => [c.name || c.rgb || Math.random(), c])).values()];
+    setExtColors(dedupedExt.length >= 3 ? dedupedExt : DEFAULT_EXT_COLORS);
+    setIntColors(dedupedInt.length >= 3 ? dedupedInt : DEFAULT_INT_COLORS);
   }, [make, year, allCatalogData]);
 
   // Filter trims when model changes
@@ -177,8 +180,8 @@ export default function VehicleWizard() {
       const rawTrims: any[] = item.trims || [];
       const uniqueTrims = [...new Map(rawTrims.map((t: any) => [t.name, { name: t.name, msrp: t.msrp || 0, description: t.description || '' }])).values()];
       setTrims(uniqueTrims);
-      if (item.exteriorColors?.length > 0) setExtColors(item.exteriorColors);
-      if (item.interiorColors?.length > 0) setIntColors(item.interiorColors);
+      if (item.exteriorColors?.length >= 3) setExtColors(item.exteriorColors);
+      if (item.interiorColors?.length >= 3) setIntColors(item.interiorColors);
     } else {
       setTrims([]);
     }
@@ -377,7 +380,7 @@ export default function VehicleWizard() {
                             value === c.name ? 'border-emerald-500 bg-emerald-50 font-semibold' : 'border-slate-200 hover:border-slate-300'
                           }`}
                         >
-                          <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: c.rgb || '#ccc' }} />
+                          <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc' }} />
                           {c.name}
                         </button>
                       ))}
@@ -404,7 +407,7 @@ export default function VehicleWizard() {
                             value === c.name ? 'border-emerald-500 bg-emerald-50 font-semibold' : 'border-slate-200 hover:border-slate-300'
                           }`}
                         >
-                          <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: c.rgb || '#ccc' }} />
+                          <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc' }} />
                           {c.name}
                         </button>
                       ))}
