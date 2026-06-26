@@ -57,6 +57,11 @@ export default function VehicleWizard() {
   const [step, setStep] = useState(1);
   const totalSteps = 6;
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.documentElement.scrollTop = 0;
+  }, [step]);
+
   // Step 1
   const [vehicleType, setVehicleType] = useState('');
   // Step 2
@@ -627,13 +632,13 @@ export default function VehicleWizard() {
         {/* ─── Navigation Buttons ─── */}
         <div className="flex gap-4 mt-8">
           {step > 1 && (
-            <button onClick={() => { setStep(step - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex-1 py-4 border border-slate-300 rounded-2xl font-medium hover:bg-slate-50 transition">
+            <button onClick={() => setStep(step - 1)} className="flex-1 py-4 border border-slate-300 rounded-2xl font-medium hover:bg-slate-50 transition">
               Back
             </button>
           )}
           {step < totalSteps ? (
             <button
-              onClick={() => { setStep(step + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              onClick={() => setStep(step + 1)}
               disabled={!canProceed[step]}
               className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition"
             >
