@@ -132,3 +132,22 @@ unauthRole.addToPrincipalPolicy(new PolicyStatement({
   actions: ['cognito-idp:AdminListGroupsForUser'],
   resources: [userPoolArn],
 }));
+
+// --- SSR API route permissions (standalone DynamoDB tables) ---
+
+const standaloneTables = [
+  'arn:aws:dynamodb:us-east-1:870924848445:table/VehicleCatalog',
+  'arn:aws:dynamodb:us-east-1:870924848445:table/DealInventory',
+  'arn:aws:dynamodb:us-east-1:870924848445:table/Incentives',
+  'arn:aws:dynamodb:us-east-1:870924848445:table/SyncCheckpoints',
+];
+
+authRole.addToPrincipalPolicy(new PolicyStatement({
+  actions: ['dynamodb:Scan', 'dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem'],
+  resources: standaloneTables,
+}));
+
+unauthRole.addToPrincipalPolicy(new PolicyStatement({
+  actions: ['dynamodb:Scan', 'dynamodb:Query', 'dynamodb:GetItem'],
+  resources: standaloneTables,
+}));
