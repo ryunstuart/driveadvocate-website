@@ -18,11 +18,11 @@ export default function MFASetup() {
 
   useEffect(() => {
     (async () => {
-      try {
-        const fromLogin = sessionStorage.getItem('mfaSetupRequired');
-        if (fromLogin) sessionStorage.removeItem('mfaSetupRequired');
+      const fromLogin = sessionStorage.getItem('mfaSetupRequired');
+      if (fromLogin) sessionStorage.removeItem('mfaSetupRequired');
 
-        await getCurrentUser();
+      try {
+        if (!fromLogin) await getCurrentUser();
         const totpSetup = await setUpTOTP();
         const uri = totpSetup.getSetupUri('DriveAdvocate');
         setSetupUri(uri.toString());
@@ -30,7 +30,7 @@ export default function MFASetup() {
         setStep('qr');
       } catch (err) {
         console.error('MFA setup failed:', err);
-        router.push('/login');
+        if (!fromLogin) router.push('/login');
       }
     })();
   }, [router]);
