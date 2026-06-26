@@ -78,8 +78,11 @@ export default function Login() {
       } catch {}
     }
 
+    console.log('Cognito groups:', groups);
+    console.log('isAdmin:', isAdmin, 'isAdvocate:', isAdvocate);
     const currentUser = { email: normalizedEmail, firstName: clientFirstName, isAdvocate, isAdmin, hasActiveDeal: !isAdvocate };
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    console.log('Stored currentUser:', currentUser);
 
     if (isAdvocate) {
       try {

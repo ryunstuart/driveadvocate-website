@@ -18,6 +18,7 @@ export default function Header({ variant = 'public', showBack }: HeaderProps) {
   useEffect(() => {
     if (variant === 'authenticated') {
       const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      console.log('Header sees isAdmin:', currentUser.isAdmin, 'isAdvocate:', currentUser.isAdvocate);
       if (currentUser.email) setUser(currentUser);
     }
   }, [variant]);
