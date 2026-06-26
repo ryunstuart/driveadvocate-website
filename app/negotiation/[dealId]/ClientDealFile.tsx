@@ -18,6 +18,29 @@ interface Dealership {
   contactName?: string;
 }
 
+interface InventoryListing {
+  vin: string;
+  heading: string;
+  price: number;
+  originalPrice: number;
+  msrp: number;
+  miles: number;
+  exteriorColor: string;
+  interiorColor: string;
+  daysOnLot: number;
+  priceDropAmount: number;
+  marketAvgPrice: number;
+  belowMarketAvg: boolean;
+  dealerName: string;
+  dealerPhone: string;
+  dealerAddress: string;
+  dealerCity: string;
+  dealerState: string;
+  stockNumber: string;
+  listingUrl: string;
+  photoUrl: string;
+}
+
 interface CallLog {
   id: string;
   dealershipId: string;
@@ -131,6 +154,7 @@ export default function ClientDealFile() {
   const [isAppSyncDeal, setIsAppSyncDeal] = useState(false);
   const [dealInfo, setDealInfo] = useState({ clientName: '', vehicle: '', vehicleDetails: '' });
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
+  const [inventory, setInventory] = useState<InventoryListing[]>([]);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [totalTime, setTotalTime] = useState(0);
@@ -231,6 +255,15 @@ export default function ClientDealFile() {
           lastSyncTime.current = localState?.totalTime ?? d.totalTimeMinutes ?? 0;
           setDealStatus(STATUS_FROM_APPSYNC[d.status || 'New'] || 'New');
           setDealerships(localState?.dealerships || []);
+
+          try {
+            const invRes = await fetch(`/api/inventory?dealId=${dealId}`);
+            if (invRes.ok) {
+              const invData = await invRes.json();
+              setInventory(invData.listings || []);
+            }
+          } catch {}
+
         } else {
           // Fall back to mock data for old hardcoded deal IDs
           const mock = MOCK_DEALS[dealId] || MOCK_DEALS['deal-001'];
@@ -652,13 +685,62 @@ export default function ClientDealFile() {
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
 
-            {/* Dealerships */}
-            <div className="bg-white rounded-3xl shadow p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Dealerships</h2>
-                <div className="text-sm text-slate-500">{calledCount} of {dealerships.length} contacted</div>
+            {/* Inventory Listings */}
+            {inventory.length > 0 && (
+              <div className="bg-white rounded-3xl shadow p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold">Inventory <span className="text-slate-400 font-normal text-base">({inventory.length} listings)</span></h2>
+                </div>
+                <div className="space-y-4">
+                  {inventory.map(listing => (
+                    <div key={listing.vin} className="border border-slate-200 rounded-2xl p-5 hover:border-emerald-300 transition">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <div className="font-semibold">{listing.dealerName}</div>
+                            {listing.daysOnLot >= 30 && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">30+ days</span>}
+                            {listing.priceDropAmount > 0 && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Price dropped ${listing.priceDropAmount.toLocaleString()}</span>}
+                            {listing.belowMarketAvg && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Below market avg</span>}
+                          </div>
+                          <div className="text-sm text-slate-600">{listing.heading}</div>
+                          <div className="text-xs text-slate-500 mt-1">
+                            {listing.dealerCity}, {listing.dealerState} · {listing.miles.toLocaleString()} mi · {listing.exteriorColor} / {listing.interiorColor}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-1">
+                            VIN: {listing.vin}{listing.stockNumber ? ` · Stock: ${listing.stockNumber}` : ''}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="text-xl font-bold text-slate-800">${listing.price.toLocaleString()}</div>
+                          {listing.originalPrice > listing.price && (
+                            <div className="text-xs text-slate-400 line-through">${listing.originalPrice.toLocaleString()}</div>
+                          )}
+                          {listing.marketAvgPrice > 0 && (
+                            <div className={`text-xs mt-0.5 font-medium ${listing.price < listing.marketAvgPrice ? 'text-emerald-600' : 'text-slate-400'}`}>
+                              Avg: ${listing.marketAvgPrice.toLocaleString()}
+                            </div>
+                          )}
+                          <div className="text-xs text-slate-400 mt-1">{listing.daysOnLot}d on lot</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
+                        <button onClick={() => { setOfferDealership(listing.dealerName); setOfferPrice(`$${listing.price.toLocaleString()}`); setShowOfferModal(true); }} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs rounded-xl hover:border-emerald-300 hover:text-emerald-600 transition">+ Offer</button>
+                        <button onClick={() => openCallModal({ id: Date.now(), name: listing.dealerName, distance: 0, phone: listing.dealerPhone, status: 'Not Called' })} className="px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-xl hover:bg-emerald-700 transition">Log Call</button>
+                        {listing.listingUrl && <a href={listing.listingUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 border border-slate-200 text-slate-500 text-xs rounded-xl hover:border-slate-300 transition ml-auto">View Listing</a>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              {dealerships.length > 0 ? (
+            )}
+
+            {/* Dealerships (localStorage) */}
+            {dealerships.length > 0 && (
+              <div className="bg-white rounded-3xl shadow p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold">Dealerships</h2>
+                  <div className="text-sm text-slate-500">{calledCount} of {dealerships.length} contacted</div>
+                </div>
                 <div className="space-y-3">
                   {dealerships.map(dealer => (
                     <div key={dealer.id} className={`border rounded-2xl p-5 transition ${
@@ -690,13 +772,8 @@ export default function ClientDealFile() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-8 text-slate-400">
-                  <div className="text-4xl mb-3">🏢</div>
-                  <p className="text-sm">No dealerships loaded yet. Dealership data will populate once inventory integration is connected.</p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Offer Tracker + Comparison */}
             <div className="bg-white rounded-3xl shadow p-8">
@@ -864,7 +941,8 @@ export default function ClientDealFile() {
                   <span className="text-slate-500">Status</span>
                   <button onClick={() => setShowStatusMenu(!showStatusMenu)} className={`text-xs px-3 py-1 rounded-full font-medium border ${STATUS_COLORS[dealStatus]}`}>{dealStatus} ▾</button>
                 </div>
-                <div className="flex justify-between"><span className="text-slate-500">Dealerships</span><span className="font-semibold">{dealerships.length} in range</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Inventory</span><span className="font-semibold">{inventory.length} listings</span></div>
+                {dealerships.length > 0 && <div className="flex justify-between"><span className="text-slate-500">Dealerships</span><span className="font-semibold">{dealerships.length} in range</span></div>}
                 <div className="flex justify-between"><span className="text-slate-500">Contacted</span><span className="font-semibold">{calledCount} of {dealerships.length}</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">Active Leads</span><span className="font-semibold text-amber-600">{activeCount}</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">Offers</span><span className="font-semibold text-emerald-600">{offers.length}</span></div>
