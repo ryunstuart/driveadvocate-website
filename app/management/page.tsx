@@ -17,7 +17,7 @@ import {
 
 interface DealRecord { id: string; clientName: string; clientEmail: string; status: string; budget: string; timeline: string; serviceLevel: string; totalTimeMinutes: number; submittedAt: string; createdAt: string; advocateId: string; priority: number; }
 interface CallLogRecord { id: string; dealId: string; dealershipName: string; outcome: string; rating: number; createdAt: string; }
-interface OfferRecord { id: string; dealId: string; dealershipName: string; quotedPrice: number; msrp: number; status: string; createdAt: string; }
+interface OfferRecord { id: string; dealId: string; dealershipName: string; quotedPrice: number; msrp?: number | null; discount?: number | null; status?: string | null; createdAt?: string; }
 
 const STATUS_DISPLAY: Record<string, string> = { New: 'New', InProgress: 'In Progress', FollowUp: 'Follow Up', OfferReceived: 'Offer Received', Complete: 'Complete', Dead: 'Dead' };
 const STATUS_COLORS_HEX: Record<string, string> = { New: '#3b82f6', 'In Progress': '#f59e0b', 'Follow Up': '#8b5cf6', 'Offer Received': '#f97316', Complete: '#059669', Dead: '#94a3b8' };
@@ -69,7 +69,7 @@ export default function ManagementDashboard() {
         ]);
         setDeals((d.data || []).map((r: any) => ({ ...r, status: STATUS_DISPLAY[r.status] || r.status || 'New' })));
         setCallLogs(c.data || []);
-        setOffers(o.data || []);
+        setOffers((o.data || []).map((offer: any) => ({ ...offer, msrp: offer.msrp ?? 0, discount: offer.discount ?? 0 })));
       } catch (err) { console.error('Failed to load management data', err); }
       setLoading(false);
     })();
@@ -88,7 +88,7 @@ export default function ManagementDashboard() {
 
   const filteredOffers = useMemo(() => {
     if (!rangeStart) return offers;
-    return offers.filter(o => new Date(o.createdAt) >= rangeStart);
+    return offers.filter(o => o.createdAt && new Date(o.createdAt) >= rangeStart);
   }, [offers, rangeStart]);
 
   // ─── Computed Metrics ─────────────────────────────────────────────
