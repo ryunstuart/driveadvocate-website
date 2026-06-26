@@ -4,340 +4,589 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
+import { dataClient } from '@/app/lib/amplify-data';
 
-interface Make { Make_ID: number; Make_Name: string; }
-interface Model { Model_ID: number; Model_Name: string; }
+// ─── Vehicle Type Definitions ────────────────────────────────────────────────
 
-const popularMakes = [
-  'Toyota', 'Ford', 'Chevrolet', 'Honda', 'Nissan', 'Jeep', 'Ram', 'GMC',
-  'BMW', 'Mercedes-Benz', 'Audi', 'Lexus', 'Hyundai', 'Kia', 'Subaru',
-  'Volkswagen', 'Mazda', 'Tesla', 'Dodge', 'Cadillac', 'Porsche', 'Volvo',
-  'Buick', 'Lincoln', 'Acura', 'Infiniti', 'Genesis', 'Rivian', 'Lucid'
+interface VehicleType { id: string; label: string; icon: string; bodyTypes: string[]; }
+interface TrimOption { name: string; msrp: number; description: string; }
+interface ColorOption { name: string; rgb: string | null; }
+
+const VEHICLE_TYPES: VehicleType[] = [
+  { id: 'car', label: 'Cars', icon: '🚗', bodyTypes: ['Sedan', 'Coupe', 'Hatchback', 'Convertible'] },
+  { id: 'suv', label: 'SUVs', icon: '🚙', bodyTypes: ['SUV', 'Sport Utility'] },
+  { id: 'crossover', label: 'Crossovers', icon: '🏎️', bodyTypes: ['Crossover', 'Wagon'] },
+  { id: 'truck', label: 'Trucks', icon: '🛻', bodyTypes: ['Pickup', 'Truck', 'Crew Cab', 'SuperCrew'] },
+  { id: 'van', label: 'Vans', icon: '🚐', bodyTypes: ['Van', 'Minivan', 'Cargo Van'] },
+  { id: 'ev', label: 'Electric / Hybrid', icon: '⚡', bodyTypes: ['Electric', 'Hybrid', 'Plug-In Hybrid'] },
 ];
 
-const commonTrims = [
-  'Base', 'LE', 'XLE', 'Limited', 'TRD Off-Road', 'TRD Pro', 'Platinum',
-  'Lariat', 'King Ranch', 'Raptor', 'SRT', 'GT', 'Premier', 'RS', 'Sport',
-  'EX', 'LX', 'SEL', 'SE', 'Titanium', 'Prestige'
+const DEFAULT_EXT_COLORS: ColorOption[] = [
+  { name: 'White', rgb: '#f8f9fa' }, { name: 'Black', rgb: '#1f2527' },
+  { name: 'Silver', rgb: '#c0c0c0' }, { name: 'Gray', rgb: '#808080' },
+  { name: 'Blue', rgb: '#1e40af' }, { name: 'Red', rgb: '#b91c1c' },
+  { name: 'Green', rgb: '#166534' }, { name: 'Brown', rgb: '#78350f' },
 ];
 
-const exteriorColors = [
-  { name: 'White', hex: '#f8f9fa' }, { name: 'Black', hex: '#1f2527' },
-  { name: 'Silver', hex: '#c0c0c0' }, { name: 'Gray', hex: '#808080' },
-  { name: 'Blue', hex: '#1e40af' }, { name: 'Red', hex: '#b91c1c' },
-  { name: 'Green', hex: '#166534' }, { name: 'Brown', hex: '#78350f' },
-  { name: 'Midnight Black', hex: '#0a0a0a' }, { name: 'Pearl White', hex: '#f4f4f5' },
+const DEFAULT_INT_COLORS: ColorOption[] = [
+  { name: 'Black', rgb: '#1f2527' }, { name: 'Gray', rgb: '#4b5563' },
+  { name: 'Beige', rgb: '#d2b48c' }, { name: 'Brown', rgb: '#5c4033' },
+  { name: 'Tan', rgb: '#c5a880' }, { name: 'White', rgb: '#f8f9fa' },
 ];
 
-const interiorColors = [
-  { name: 'Black', hex: '#1f2527' }, { name: 'Gray', hex: '#4b5563' },
-  { name: 'Beige', hex: '#d2b48c' }, { name: 'Brown', hex: '#5c4033' },
-  { name: 'Tan', hex: '#c5a880' }, { name: 'Red', hex: '#991b1b' },
-  { name: 'White', hex: '#f8f9fa' }, { name: 'Two-Tone', hex: '#64748b' },
-];
-
-const availableAccessories = [
+const ACCESSORY_OPTIONS = [
   'Towing Package', 'Sunroof / Moonroof', 'Leather Seats', 'Adaptive Cruise Control',
   'Bed Liner', 'Running Boards', 'Premium Audio', 'Remote Start', 'Heated Seats',
-  'Blind Spot Monitoring', '360 Camera', 'Trailer Backup Assist', 'Power Tailgate'
+  'Blind Spot Monitoring', '360 Camera', 'Trailer Backup Assist', 'Power Tailgate',
+  'Navigation System', 'Wireless Charging', 'Ventilated Seats',
 ];
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function VehicleWizard() {
   const router = useRouter();
-  const currentYear = 2026;
+  const [step, setStep] = useState(1);
+  const totalSteps = 6;
 
-  const [formData, setFormData] = useState({
-    year: currentYear.toString(),
-    make: '', model: '', trim: '',
-    exteriorColor1: 'White', exteriorColor2: 'Black', exteriorColor3: 'Silver',
-    interiorColor1: 'Black', interiorColor2: 'Gray', interiorColor3: 'Beige',
-    accessories: [] as string[],
-  });
-
-  const [makes, setMakes] = useState<Make[]>([]);
-  const [models, setModels] = useState<Model[]>([]);
-  const [loadingMakes, setLoadingMakes] = useState(true);
+  // Step 1
+  const [vehicleType, setVehicleType] = useState('');
+  // Step 2
+  const [year, setYear] = useState('2020');
+  const [make, setMake] = useState('');
+  const [model, setModel] = useState('');
+  const [trim, setTrim] = useState('');
+  const [makes, setMakes] = useState<string[]>([]);
+  const [models, setModels] = useState<string[]>([]);
+  const [trims, setTrims] = useState<TrimOption[]>([]);
+  const [loadingMakes, setLoadingMakes] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
-  const [makesError, setMakesError] = useState(false);
-  const [modelsError, setModelsError] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [clientName, setClientName] = useState('');
+  const [loadingTrims, setLoadingTrims] = useState(false);
+  // Step 3
+  const [extColors, setExtColors] = useState<ColorOption[]>(DEFAULT_EXT_COLORS);
+  const [intColors, setIntColors] = useState<ColorOption[]>(DEFAULT_INT_COLORS);
+  const [extColor1, setExtColor1] = useState('');
+  const [extColor2, setExtColor2] = useState('');
+  const [extColor3, setExtColor3] = useState('');
+  const [intColor1, setIntColor1] = useState('');
+  const [intColor2, setIntColor2] = useState('');
+  const [intColor3, setIntColor3] = useState('');
+  // Step 4
+  const [accessories, setAccessories] = useState<string[]>([]);
+  // Step 5
+  const [budget, setBudget] = useState('');
+  const [timeline, setTimeline] = useState('');
+  const [zipCode, setZipCode] = useState('');
+  const [searchRadius, setSearchRadius] = useState('100');
+  const [condition, setCondition] = useState('used');
+  // Step 6
+  const [searching, setSearching] = useState(false);
+  const [searchResult, setSearchResult] = useState<{ count: number; searched: boolean }>({ count: 0, searched: false });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Load profile data for pre-fill
   useEffect(() => {
     const profile = JSON.parse(localStorage.getItem('profileData') || '{}');
-    if (profile.firstName) setClientName(profile.firstName);
+    if (profile.zipCode) setZipCode(profile.zipCode);
+    if (profile.searchRadius) setSearchRadius(profile.searchRadius);
+    if (profile.budget) setBudget(profile.budget);
+    if (profile.timeline) setTimeline(profile.timeline);
 
     const saved = localStorage.getItem('vehicleFormData');
     if (saved) {
-      const parsed = JSON.parse(saved);
-      setFormData({ ...parsed, accessories: parsed.accessories || [] });
+      const p = JSON.parse(saved);
+      if (p.year) setYear(p.year);
+      if (p.make) setMake(p.make);
+      if (p.model) setModel(p.model);
+      if (p.trim) setTrim(p.trim);
+      if (p.accessories) setAccessories(p.accessories);
     }
   }, []);
 
+  // Load makes from VehicleCatalog when year changes
   useEffect(() => {
-    fetch('https://vpic.nhtsa.dot.gov/api/vehicles/GetAllMakes?format=json')
-      .then(res => res.json())
-      .then(data => {
-        const allMakes: Make[] = data.Results || [];
-        const prioritized = popularMakes
-          .map(name => allMakes.find(m => m.Make_Name.toLowerCase() === name.toLowerCase()))
-          .filter(Boolean) as Make[];
-        setMakes(prioritized);
+    if (!year) return;
+    setLoadingMakes(true);
+    setMake(''); setModel(''); setTrim('');
+    setModels([]); setTrims([]);
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/catalog/makes?year=${year}`);
+        if (res.ok) {
+          const data = await res.json();
+          setMakes(data.makes || []);
+        } else {
+          setMakes(['Acura', 'Alfa Romeo', 'Aston Martin', 'Audi', 'BMW', 'Bentley', 'Bugatti', 'Buick', 'Cadillac', 'Chevrolet', 'Chrysler', 'Dodge', 'FIAT', 'Ferrari', 'Ford', 'GMC', 'Genesis', 'Honda', 'Hyundai']);
+        }
+      } catch {
+        setMakes(['Chevrolet', 'Ford', 'GMC', 'Honda', 'Hyundai', 'Dodge', 'Buick', 'Cadillac']);
+      } finally {
         setLoadingMakes(false);
-      })
-      .catch(() => { setLoadingMakes(false); setMakesError(true); });
-  }, []);
+      }
+    })();
+  }, [year]);
 
+  // Load models when make changes
   useEffect(() => {
-    if (!formData.make || !formData.year) return;
-    const makeObj = makes.find(m => m.Make_Name === formData.make);
-    if (!makeObj) return;
+    if (!make || !year) return;
     setLoadingModels(true);
-    fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeIdYear/makeId/${makeObj.Make_ID}/modelyear/${formData.year}?format=json`)
-      .then(res => res.json())
-      .then(data => {
-        const modelList: Model[] = data.Results || [];
-        const unique = Array.from(new Map(modelList.map(i => [i.Model_Name, i])).values())
-          .sort((a, b) => a.Model_Name.localeCompare(b.Model_Name));
-        setModels(unique);
-        setLoadingModels(false);
-      })
-      .catch(() => { setLoadingModels(false); setModelsError(true); });
-  }, [formData.make, formData.year, makes]);
+    setModel(''); setTrim('');
+    setTrims([]);
 
-  const updateForm = (key: string, value: any) => {
-    const updated = { ...formData, [key]: value };
-    setFormData(updated);
-    localStorage.setItem('vehicleFormData', JSON.stringify(updated));
-  };
+    (async () => {
+      try {
+        const res = await fetch(`/api/catalog/models?year=${year}&make=${encodeURIComponent(make)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setModels(data.models || []);
+          setExtColors(data.exteriorColors?.length > 0 ? data.exteriorColors : DEFAULT_EXT_COLORS);
+          setIntColors(data.interiorColors?.length > 0 ? data.interiorColors : DEFAULT_INT_COLORS);
+        } else {
+          setModels([]);
+        }
+      } catch {
+        setModels([]);
+      } finally {
+        setLoadingModels(false);
+      }
+    })();
+  }, [make, year]);
+
+  // Load trims when model changes
+  useEffect(() => {
+    if (!make || !model || !year) return;
+    setLoadingTrims(true);
+    setTrim('');
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/catalog/trims?year=${year}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setTrims(data.trims || []);
+          if (data.exteriorColors?.length > 0) setExtColors(data.exteriorColors);
+          if (data.interiorColors?.length > 0) setIntColors(data.interiorColors);
+        } else {
+          setTrims([]);
+        }
+      } catch {
+        setTrims([]);
+      } finally {
+        setLoadingTrims(false);
+      }
+    })();
+  }, [make, model, year]);
 
   const toggleAccessory = (acc: string) => {
-    const current = formData.accessories || [];
-    updateForm('accessories', current.includes(acc) ? current.filter(a => a !== acc) : [...current, acc]);
+    setAccessories(prev => prev.includes(acc) ? prev.filter(a => a !== acc) : [...prev, acc]);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.make || !formData.model) return;
+  const handleInventorySearch = async () => {
+    if (!make || !model || !zipCode) return;
+    setSearching(true);
+    try {
+      const result = await dataClient.mutations.searchDealInventory({
+        dealId: `preview-${Date.now()}`,
+        make, model, year, zip: zipCode,
+        radius: parseInt(searchRadius, 10),
+        carType: condition,
+      });
+      setSearchResult({ count: result.data?.resultCount || 0, searched: true });
+    } catch (err) {
+      console.error('Inventory search failed:', err);
+      setSearchResult({ count: 0, searched: true });
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!make || !model) return;
     setIsSubmitting(true);
 
+    const formData = {
+      year, make, model, trim,
+      exteriorColor1: extColor1, exteriorColor2: extColor2, exteriorColor3: extColor3,
+      interiorColor1: intColor1, interiorColor2: intColor2, interiorColor3: intColor3,
+      accessories, condition,
+    };
     localStorage.setItem('vehicleFormData', JSON.stringify(formData));
 
-    // Create a new deal entry
     const profile = JSON.parse(localStorage.getItem('profileData') || '{}');
-    const newDeal = {
-      id: `deal-${Date.now()}`,
-      clientName: `${profile.firstName} ${profile.lastName}`.trim() || 'New Client',
-      vehicle: `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim(),
-      vehicleDetails: `${formData.exteriorColor1} Ext • ${formData.interiorColor1} Int`,
-      submitted: new Date().toISOString().split('T')[0],
-      status: 'New',
-      budget: profile.budget || '',
-      timeline: profile.timeline || '',
-      radius: profile.searchRadius || '25',
-    };
+    profile.budget = budget;
+    profile.timeline = timeline;
+    profile.searchRadius = searchRadius;
+    profile.zipCode = zipCode;
+    localStorage.setItem('profileData', JSON.stringify(profile));
 
-    // Save to pending deals in localStorage (advocate will see it in queue)
-    const pendingDeals = JSON.parse(localStorage.getItem('pendingDeals') || '[]');
-    pendingDeals.push(newDeal);
-    localStorage.setItem('pendingDeals', JSON.stringify(pendingDeals));
-
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    currentUser.hasActiveDeal = true;
-    currentUser.activeDealId = newDeal.id;
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-
-    setTimeout(() => router.push('/onboarding/confirm'), 600);
+    router.push('/onboarding/confirm');
   };
 
-  const selectedVehicle = `${formData.year} ${formData.make} ${formData.model} ${formData.trim}`.trim();
+  const selectedTrim = trims.find(t => t.name === trim);
+  const vehicleSummary = [year, make, model, trim].filter(Boolean).join(' ');
+  const canProceed: Record<number, boolean> = {
+    1: !!vehicleType,
+    2: !!make && !!model,
+    3: !!extColor1,
+    4: true,
+    5: !!budget && !!timeline && !!zipCode,
+    6: true,
+  };
+
+  const stepLabels = ['Type', 'Vehicle', 'Colors', 'Options', 'Details', 'Search'];
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header variant="authenticated" />
-      <div className="max-w-5xl mx-auto px-6 py-8 flex-1 w-full">
+      <div className="max-w-3xl mx-auto px-6 py-8 flex-1 w-full">
 
-        {/* Step indicator */}
-        <div className="flex items-center justify-center gap-3 mb-10">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-sm font-bold">✓</div>
-            <span className="text-sm text-slate-400">Your Profile</span>
+        {/* Progress bar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-3">
+            {stepLabels.map((label, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold mb-1 transition ${
+                  i + 1 < step ? 'bg-emerald-500 text-white' :
+                  i + 1 === step ? 'bg-emerald-600 text-white' :
+                  'bg-slate-200 text-slate-500'
+                }`}>
+                  {i + 1 < step ? '✓' : i + 1}
+                </div>
+                <span className={`text-xs ${i + 1 === step ? 'text-emerald-600 font-semibold' : 'text-slate-400'}`}>{label}</span>
+              </div>
+            ))}
           </div>
-          <div className="w-12 h-px bg-slate-300" />
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center text-sm font-bold">2</div>
-            <span className="text-sm font-semibold text-emerald-600">Vehicle Build</span>
-          </div>
-          <div className="w-12 h-px bg-slate-300" />
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-sm font-bold">3</div>
-            <span className="text-sm text-slate-400">Confirm</span>
+          <div className="h-2 bg-slate-200 rounded-full">
+            <div className="h-2 bg-emerald-500 rounded-full transition-all duration-300" style={{ width: `${((step - 1) / (totalSteps - 1)) * 100}%` }} />
           </div>
         </div>
 
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold mb-3">
-            {clientName ? `${clientName}, build your perfect vehicle` : 'Build Your Perfect Vehicle'}
-          </h1>
-          <p className="text-slate-500">New vehicles only · Select your preferences below</p>
-        </div>
+        {/* ─── Step 1: Vehicle Type ─── */}
+        {step === 1 && (
+          <div>
+            <h1 className="text-3xl font-bold mb-2">What type of vehicle?</h1>
+            <p className="text-slate-500 mb-8">Select the category that best fits what you're looking for</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {VEHICLE_TYPES.map(type => (
+                <button
+                  key={type.id}
+                  onClick={() => setVehicleType(type.id)}
+                  className={`p-6 rounded-3xl border-2 text-center transition hover:shadow-lg ${
+                    vehicleType === type.id
+                      ? 'border-emerald-500 bg-emerald-50 shadow-md'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <div className="text-4xl mb-3">{type.icon}</div>
+                  <div className="font-semibold">{type.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="grid lg:grid-cols-5 gap-8">
-            <div className="lg:col-span-3 space-y-6">
-
-              {/* Vehicle Config */}
-              <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="text-lg font-semibold mb-6">Vehicle Configuration</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-2">Year</label>
-                    <select value={formData.year} onChange={e => updateForm('year', e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500">
-                      <option value={currentYear}>{currentYear}</option>
-                      <option value={currentYear - 1}>{currentYear - 1}</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-2">Make</label>
-                    <select value={formData.make} onChange={e => updateForm('make', e.target.value)} disabled={loadingMakes} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 disabled:opacity-50">
-                      <option value="">{loadingMakes ? 'Loading makes...' : makesError ? 'Failed to load — type make below' : 'Select Make'}</option>
-                      {makes.map(m => <option key={m.Make_ID} value={m.Make_Name}>{m.Make_Name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-2">Model</label>
-                    <select value={formData.model} onChange={e => updateForm('model', e.target.value)} disabled={loadingModels || !formData.make} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 disabled:opacity-50">
-                      <option value="">{loadingModels ? 'Loading models...' : modelsError ? 'Failed to load — type model below' : 'Select Model'}</option>
-                      {models.map(m => <option key={m.Model_ID} value={m.Model_Name}>{m.Model_Name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-2">Trim</label>
-                    <select value={formData.trim} onChange={e => updateForm('trim', e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500">
-                      <option value="">Select Trim</option>
-                      {commonTrims.map(t => <option key={t} value={t}>{t}</option>)}
-                    </select>
-                  </div>
+        {/* ─── Step 2: Vehicle Selection ─── */}
+        {step === 2 && (
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Build your vehicle</h1>
+            <p className="text-slate-500 mb-8">Select year, make, model, and trim</p>
+            <div className="bg-white rounded-3xl shadow p-8 space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Year</label>
+                  <select value={year} onChange={e => setYear(e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
+                    <option value="2020">2020</option>
+                    <option value="2019">2019</option>
+                    <option value="2018">2018</option>
+                    <option value="2017">2017</option>
+                    <option value="2016">2016</option>
+                    <option value="2015">2015</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Make</label>
+                  <select value={make} onChange={e => setMake(e.target.value)} disabled={loadingMakes} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
+                    <option value="">{loadingMakes ? 'Loading...' : 'Select Make'}</option>
+                    {makes.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Model</label>
+                  <select value={model} onChange={e => setModel(e.target.value)} disabled={loadingModels || !make} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
+                    <option value="">{loadingModels ? 'Loading...' : 'Select Model'}</option>
+                    {models.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Trim</label>
+                  <select value={trim} onChange={e => setTrim(e.target.value)} disabled={loadingTrims || !model} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
+                    <option value="">{loadingTrims ? 'Loading...' : 'Select Trim (optional)'}</option>
+                    {trims.map(t => <option key={t.name} value={t.name}>{t.name}{t.msrp ? ` — $${t.msrp.toLocaleString()}` : ''}</option>)}
+                  </select>
+                </div>
+              </div>
+              {selectedTrim && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+                  <div className="text-sm font-semibold text-emerald-800">{selectedTrim.name}</div>
+                  <div className="text-xs text-slate-600 mt-0.5">{selectedTrim.description}</div>
+                  {selectedTrim.msrp > 0 && <div className="text-lg font-bold text-emerald-600 mt-1">MSRP: ${selectedTrim.msrp.toLocaleString()}</div>}
+                </div>
+              )}
+              {vehicleSummary.length > 5 && (
+                <div className="text-center pt-4 border-t border-slate-100">
+                  <div className="text-xs text-slate-400 mb-1">Building</div>
+                  <div className="text-lg font-semibold">{vehicleSummary}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
-              {/* Exterior Colors */}
+        {/* ─── Step 3: Colors ─── */}
+        {step === 3 && (
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Color preferences</h1>
+            <p className="text-slate-500 mb-8">Rank your top 3 choices for exterior and interior</p>
+            <div className="space-y-8">
               <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="text-lg font-semibold mb-6">Exterior Color Preferences</h2>
-                <div className="space-y-6">
-                  {[1, 2, 3].map(rank => (
-                    <div key={rank}>
-                      <label className="block text-sm font-medium text-slate-600 mb-3">
-                        {rank === 1 ? '1st Choice (Most Preferred)' : rank === 2 ? '2nd Choice' : '3rd Choice'}
-                      </label>
-                      <div className="flex flex-wrap gap-3">
-                        {exteriorColors.map(color => (
-                          <button key={color.name} type="button" onClick={() => updateForm(`exteriorColor${rank}`, color.name)}
-                            className={`w-11 h-11 rounded-2xl border-4 transition-all hover:scale-110 shadow-sm ${(formData as any)[`exteriorColor${rank}`] === color.name ? 'border-emerald-500 scale-110' : 'border-white'}`}
-                            style={{ backgroundColor: color.hex }} title={color.name}
-                          />
-                        ))}
-                      </div>
-                      <p className="mt-2 text-sm font-medium text-slate-600">{(formData as any)[`exteriorColor${rank}`]}</p>
+                <h2 className="font-semibold mb-4">Exterior Color</h2>
+                {[
+                  { rank: '1st choice', value: extColor1, set: setExtColor1 },
+                  { rank: '2nd choice', value: extColor2, set: setExtColor2 },
+                  { rank: '3rd choice', value: extColor3, set: setExtColor3 },
+                ].map(({ rank, value, set }) => (
+                  <div key={rank} className="mb-4">
+                    <div className="text-xs text-slate-400 mb-2">{rank}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {extColors.map(c => (
+                        <button
+                          key={c.name}
+                          type="button"
+                          onClick={() => set(c.name)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition ${
+                            value === c.name ? 'border-emerald-500 bg-emerald-50 font-semibold' : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: c.rgb || '#ccc' }} />
+                          {c.name}
+                        </button>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-
-              {/* Interior Colors */}
               <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="text-lg font-semibold mb-6">Interior Color Preferences</h2>
-                <div className="space-y-6">
-                  {[1, 2, 3].map(rank => (
-                    <div key={rank}>
-                      <label className="block text-sm font-medium text-slate-600 mb-3">
-                        {rank === 1 ? '1st Choice (Most Preferred)' : rank === 2 ? '2nd Choice' : '3rd Choice'}
-                      </label>
-                      <div className="flex flex-wrap gap-3">
-                        {interiorColors.map(color => (
-                          <button key={color.name} type="button" onClick={() => updateForm(`interiorColor${rank}`, color.name)}
-                            className={`w-11 h-11 rounded-2xl border-4 transition-all hover:scale-110 shadow-sm ${(formData as any)[`interiorColor${rank}`] === color.name ? 'border-emerald-500 scale-110' : 'border-white'}`}
-                            style={{ backgroundColor: color.hex }} title={color.name}
-                          />
-                        ))}
-                      </div>
-                      <p className="mt-2 text-sm font-medium text-slate-600">{(formData as any)[`interiorColor${rank}`]}</p>
+                <h2 className="font-semibold mb-4">Interior Color</h2>
+                {[
+                  { rank: '1st choice', value: intColor1, set: setIntColor1 },
+                  { rank: '2nd choice', value: intColor2, set: setIntColor2 },
+                  { rank: '3rd choice', value: intColor3, set: setIntColor3 },
+                ].map(({ rank, value, set }) => (
+                  <div key={rank} className="mb-4">
+                    <div className="text-xs text-slate-400 mb-2">{rank}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {intColors.map(c => (
+                        <button
+                          key={c.name}
+                          type="button"
+                          onClick={() => set(c.name)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition ${
+                            value === c.name ? 'border-emerald-500 bg-emerald-50 font-semibold' : 'border-slate-200 hover:border-slate-300'
+                          }`}
+                        >
+                          <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: c.rgb || '#ccc' }} />
+                          {c.name}
+                        </button>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
+            </div>
+          </div>
+        )}
 
-              {/* Accessories */}
-              <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="text-lg font-semibold mb-6">Desired Accessories</h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {availableAccessories.map(acc => (
-                    <button key={acc} type="button" onClick={() => toggleAccessory(acc)}
-                      className={`p-4 text-left border rounded-2xl text-sm transition-all ${
-                        formData.accessories.includes(acc)
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-medium'
-                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
-                    >
-                      {formData.accessories.includes(acc) ? '✓ ' : ''}{acc}
+        {/* ─── Step 4: Options & Accessories ─── */}
+        {step === 4 && (
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Options & accessories</h1>
+            <p className="text-slate-500 mb-8">Select any must-have features (all optional)</p>
+            <div className="bg-white rounded-3xl shadow p-8">
+              <div className="grid grid-cols-2 gap-3">
+                {ACCESSORY_OPTIONS.map(acc => (
+                  <button
+                    key={acc}
+                    type="button"
+                    onClick={() => toggleAccessory(acc)}
+                    className={`p-4 text-left border rounded-2xl text-sm transition ${
+                      accessories.includes(acc)
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-medium'
+                        : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                    }`}
+                  >
+                    {accessories.includes(acc) ? '✓ ' : ''}{acc}
+                  </button>
+                ))}
+              </div>
+              {accessories.length > 0 && (
+                <div className="mt-6 pt-4 border-t border-slate-100 text-sm text-slate-500">
+                  {accessories.length} option{accessories.length !== 1 ? 's' : ''} selected
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Step 5: Deal Parameters ─── */}
+        {step === 5 && (
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Deal parameters</h1>
+            <p className="text-slate-500 mb-8">Help us find the right matches for your budget and timeline</p>
+            <div className="bg-white rounded-3xl shadow p-8 space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-2">Condition</label>
+                <div className="flex gap-3">
+                  {['new', 'used'].map(c => (
+                    <button key={c} type="button" onClick={() => setCondition(c)} className={`flex-1 py-3 rounded-2xl border text-sm font-medium transition ${
+                      condition === c ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-200 hover:border-slate-300'
+                    }`}>
+                      {c === 'new' ? 'New' : 'Used / CPO'}
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
-
-            {/* Preview Sidebar */}
-            <div className="lg:col-span-2">
-              <div className="bg-white rounded-3xl shadow p-8 sticky top-8">
-                <h2 className="text-lg font-semibold mb-6">Your Build</h2>
-
-                <div className="space-y-4 text-sm mb-8">
-                  <div className="p-4 bg-slate-50 rounded-2xl">
-                    <div className="text-xs text-slate-500 mb-1">Vehicle</div>
-                    <div className="font-semibold">{selectedVehicle || 'Select make & model above'}</div>
-                  </div>
-                  <div className="p-4 bg-slate-50 rounded-2xl">
-                    <div className="text-xs text-slate-500 mb-1">Exterior</div>
-                    <div className="flex gap-2 mt-1">
-                      {[formData.exteriorColor1, formData.exteriorColor2, formData.exteriorColor3].map((c, i) => (
-                        <span key={i} className="text-xs bg-white border border-slate-200 px-2 py-1 rounded-lg">{c}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="p-4 bg-slate-50 rounded-2xl">
-                    <div className="text-xs text-slate-500 mb-1">Interior</div>
-                    <div className="flex gap-2 mt-1">
-                      {[formData.interiorColor1, formData.interiorColor2, formData.interiorColor3].map((c, i) => (
-                        <span key={i} className="text-xs bg-white border border-slate-200 px-2 py-1 rounded-lg">{c}</span>
-                      ))}
-                    </div>
-                  </div>
-                  {formData.accessories.length > 0 && (
-                    <div className="p-4 bg-slate-50 rounded-2xl">
-                      <div className="text-xs text-slate-500 mb-2">Accessories ({formData.accessories.length})</div>
-                      <div className="flex flex-wrap gap-1.5">
-                        {formData.accessories.map(acc => (
-                          <span key={acc} className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg">{acc}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-2">Budget (OTD)</label>
+                <select value={budget} onChange={e => setBudget(e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
+                  <option value="">Select range</option>
+                  <option>Under $25,000</option>
+                  <option>$25,000 – $35,000</option>
+                  <option>$35,000 – $50,000</option>
+                  <option>$50,000 – $65,000</option>
+                  <option>$65,000 – $80,000</option>
+                  <option>$80,000+</option>
+                  <option>Flexible — best deal wins</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-2">Timeline</label>
+                <select value={timeline} onChange={e => setTimeline(e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
+                  <option value="">When do you need this?</option>
+                  <option>ASAP — ready to buy now</option>
+                  <option>Within 2 weeks</option>
+                  <option>Within 30 days</option>
+                  <option>1–3 months</option>
+                  <option>Just exploring</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">ZIP Code</label>
+                  <input type="text" value={zipCode} onChange={e => setZipCode(e.target.value)} maxLength={5} placeholder="63301" className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm" />
                 </div>
-
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !formData.make || !formData.model}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-semibold transition"
-                >
-                  {isSubmitting ? 'Saving...' : 'Submit Build →'}
-                </button>
-                {(!formData.make || !formData.model) && (
-                  <p className="text-xs text-center text-slate-400 mt-3">Select a make and model to continue</p>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">Search Radius</label>
+                  <select value={searchRadius} onChange={e => setSearchRadius(e.target.value)} className="w-full px-4 py-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 text-sm">
+                    <option value="25">25 miles</option>
+                    <option value="50">50 miles</option>
+                    <option value="100">100 miles</option>
+                    <option value="150">150 miles</option>
+                    <option value="200">200 miles</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
-        </form>
+        )}
+
+        {/* ─── Step 6: Inventory Search ─── */}
+        {step === 6 && (
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Inventory check</h1>
+            <p className="text-slate-500 mb-8">Let's see what's available near you before we start</p>
+
+            <div className="bg-white rounded-3xl shadow p-8 text-center">
+              <div className="text-lg font-semibold mb-1">{vehicleSummary}</div>
+              <div className="text-sm text-slate-500 mb-6">{condition === 'new' ? 'New' : 'Used'} · {zipCode} · {searchRadius} mile radius</div>
+
+              {!searchResult.searched && !searching && (
+                <button
+                  onClick={handleInventorySearch}
+                  className="px-8 py-3 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition"
+                >
+                  Search Inventory
+                </button>
+              )}
+
+              {searching && (
+                <div className="py-8">
+                  <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4" />
+                  <p className="text-slate-500 text-sm">Searching inventory near {zipCode}...</p>
+                </div>
+              )}
+
+              {searchResult.searched && !searching && (
+                <div className="py-4">
+                  {searchResult.count > 0 ? (
+                    <>
+                      <div className="text-5xl mb-3">🎯</div>
+                      <div className="text-2xl font-bold text-emerald-600 mb-1">{searchResult.count} vehicles found</div>
+                      <p className="text-slate-500 text-sm">Your advocate will have plenty of options to negotiate from</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-5xl mb-3">📋</div>
+                      <div className="text-lg font-semibold text-slate-700 mb-1">No exact matches yet</div>
+                      <p className="text-slate-500 text-sm">No worries — your advocate will expand the search and find the right vehicle</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-8 bg-white rounded-3xl shadow p-8">
+              <h2 className="font-semibold mb-4">Build Summary</h2>
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between"><span className="text-slate-500">Vehicle</span><span className="font-medium">{vehicleSummary}</span></div>
+                {extColor1 && <div className="flex justify-between"><span className="text-slate-500">Exterior</span><span className="font-medium">{[extColor1, extColor2, extColor3].filter(Boolean).join(', ')}</span></div>}
+                {intColor1 && <div className="flex justify-between"><span className="text-slate-500">Interior</span><span className="font-medium">{[intColor1, intColor2, intColor3].filter(Boolean).join(', ')}</span></div>}
+                {accessories.length > 0 && <div className="flex justify-between"><span className="text-slate-500">Options</span><span className="font-medium">{accessories.length} selected</span></div>}
+                <div className="flex justify-between"><span className="text-slate-500">Budget</span><span className="font-medium">{budget}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Timeline</span><span className="font-medium">{timeline}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500">Condition</span><span className="font-medium">{condition === 'new' ? 'New' : 'Used / CPO'}</span></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── Navigation Buttons ─── */}
+        <div className="flex gap-4 mt-8">
+          {step > 1 && (
+            <button onClick={() => setStep(step - 1)} className="flex-1 py-4 border border-slate-300 rounded-2xl font-medium hover:bg-slate-50 transition">
+              Back
+            </button>
+          )}
+          {step < totalSteps ? (
+            <button
+              onClick={() => setStep(step + 1)}
+              disabled={!canProceed[step]}
+              className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition"
+            >
+              Continue
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 disabled:bg-slate-300 transition"
+            >
+              {isSubmitting ? 'Submitting...' : 'Submit & Continue'}
+            </button>
+          )}
+        </div>
       </div>
       <Footer />
     </div>
