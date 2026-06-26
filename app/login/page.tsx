@@ -81,12 +81,15 @@ export default function Login() {
     const currentUser = { email: normalizedEmail, firstName: clientFirstName, isAdvocate, isAdmin, hasActiveDeal: !isAdvocate };
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
-    if (isAdvocate) {
-      try {
-        const mfaPref = await fetchMFAPreference();
-        if (!mfaPref.preferred) { router.push('/mfa-setup'); return; }
-      } catch {}
-    }
+    // MFA setup redirect disabled until TOTP is enabled in Cognito Console
+    // To enable: Cognito → Sign-in experience → MFA → Optional → Authenticator apps
+    // Then uncomment the block below:
+    // if (isAdvocate) {
+    //   try {
+    //     const mfaPref = await fetchMFAPreference();
+    //     if (!mfaPref.preferred) { sessionStorage.setItem('mfaSetupRequired', 'true'); router.push('/mfa-setup'); return; }
+    //   } catch {}
+    // }
 
     router.push('/dashboard');
   };

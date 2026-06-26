@@ -19,13 +19,17 @@ export default function MFASetup() {
   useEffect(() => {
     (async () => {
       try {
+        const fromLogin = sessionStorage.getItem('mfaSetupRequired');
+        if (fromLogin) sessionStorage.removeItem('mfaSetupRequired');
+
         await getCurrentUser();
         const totpSetup = await setUpTOTP();
         const uri = totpSetup.getSetupUri('DriveAdvocate');
         setSetupUri(uri.toString());
         setSecretKey(totpSetup.sharedSecret);
         setStep('qr');
-      } catch {
+      } catch (err) {
+        console.error('MFA setup failed:', err);
         router.push('/login');
       }
     })();
