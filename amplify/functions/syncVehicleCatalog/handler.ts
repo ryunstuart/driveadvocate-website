@@ -98,12 +98,12 @@ export const handler = async () => {
     for (let mi = 0; mi < makes.length; mi++) {
       const make = makes[mi];
       const makeName = make.name;
-      if (mi > 0) await sleep(1000);
+      if (mi > 0) await sleep(3000);
       const models = await fetchAllPages(`/models/v2?year=${year}&make=${encodeURIComponent(makeName)}`, jwt);
 
       for (const model of models) {
         const modelName = model.name;
-        await sleep(100);
+        await sleep(200);
 
         const trims = await fetchAllPages(`/trims/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt);
         const extColors = await fetchAllPages(`/exterior-colors/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt);
