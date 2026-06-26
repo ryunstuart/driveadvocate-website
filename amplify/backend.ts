@@ -64,6 +64,13 @@ backend.syncVehicleCatalog.resources.lambda.addToRolePolicy(
 
 backend.syncVehicleCatalog.resources.lambda.addToRolePolicy(
   new PolicyStatement({
+    actions: ['dynamodb:PutItem', 'dynamodb:GetItem'],
+    resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/SyncCheckpoints'],
+  }),
+);
+
+backend.syncVehicleCatalog.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
     actions: ['ssm:GetParameter', 'ssm:PutParameter'],
     resources: ['arn:aws:ssm:us-east-1:870924848445:parameter/driveadvocate/*'],
   }),
