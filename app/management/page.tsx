@@ -56,8 +56,10 @@ export default function ManagementDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const session = await fetchAuthSession();
-        const groups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
+        const session = await fetchAuthSession({ forceRefresh: true });
+        const idGroups = (session.tokens?.idToken?.payload?.['cognito:groups'] as string[]) || [];
+        const accessGroups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
+        const groups = idGroups.length >= accessGroups.length ? idGroups : accessGroups;
         if (!groups.includes('admins')) { router.push('/dashboard'); return; }
       } catch { router.push('/login'); return; }
 

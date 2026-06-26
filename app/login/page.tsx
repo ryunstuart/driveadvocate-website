@@ -65,8 +65,12 @@ export default function Login() {
   };
 
   const completeLogin = async (normalizedEmail: string) => {
-    const session = await fetchAuthSession();
-    const groups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
+    const session = await fetchAuthSession({ forceRefresh: true });
+    const idTokenGroups = (session.tokens?.idToken?.payload?.['cognito:groups'] as string[]) || [];
+    const accessTokenGroups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
+    console.log('ID token groups:', idTokenGroups);
+    console.log('Access token groups:', accessTokenGroups);
+    const groups = idTokenGroups.length >= accessTokenGroups.length ? idTokenGroups : accessTokenGroups;
     const isAdvocate = groups.includes('advocates') || groups.includes('admins');
     const isAdmin = groups.includes('admins');
 
@@ -78,8 +82,7 @@ export default function Login() {
       } catch {}
     }
 
-    console.log('Cognito groups:', groups);
-    console.log('isAdmin:', isAdmin, 'isAdvocate:', isAdvocate);
+    console.log('Final groups:', groups, 'isAdmin:', isAdmin, 'isAdvocate:', isAdvocate);
     const currentUser = { email: normalizedEmail, firstName: clientFirstName, isAdvocate, isAdmin, hasActiveDeal: !isAdvocate };
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     console.log('Stored currentUser:', currentUser);
