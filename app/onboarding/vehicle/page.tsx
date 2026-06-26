@@ -370,68 +370,102 @@ export default function VehicleWizard() {
             <p className="text-slate-500 mb-8">Rank your top 3 choices for exterior and interior</p>
             <div className="space-y-8">
               <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="font-semibold mb-4">Exterior Color</h2>
+                <h2 className="font-semibold mb-6">Exterior Color</h2>
                 {([
                   { rank: '1st choice', prefix: 'ext1', value: extColor1, set: setExtColor1 },
                   { rank: '2nd choice', prefix: 'ext2', value: extColor2, set: setExtColor2 },
                   { rank: '3rd choice', prefix: 'ext3', value: extColor3, set: setExtColor3 },
-                ] as const).map(({ rank, prefix, value, set }) => (
-                  <div key={prefix} className="mb-4">
-                    <div className="text-xs text-slate-400 mb-2">{rank}{value ? `: ${value}` : ''}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {extColors.map((c, idx) => {
-                        const colorId = c.name || c.rgb || `color-${idx}`;
-                        const colorLabel = c.name || (c.rgb ? `Color ${idx + 1}` : `Color ${idx + 1}`);
-                        const bgStyle = c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc';
-                        return (
-                          <button
-                            key={`${prefix}-${colorId}-${idx}`}
-                            type="button"
-                            onClick={() => set(colorId)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition ${
-                              value === colorId ? 'border-emerald-500 bg-emerald-50 font-semibold' : 'border-slate-200 hover:border-slate-300'
-                            }`}
-                          >
-                            <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: bgStyle }} />
-                            {colorLabel}
-                          </button>
-                        );
-                      })}
+                ] as const).map(({ rank, prefix, value, set }) => {
+                  const selectedColor = extColors.find(c => (c.name || c.rgb) === value);
+                  return (
+                    <div key={prefix} className="mb-6">
+                      <div className="text-sm font-medium text-slate-600 mb-3">{rank}</div>
+                      <div className="flex flex-wrap gap-3">
+                        {extColors.map((c, idx) => {
+                          const colorId = c.name || c.rgb || `color-${idx}`;
+                          const bgStyle = c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc';
+                          const isSelected = value === colorId;
+                          return (
+                            <button
+                              key={`${prefix}-${colorId}-${idx}`}
+                              type="button"
+                              onClick={() => set(colorId)}
+                              title={c.name || 'Color'}
+                              style={{ backgroundColor: bgStyle }}
+                              className={`relative w-14 h-14 rounded-xl transition-all duration-200 hover:scale-110 hover:shadow-lg ${
+                                isSelected
+                                  ? 'ring-4 ring-emerald-500 ring-offset-2 scale-110 shadow-lg'
+                                  : 'ring-1 ring-slate-200 hover:ring-emerald-300'
+                              }`}
+                            >
+                              {isSelected && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                  <svg className="w-6 h-6 text-white drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {selectedColor && (
+                        <p className="text-sm text-slate-600 mt-2 font-medium">
+                          {selectedColor.name || selectedColor.rgb || 'Selected'}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="font-semibold mb-4">Interior Color</h2>
+                <h2 className="font-semibold mb-6">Interior Color</h2>
                 {([
                   { rank: '1st choice', prefix: 'int1', value: intColor1, set: setIntColor1 },
                   { rank: '2nd choice', prefix: 'int2', value: intColor2, set: setIntColor2 },
                   { rank: '3rd choice', prefix: 'int3', value: intColor3, set: setIntColor3 },
-                ] as const).map(({ rank, prefix, value, set }) => (
-                  <div key={prefix} className="mb-4">
-                    <div className="text-xs text-slate-400 mb-2">{rank}{value ? `: ${value}` : ''}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {intColors.map((c, idx) => {
-                        const colorId = c.name || c.rgb || `color-${idx}`;
-                        const colorLabel = c.name || (c.rgb ? `Color ${idx + 1}` : `Color ${idx + 1}`);
-                        const bgStyle = c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc';
-                        return (
-                          <button
-                            key={`${prefix}-${colorId}-${idx}`}
-                            type="button"
-                            onClick={() => set(colorId)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition ${
-                              value === colorId ? 'border-emerald-500 bg-emerald-50 font-semibold' : 'border-slate-200 hover:border-slate-300'
-                            }`}
-                          >
-                            <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: bgStyle }} />
-                            {colorLabel}
-                          </button>
-                        );
-                      })}
+                ] as const).map(({ rank, prefix, value, set }) => {
+                  const selectedColor = intColors.find(c => (c.name || c.rgb) === value);
+                  return (
+                    <div key={prefix} className="mb-6">
+                      <div className="text-sm font-medium text-slate-600 mb-3">{rank}</div>
+                      <div className="flex flex-wrap gap-3">
+                        {intColors.map((c, idx) => {
+                          const colorId = c.name || c.rgb || `color-${idx}`;
+                          const bgStyle = c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc';
+                          const isSelected = value === colorId;
+                          return (
+                            <button
+                              key={`${prefix}-${colorId}-${idx}`}
+                              type="button"
+                              onClick={() => set(colorId)}
+                              title={c.name || 'Color'}
+                              style={{ backgroundColor: bgStyle }}
+                              className={`relative w-14 h-14 rounded-xl transition-all duration-200 hover:scale-110 hover:shadow-lg ${
+                                isSelected
+                                  ? 'ring-4 ring-emerald-500 ring-offset-2 scale-110 shadow-lg'
+                                  : 'ring-1 ring-slate-200 hover:ring-emerald-300'
+                              }`}
+                            >
+                              {isSelected && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                  <svg className="w-6 h-6 text-white drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {selectedColor && (
+                        <p className="text-sm text-slate-600 mt-2 font-medium">
+                          {selectedColor.name || selectedColor.rgb || 'Selected'}
+                        </p>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

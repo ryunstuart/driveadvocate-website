@@ -110,13 +110,17 @@ export const handler = async () => {
         const intColors = await fetchAllPages(`/interior-colors/v2?year=${year}&make=${encodeURIComponent(makeName)}&model=${encodeURIComponent(modelName)}`, jwt);
 
         const uniqueExtColors = [...new Map(extColors.map((c: any) => {
-          const colorName = c.name || c.color_name || c.generic_color_name || 'Unknown';
-          return [colorName, { name: colorName, rgb: c.rgb || null }];
-        })).values()].filter((c: any) => c.name !== 'Unknown');
+          const colorName = c.name || c.color_name || c.generic_color_name || null;
+          const rgb = c.rgb || null;
+          const key = colorName || rgb || JSON.stringify(c);
+          return [key, { name: colorName, rgb }];
+        })).values()].filter((c: any) => c.name || c.rgb);
         const uniqueIntColors = [...new Map(intColors.map((c: any) => {
-          const colorName = c.name || c.color_name || c.generic_color_name || 'Unknown';
-          return [colorName, { name: colorName, rgb: c.rgb || null }];
-        })).values()].filter((c: any) => c.name !== 'Unknown');
+          const colorName = c.name || c.color_name || c.generic_color_name || null;
+          const rgb = c.rgb || null;
+          const key = colorName || rgb || JSON.stringify(c);
+          return [key, { name: colorName, rgb }];
+        })).values()].filter((c: any) => c.name || c.rgb);
 
         const trimData = trims.map((t: any) => ({
           id: t.id,
