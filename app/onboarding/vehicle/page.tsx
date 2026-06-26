@@ -165,8 +165,8 @@ export default function VehicleWizard() {
     }
     const dedupedExt = [...new Map(allExt.map((c: any) => [c.name || c.rgb || Math.random(), c])).values()];
     const dedupedInt = [...new Map(allInt.map((c: any) => [c.name || c.rgb || Math.random(), c])).values()];
-    setExtColors(dedupedExt.length >= 3 ? dedupedExt : DEFAULT_EXT_COLORS);
-    setIntColors(dedupedInt.length >= 3 ? dedupedInt : DEFAULT_INT_COLORS);
+    setExtColors(dedupedExt.length > 0 ? dedupedExt : DEFAULT_EXT_COLORS);
+    setIntColors(dedupedInt.length > 0 ? dedupedInt : DEFAULT_INT_COLORS);
   }, [make, year, allCatalogData]);
 
   // Filter trims when model changes
@@ -180,8 +180,8 @@ export default function VehicleWizard() {
       const rawTrims: any[] = item.trims || [];
       const uniqueTrims = [...new Map(rawTrims.map((t: any) => [t.name, { name: t.name, msrp: t.msrp || 0, description: t.description || '' }])).values()];
       setTrims(uniqueTrims);
-      if (item.exteriorColors?.length >= 3) setExtColors(item.exteriorColors);
-      if (item.interiorColors?.length >= 3) setIntColors(item.interiorColors);
+      if (item.exteriorColors?.length > 0) setExtColors(item.exteriorColors);
+      if (item.interiorColors?.length > 0) setIntColors(item.interiorColors);
     } else {
       setTrims([]);
     }
@@ -363,54 +363,64 @@ export default function VehicleWizard() {
             <div className="space-y-8">
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="font-semibold mb-4">Exterior Color</h2>
-                {[
-                  { rank: '1st choice', value: extColor1, set: setExtColor1 },
-                  { rank: '2nd choice', value: extColor2, set: setExtColor2 },
-                  { rank: '3rd choice', value: extColor3, set: setExtColor3 },
-                ].map(({ rank, value, set }) => (
-                  <div key={rank} className="mb-4">
-                    <div className="text-xs text-slate-400 mb-2">{rank}</div>
+                {([
+                  { rank: '1st choice', prefix: 'ext1', value: extColor1, set: setExtColor1 },
+                  { rank: '2nd choice', prefix: 'ext2', value: extColor2, set: setExtColor2 },
+                  { rank: '3rd choice', prefix: 'ext3', value: extColor3, set: setExtColor3 },
+                ] as const).map(({ rank, prefix, value, set }) => (
+                  <div key={prefix} className="mb-4">
+                    <div className="text-xs text-slate-400 mb-2">{rank}{value ? `: ${value}` : ''}</div>
                     <div className="flex flex-wrap gap-2">
-                      {extColors.map((c, idx) => (
-                        <button
-                          key={`${c.name}-${idx}`}
-                          type="button"
-                          onClick={() => set(c.name)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition ${
-                            value === c.name ? 'border-emerald-500 bg-emerald-50 font-semibold' : 'border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc' }} />
-                          {c.name}
-                        </button>
-                      ))}
+                      {extColors.map((c, idx) => {
+                        const colorId = c.name || c.rgb || `color-${idx}`;
+                        const colorLabel = c.name || (c.rgb ? `Color ${idx + 1}` : `Color ${idx + 1}`);
+                        const bgStyle = c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc';
+                        return (
+                          <button
+                            key={`${prefix}-${colorId}-${idx}`}
+                            type="button"
+                            onClick={() => set(colorId)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition ${
+                              value === colorId ? 'border-emerald-500 bg-emerald-50 font-semibold' : 'border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: bgStyle }} />
+                            {colorLabel}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
               </div>
               <div className="bg-white rounded-3xl shadow p-8">
                 <h2 className="font-semibold mb-4">Interior Color</h2>
-                {[
-                  { rank: '1st choice', value: intColor1, set: setIntColor1 },
-                  { rank: '2nd choice', value: intColor2, set: setIntColor2 },
-                  { rank: '3rd choice', value: intColor3, set: setIntColor3 },
-                ].map(({ rank, value, set }) => (
-                  <div key={rank} className="mb-4">
-                    <div className="text-xs text-slate-400 mb-2">{rank}</div>
+                {([
+                  { rank: '1st choice', prefix: 'int1', value: intColor1, set: setIntColor1 },
+                  { rank: '2nd choice', prefix: 'int2', value: intColor2, set: setIntColor2 },
+                  { rank: '3rd choice', prefix: 'int3', value: intColor3, set: setIntColor3 },
+                ] as const).map(({ rank, prefix, value, set }) => (
+                  <div key={prefix} className="mb-4">
+                    <div className="text-xs text-slate-400 mb-2">{rank}{value ? `: ${value}` : ''}</div>
                     <div className="flex flex-wrap gap-2">
-                      {intColors.map((c, idx) => (
-                        <button
-                          key={`${c.name}-${idx}`}
-                          type="button"
-                          onClick={() => set(c.name)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition ${
-                            value === c.name ? 'border-emerald-500 bg-emerald-50 font-semibold' : 'border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc' }} />
-                          {c.name}
-                        </button>
-                      ))}
+                      {intColors.map((c, idx) => {
+                        const colorId = c.name || c.rgb || `color-${idx}`;
+                        const colorLabel = c.name || (c.rgb ? `Color ${idx + 1}` : `Color ${idx + 1}`);
+                        const bgStyle = c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc';
+                        return (
+                          <button
+                            key={`${prefix}-${colorId}-${idx}`}
+                            type="button"
+                            onClick={() => set(colorId)}
+                            className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition ${
+                              value === colorId ? 'border-emerald-500 bg-emerald-50 font-semibold' : 'border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" style={{ backgroundColor: bgStyle }} />
+                            {colorLabel}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
