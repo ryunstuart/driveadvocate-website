@@ -13,12 +13,12 @@ interface TrimOption { name: string; msrp: number; description: string; }
 interface ColorOption { name: string; rgb: string | null; }
 
 const VEHICLE_TYPES: VehicleType[] = [
-  { id: 'car', label: 'Cars', icon: '🚗', bodyTypes: ['Sedan', 'Coupe', 'Hatchback', 'Convertible'] },
-  { id: 'suv', label: 'SUVs', icon: '🚙', bodyTypes: ['SUV', 'Sport Utility'] },
-  { id: 'crossover', label: 'Crossovers', icon: '🏎️', bodyTypes: ['Crossover', 'Wagon'] },
-  { id: 'truck', label: 'Trucks', icon: '🛻', bodyTypes: ['Pickup', 'Truck', 'Crew Cab', 'SuperCrew'] },
-  { id: 'van', label: 'Vans', icon: '🚐', bodyTypes: ['Van', 'Minivan', 'Cargo Van'] },
-  { id: 'ev', label: 'Electric / Hybrid', icon: '⚡', bodyTypes: ['Electric', 'Hybrid', 'Plug-In Hybrid'] },
+  { id: 'car', label: 'Cars', icon: '🚗', bodyTypes: ['Sedan', 'Coupe', 'Hatchback', 'Convertible', 'Wagon'] },
+  { id: 'suv', label: 'SUVs', icon: '🚙', bodyTypes: ['SUV'] },
+  { id: 'crossover', label: 'Crossovers', icon: '🏎️', bodyTypes: ['SUV'] },
+  { id: 'truck', label: 'Trucks', icon: '🛻', bodyTypes: ['SuperCrew', 'Crew Cab', 'CrewMax', 'Double Cab', 'Extended Cab', 'Regular Cab', 'Access Cab', 'Cab Plus', 'Club Cab', 'King Cab', 'Mega Cab', 'Quad Cab', 'SuperCab', 'Xtracab'] },
+  { id: 'van', label: 'Vans', icon: '🚐', bodyTypes: ['Minivan', 'Cargo Van', 'Passenger Van'] },
+  { id: 'ev', label: 'Electric / Hybrid', icon: '⚡', bodyTypes: ['hybrid', 'electric', 'plug-in'] },
 ];
 
 const DEFAULT_EXT_COLORS: ColorOption[] = [
@@ -131,9 +131,15 @@ export default function VehicleWizard() {
     const filtered = allCatalogData.filter((item: any) => {
       if (item.year !== year) return false;
       if (bodyKeywords.length === 0) return true;
-      const trimDescriptions = (item.trims || []).map((t: any) => (t.description || '').toLowerCase()).join(' ');
-      const modelLower = (item.model || '').toLowerCase();
-      return bodyKeywords.some(kw => trimDescriptions.includes(kw.toLowerCase()) || modelLower.includes(kw.toLowerCase()));
+      const descriptions: string[] = (item.trims || []).map((t: any) => (t.description || ''));
+      return descriptions.some(desc => {
+        const descLower = desc.toLowerCase();
+        return bodyKeywords.some(kw => {
+          const kwLower = kw.toLowerCase();
+          if (kwLower === 'suv') return descLower.includes(' suv ') || descLower.includes(' suv(') || descLower.endsWith(' suv');
+          return descLower.includes(kwLower);
+        });
+      });
     });
 
     const uniqueMakes = [...new Set(filtered.map((item: any) => item.make as string))].sort();
@@ -362,9 +368,9 @@ export default function VehicleWizard() {
                   <div key={rank} className="mb-4">
                     <div className="text-xs text-slate-400 mb-2">{rank}</div>
                     <div className="flex flex-wrap gap-2">
-                      {extColors.map(c => (
+                      {extColors.map((c, idx) => (
                         <button
-                          key={c.name}
+                          key={`${c.name}-${idx}`}
                           type="button"
                           onClick={() => set(c.name)}
                           className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition ${
@@ -389,9 +395,9 @@ export default function VehicleWizard() {
                   <div key={rank} className="mb-4">
                     <div className="text-xs text-slate-400 mb-2">{rank}</div>
                     <div className="flex flex-wrap gap-2">
-                      {intColors.map(c => (
+                      {intColors.map((c, idx) => (
                         <button
-                          key={c.name}
+                          key={`${c.name}-${idx}`}
                           type="button"
                           onClick={() => set(c.name)}
                           className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs transition ${
