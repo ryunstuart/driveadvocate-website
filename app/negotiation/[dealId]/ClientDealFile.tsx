@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getCurrentUser } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
+import { calculatePricing, generateNegotiationScript, getBestCallTime } from '@/app/lib/negotiation';
 
 interface Dealership {
   id: number;
@@ -162,6 +163,8 @@ export default function ClientDealFile() {
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
   const [inventory, setInventory] = useState<InventoryListing[]>([]);
   const [inventorySearching, setInventorySearching] = useState(false);
+  const [incentives, setIncentives] = useState<any[]>([]);
+  const [copiedScript, setCopiedScript] = useState(false);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [totalTime, setTotalTime] = useState(0);
@@ -278,6 +281,18 @@ export default function ClientDealFile() {
               setInventory(invData.listings || []);
             }
           } catch {}
+
+          if (vpResult.data.length > 0) {
+            const vp = vpResult.data[0];
+            try {
+              const incRes = await fetch(`/api/incentives?makeModel=${encodeURIComponent(`${vp.make}#${vp.model}#${vp.year || '2026'}`)}`);
+              if (incRes.ok) {
+                const incData = await incRes.json();
+                const today = new Date().toISOString().split('T')[0];
+                setIncentives((incData.incentives || []).filter((i: any) => i.expiresAt >= today));
+              }
+            } catch {}
+          }
 
         } else {
           // Fall back to mock data for old hardcoded deal IDs
@@ -628,6 +643,21 @@ export default function ClientDealFile() {
   const activeCount = dealerships.filter(d => d.status === 'Called' || d.status === 'Follow Up').length;
   const bestOffer = offers.find(o => o.status === 'Best');
 
+  const pricing = useMemo(() => {
+    if (!vehiclePref) return null;
+    const avgPrice = inventory.length > 0
+      ? inventory.reduce((s, i) => s + (i.price || 0), 0) / inventory.length
+      : 0;
+    const msrp = inventory[0]?.msrp || avgPrice || 0;
+    const invoice = msrp * 0.94;
+    const avgDays = inventory.length > 0
+      ? Math.round(inventory.reduce((s, i) => s + (i.daysOnLot || 0), 0) / inventory.length)
+      : 45;
+    const totalInc = incentives.filter((i: any) => i.canStack).reduce((s: number, i: any) => s + (i.amount || 0), 0);
+    if (msrp === 0) return null;
+    return calculatePricing(vehiclePref.make, msrp, invoice, avgPrice || msrp, avgDays, inventory.length, totalInc);
+  }, [vehiclePref, inventory, incentives]);
+
   const dealerStatusColors: Record<Dealership['status'], string> = {
     'Not Called': 'bg-slate-100 text-slate-600',
     'Called': 'bg-emerald-100 text-emerald-700',
@@ -718,6 +748,117 @@ export default function ClientDealFile() {
               {bestOffer.discount && <div className="text-sm text-emerald-600">{bestOffer.discount}</div>}
             </div>
             <span className="text-xs bg-emerald-600 text-white px-3 py-1 rounded-full font-medium">⭐ Best</span>
+          </div>
+        )}
+
+        {/* Pricing Intelligence */}
+        {pricing && vehiclePref && (
+          <div className="bg-white rounded-3xl shadow p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">Pricing Intelligence</h3>
+              <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                pricing.negotiationLeverage === 'HIGH' ? 'bg-emerald-100 text-emerald-700' :
+                pricing.negotiationLeverage === 'MEDIUM' ? 'bg-amber-100 text-amber-700' :
+                'bg-red-100 text-red-700'
+              }`}>
+                {pricing.negotiationLeverage} LEVERAGE
+              </div>
+            </div>
+
+            {pricing.leverageReasons.length > 0 && (
+              <div className="bg-slate-50 rounded-2xl p-3 mb-4 space-y-1">
+                {pricing.leverageReasons.map((reason, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
+                    <span className="text-emerald-500">⚡</span>{reason}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Dealer Cost Breakdown</div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">MSRP</span><span className="font-medium">${pricing.msrp.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">Invoice (est.)</span><span className="font-medium">${pricing.invoice.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">Holdback</span><span className="font-medium text-emerald-600">-${pricing.holdback.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm border-t border-slate-200 pt-2 font-semibold"><span>True Dealer Cost</span><span className="text-emerald-700">${pricing.trueDealerCost.toLocaleString()}</span></div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Negotiation Targets</div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">Market Average</span><span className="font-medium">${pricing.marketAverage.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">Target OTD</span><span className="font-medium text-blue-600">${pricing.targetPrice.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-500">Walk Away</span><span className="font-medium text-amber-600">${pricing.walkAwayPrice.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm border-t border-slate-200 pt-2 font-semibold"><span>Best Case</span><span className="text-emerald-700">${pricing.bestCasePrice.toLocaleString()}</span></div>
+              </div>
+            </div>
+
+            {incentives.length > 0 && (
+              <div className="border-t border-slate-100 pt-4 mb-4">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
+                  Current Incentives — {new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}
+                </div>
+                <div className="space-y-1">
+                  {incentives.map((inc: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${inc.canStack ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        <span className="text-slate-600">{inc.type}</span>
+                        {inc.stackNotes && <span className="text-xs text-slate-400" title={inc.stackNotes}>ⓘ</span>}
+                      </div>
+                      <span className="font-semibold text-emerald-700">
+                        {inc.type === 'APR Special' ? `${inc.aprRate}% / ${inc.aprMonths}mo` : `-$${inc.amount?.toLocaleString()}`}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-sm border-t border-slate-100 pt-2 font-bold">
+                    <span>Total Stackable</span>
+                    <span className="text-emerald-700">-${pricing.totalIncentives.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold text-base">
+                    <span>Effective Target OTD</span>
+                    <span className="text-emerald-700">${pricing.effectiveTargetPrice.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {incentives.length === 0 && (
+              <div className="border-t border-slate-100 pt-3 mb-4 text-sm text-slate-400">
+                No incentives on file — <a href="/admin/incentives" className="text-emerald-600 hover:underline">update at Incentives Manager</a>
+              </div>
+            )}
+
+            {(() => { const ct = getBestCallTime(); return (
+              <div className="bg-blue-50 rounded-2xl p-3 mb-4">
+                <div className="text-xs font-semibold text-blue-700 mb-1">Best Time to Call</div>
+                <div className="text-sm text-blue-600"><strong>{ct.day}</strong> — {ct.reason}</div>
+              </div>
+            ); })()}
+
+            <div className="border-t border-slate-100 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Opening Script</div>
+                <button onClick={() => {
+                  const script = generateNegotiationScript(
+                    inventory[0]?.dealerName || '[Dealer Name]',
+                    `${vehiclePref.year} ${vehiclePref.make} ${vehiclePref.model}`,
+                    pricing, incentives,
+                  );
+                  navigator.clipboard.writeText(script);
+                  setCopiedScript(true);
+                  setTimeout(() => setCopiedScript(false), 2000);
+                }} className="text-xs text-emerald-600 hover:underline font-medium">
+                  {copiedScript ? '✓ Copied!' : 'Copy Script'}
+                </button>
+              </div>
+              <div className="bg-slate-50 rounded-2xl p-3 text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                {generateNegotiationScript(
+                  inventory[0]?.dealerName || '[Dealer Name]',
+                  `${vehiclePref.year} ${vehiclePref.make} ${vehiclePref.model}`,
+                  pricing, incentives,
+                )}
+              </div>
+            </div>
           </div>
         )}
 
