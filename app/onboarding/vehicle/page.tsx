@@ -171,8 +171,10 @@ export default function VehicleWizard() {
     }
     const dedupedExt = [...new Map(allExt.map((c: any) => [c.name || c.rgb || Math.random(), c])).values()];
     const dedupedInt = [...new Map(allInt.map((c: any) => [c.name || c.rgb || Math.random(), c])).values()];
-    setExtColors(dedupedExt.length > 0 ? dedupedExt : DEFAULT_EXT_COLORS);
-    setIntColors(dedupedInt.length > 0 ? dedupedInt : DEFAULT_INT_COLORS);
+    const hasNamedExt = dedupedExt.some((c: any) => c.name);
+    const hasNamedInt = dedupedInt.some((c: any) => c.name);
+    setExtColors(hasNamedExt ? dedupedExt : DEFAULT_EXT_COLORS);
+    setIntColors(hasNamedInt ? dedupedInt : DEFAULT_INT_COLORS);
   }, [make, year, vehicleType, allCatalogData]);
 
   // Filter trims when model changes
@@ -186,8 +188,8 @@ export default function VehicleWizard() {
       const rawTrims: any[] = item.trims || [];
       const uniqueTrims = [...new Map(rawTrims.map((t: any) => [t.name, { name: t.name, msrp: t.msrp || 0, description: t.description || '' }])).values()];
       setTrims(uniqueTrims);
-      if (item.exteriorColors?.length > 0) setExtColors(item.exteriorColors);
-      if (item.interiorColors?.length > 0) setIntColors(item.interiorColors);
+      if (item.exteriorColors?.some((c: any) => c.name)) setExtColors(item.exteriorColors);
+      if (item.interiorColors?.some((c: any) => c.name)) setIntColors(item.interiorColors);
     } else {
       setTrims([]);
     }
@@ -591,13 +593,13 @@ export default function VehicleWizard() {
         {/* ─── Navigation Buttons ─── */}
         <div className="flex gap-4 mt-8">
           {step > 1 && (
-            <button onClick={() => setStep(step - 1)} className="flex-1 py-4 border border-slate-300 rounded-2xl font-medium hover:bg-slate-50 transition">
+            <button onClick={() => { setStep(step - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex-1 py-4 border border-slate-300 rounded-2xl font-medium hover:bg-slate-50 transition">
               Back
             </button>
           )}
           {step < totalSteps ? (
             <button
-              onClick={() => setStep(step + 1)}
+              onClick={() => { setStep(step + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
               disabled={!canProceed[step]}
               className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition"
             >
