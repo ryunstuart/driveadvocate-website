@@ -26,16 +26,33 @@ async function getJWT(): Promise<string> {
   return res.text();
 }
 
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function fetchWithRetry(url: string, jwt: string, retries = 3): Promise<Response | null> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res: Response = await fetch(url, { headers: { Authorization: `Bearer ${jwt}` } });
+    if (res.ok) return res;
+    if (res.status === 429 && attempt < retries) {
+      const delay = Math.pow(2, attempt + 1) * 1000;
+      console.warn(`Rate limited on ${url}, retrying in ${delay}ms...`);
+      await sleep(delay);
+      continue;
+    }
+    console.warn(`Fetch failed for ${url}: ${res.status}`);
+    return null;
+  }
+  return null;
+}
+
 async function fetchAllPages(url: string, jwt: string): Promise<any[]> {
   const all: any[] = [];
   let nextUrl: string | null = url;
   while (nextUrl) {
     const fullUrl: string = nextUrl.startsWith('http') ? nextUrl : `${BASE_URL}${nextUrl}`;
-    const res: Response = await fetch(fullUrl, { headers: { Authorization: `Bearer ${jwt}` } });
-    if (!res.ok) {
-      console.warn(`Fetch failed for ${fullUrl}: ${res.status}`);
-      break;
-    }
+    const res = await fetchWithRetry(fullUrl, jwt);
+    if (!res) break;
     const body: any = await res.json();
     all.push(...(body.data || []));
     nextUrl = body.collection?.next || null;
@@ -53,8 +70,10 @@ export const handler = async () => {
     const makes = await fetchAllPages(`/makes/v2?year=${year}`, jwt);
     console.log(`  ${makes.length} makes`);
 
-    for (const make of makes) {
+    for (let mi = 0; mi < makes.length; mi++) {
+      const make = makes[mi];
       const makeName = make.name;
+      if (mi > 0) await sleep(500);
       const models = await fetchAllPages(`/models/v2?year=${year}&make=${encodeURIComponent(makeName)}`, jwt);
 
       for (const model of models) {
