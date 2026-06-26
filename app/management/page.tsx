@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
+import { getCurrentUser } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
@@ -56,10 +56,9 @@ export default function ManagementDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const session = await fetchAuthSession({ forceRefresh: true });
-        const idGroups = (session.tokens?.idToken?.payload?.['cognito:groups'] as string[]) || [];
-        const accessGroups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
-        const groups = idGroups.length >= accessGroups.length ? idGroups : accessGroups;
+        const { username } = await getCurrentUser();
+        const groupsRes = await fetch(`/api/user/groups?username=${encodeURIComponent(username)}`);
+        const { groups } = await groupsRes.json();
         if (!groups.includes('admins')) { router.push('/dashboard'); return; }
       } catch { router.push('/login'); return; }
 

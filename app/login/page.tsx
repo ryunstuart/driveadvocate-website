@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   signIn, signUp, confirmSignUp, confirmSignIn, signOut, fetchAuthSession,
   resendSignUpCode, resetPassword, confirmResetPassword, fetchMFAPreference,
+  getCurrentUser,
 } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
@@ -65,12 +66,11 @@ export default function Login() {
   };
 
   const completeLogin = async (normalizedEmail: string) => {
-    const session = await fetchAuthSession({ forceRefresh: true });
-    const idTokenGroups = (session.tokens?.idToken?.payload?.['cognito:groups'] as string[]) || [];
-    const accessTokenGroups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
-    console.log('ID token groups:', idTokenGroups);
-    console.log('Access token groups:', accessTokenGroups);
-    const groups = idTokenGroups.length >= accessTokenGroups.length ? idTokenGroups : accessTokenGroups;
+    const { username } = await getCurrentUser();
+    const res = await fetch(`/api/user/groups?username=${encodeURIComponent(username)}`);
+    const { groups } = await res.json();
+    console.log('Server-side groups:', groups);
+
     const isAdvocate = groups.includes('advocates') || groups.includes('admins');
     const isAdmin = groups.includes('admins');
 
@@ -82,10 +82,9 @@ export default function Login() {
       } catch {}
     }
 
-    console.log('Final groups:', groups, 'isAdmin:', isAdmin, 'isAdvocate:', isAdvocate);
+    console.log('isAdmin:', isAdmin, 'isAdvocate:', isAdvocate);
     const currentUser = { email: normalizedEmail, firstName: clientFirstName, isAdvocate, isAdmin, hasActiveDeal: !isAdvocate };
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    console.log('Stored currentUser:', currentUser);
 
     if (isAdvocate) {
       try {
@@ -107,22 +106,7 @@ export default function Login() {
     setLoading(true);
     try {
       await confirmSignIn({ challengeResponse: mfaCode });
-
-      const normalizedEmail = email.trim().toLowerCase();
-      const session = await fetchAuthSession({ forceRefresh: true });
-      const idGroups = (session.tokens?.idToken?.payload?.['cognito:groups'] as string[]) || [];
-      const accessGroups = (session.tokens?.accessToken?.payload?.['cognito:groups'] as string[]) || [];
-      const groups = idGroups.length >= accessGroups.length ? idGroups : accessGroups;
-      console.log('Post-MFA groups:', groups);
-
-      const isAdmin = groups.includes('admins');
-      const isAdvocate = groups.includes('advocates') || groups.includes('admins');
-
-      const currentUser = { email: normalizedEmail, firstName: '', isAdvocate, isAdmin, hasActiveDeal: !isAdvocate };
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      console.log('Post-MFA stored:', currentUser);
-
-      router.push('/dashboard');
+      await completeLogin(email.trim().toLowerCase());
     } catch (err: any) {
       setError('Invalid code. Please try again.');
     } finally {
