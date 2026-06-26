@@ -3,6 +3,7 @@ import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { sendClientUpdate } from './functions/sendClientUpdate/resource';
 import { syncVehicleCatalog } from './functions/syncVehicleCatalog/resource';
+import { searchDealInventory } from './functions/searchDealInventory/resource';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 const backend = defineBackend({
@@ -10,6 +11,7 @@ const backend = defineBackend({
   data,
   sendClientUpdate,
   syncVehicleCatalog,
+  searchDealInventory,
 });
 
 // --- sendClientUpdate permissions ---
@@ -61,6 +63,24 @@ backend.syncVehicleCatalog.resources.lambda.addToRolePolicy(
 );
 
 backend.syncVehicleCatalog.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['ssm:GetParameter'],
+    resources: ['arn:aws:ssm:us-east-1:870924848445:parameter/driveadvocate/*'],
+  }),
+);
+
+// --- searchDealInventory permissions ---
+
+backend.searchDealInventory.addEnvironment('DEAL_INVENTORY_TABLE', 'DealInventory');
+
+backend.searchDealInventory.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:PutItem', 'dynamodb:BatchWriteItem'],
+    resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/DealInventory'],
+  }),
+);
+
+backend.searchDealInventory.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['ssm:GetParameter'],
     resources: ['arn:aws:ssm:us-east-1:870924848445:parameter/driveadvocate/*'],

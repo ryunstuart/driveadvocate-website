@@ -1,5 +1,6 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { sendClientUpdate } from '../functions/sendClientUpdate/resource';
+import { searchDealInventory } from '../functions/searchDealInventory/resource';
 
 const schema = a.schema({
 
@@ -143,6 +144,28 @@ const schema = a.schema({
     }))
     .authorization(allow => [allow.groups(['advocates', 'admins'])])
     .handler(a.handler.function(sendClientUpdate)),
+
+  searchDealInventory: a
+    .mutation()
+    .arguments({
+      dealId: a.string().required(),
+      make: a.string().required(),
+      model: a.string().required(),
+      year: a.string(),
+      zip: a.string().required(),
+      radius: a.integer(),
+      carType: a.string(),
+    })
+    .returns(a.customType({
+      success: a.boolean(),
+      resultCount: a.integer(),
+      error: a.string(),
+    }))
+    .authorization(allow => [
+      allow.groups(['advocates', 'admins']),
+      allow.authenticated(),
+    ])
+    .handler(a.handler.function(searchDealInventory)),
 
 });
 
