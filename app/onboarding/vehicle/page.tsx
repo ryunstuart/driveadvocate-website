@@ -153,7 +153,13 @@ export default function VehicleWizard() {
     setModel(''); setTrim('');
     setTrims([]);
 
-    const filtered = allCatalogData.filter((item: any) => item.year === year && item.make === make);
+    const pattern = BODY_TYPE_PATTERNS[vehicleType];
+    const filtered = allCatalogData.filter((item: any) => {
+      if (item.year !== year || item.make !== make) return false;
+      if (!pattern) return true;
+      const descriptions: string[] = (item.trims || []).map((t: any) => (t.description || ''));
+      return descriptions.some(desc => pattern.test(desc));
+    });
     const modelNames = filtered.map((item: any) => item.model as string).sort();
     setModels(modelNames);
 
@@ -167,7 +173,7 @@ export default function VehicleWizard() {
     const dedupedInt = [...new Map(allInt.map((c: any) => [c.name || c.rgb || Math.random(), c])).values()];
     setExtColors(dedupedExt.length > 0 ? dedupedExt : DEFAULT_EXT_COLORS);
     setIntColors(dedupedInt.length > 0 ? dedupedInt : DEFAULT_INT_COLORS);
-  }, [make, year, allCatalogData]);
+  }, [make, year, vehicleType, allCatalogData]);
 
   // Filter trims when model changes
   useEffect(() => {
