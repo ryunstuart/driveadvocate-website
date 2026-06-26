@@ -734,6 +734,11 @@ export default function ClientDealFile() {
                     </button>
                   )}
                 </div>
+                {inventory.some(l => l.colorMatchLabel === 'Color matching pending') && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4 text-sm text-amber-700">
+                    Color filtering is pending — showing all inventory. Exact color matching activates after vehicle color data is imported.
+                  </div>
+                )}
                 <div className="space-y-4">
                   {inventory.map(listing => (
                     <div key={listing.vin} className="border border-slate-200 rounded-2xl p-5 hover:border-emerald-300 transition">

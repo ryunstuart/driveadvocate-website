@@ -100,18 +100,27 @@ async function searchForDeal(
     };
 
     if (colorCombos && colorCombos.length > 0) {
-      const matched = colorCombos.find((combo: any) => {
-        const extColor = (listing.exterior_color || '').toLowerCase();
-        const intColor = (listing.interior_color || '').toLowerCase();
-        const comboExt = (combo.exterior || '').toLowerCase();
-        const comboInt = (combo.interior || '').toLowerCase();
-        const extMatch = !comboExt || extColor.includes(comboExt) || comboExt.includes(extColor);
-        const intMatch = !comboInt || intColor.includes(comboInt) || comboInt.includes(intColor);
-        return extMatch && intMatch;
-      });
-      if (matched) {
-        item.colorComboMatch = matched.rank;
-        item.colorMatchLabel = `${matched.exterior}${matched.interior ? ' / ' + matched.interior : ''}`;
+      const fakePatterns = ['color 1', 'color 2', 'color 3', 'color-', 'rgb('];
+      const isRealColor = (name: string) => name && !fakePatterns.some(p => name.toLowerCase().includes(p));
+      const hasRealCombos = colorCombos.some((c: any) => isRealColor(c.exterior));
+
+      if (!hasRealCombos) {
+        item.colorComboMatch = null;
+        item.colorMatchLabel = 'Color matching pending';
+      } else {
+        const matched = colorCombos.find((combo: any) => {
+          const extColor = (listing.exterior_color || '').toLowerCase();
+          const intColor = (listing.interior_color || '').toLowerCase();
+          const comboExt = (combo.exterior || '').toLowerCase();
+          const comboInt = (combo.interior || '').toLowerCase();
+          const extMatch = !comboExt || extColor.includes(comboExt) || comboExt.includes(extColor);
+          const intMatch = !comboInt || intColor.includes(comboInt) || comboInt.includes(intColor);
+          return extMatch && intMatch;
+        });
+        if (matched) {
+          item.colorComboMatch = matched.rank;
+          item.colorMatchLabel = `${matched.exterior}${matched.interior ? ' / ' + matched.interior : ''}`;
+        }
       }
     }
 

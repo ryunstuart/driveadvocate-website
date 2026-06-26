@@ -354,6 +354,8 @@ export default function VehicleWizard() {
 
   const selectedTrim = trims.find(t => t.name === trim);
   const vehicleSummary = [year, make, model, trim].filter(Boolean).join(' ');
+  const fakeColorPatterns = ['color 1', 'color 2', 'color 3', 'color-', 'rgb('];
+  const hasRealColors = colorCombos.some(c => c.exterior && !fakeColorPatterns.some(p => c.exterior.toLowerCase().includes(p)));
   const canProceed: Record<number, boolean> = {
     1: !!vehicleType,
     2: !!year && !!make && !!model,
@@ -628,17 +630,32 @@ export default function VehicleWizard() {
 
               {searchResult.searched && !searching && (
                 <div className="py-4">
+                  {!hasRealColors && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4 text-sm text-amber-700">
+                      Color filtering is pending — showing all available inventory. Exact color matching activates after vehicle color data is imported.
+                    </div>
+                  )}
                   {searchResult.count > 0 ? (
                     <>
                       <div className="text-5xl mb-3">🎯</div>
                       <div className="text-2xl font-bold text-emerald-600 mb-1">{searchResult.count} vehicles found</div>
-                      <p className="text-slate-500 text-sm">Your advocate will have plenty of options to negotiate from</p>
+                      <p className="text-slate-500 text-sm">
+                        {hasRealColors
+                          ? 'Matched to your color preferences — your advocate will negotiate from these'
+                          : 'Your advocate will have plenty of options to negotiate from'}
+                      </p>
                     </>
                   ) : (
                     <>
                       <div className="text-5xl mb-3">📋</div>
-                      <div className="text-lg font-semibold text-slate-700 mb-1">No exact matches yet</div>
-                      <p className="text-slate-500 text-sm">No worries — your advocate will expand the search and find the right vehicle</p>
+                      <div className="text-lg font-semibold text-slate-700 mb-1">
+                        {hasRealColors ? 'No exact color matches found' : 'No exact matches yet'}
+                      </div>
+                      <p className="text-slate-500 text-sm">
+                        {hasRealColors
+                          ? 'Your advocate will search for the closest available color combinations'
+                          : 'No worries — your advocate will expand the search and find the right vehicle'}
+                      </p>
                     </>
                   )}
                 </div>
