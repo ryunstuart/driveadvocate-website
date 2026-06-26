@@ -416,7 +416,7 @@ export default function ManagementDashboard() {
                   <ResponsiveContainer width="100%" height={200}>
                     <PieChart>
                       <Pie data={chart.data} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value"
-                        label={({ name, percent }) => `${name.length > 15 ? name.slice(0, 15) + '...' : name} ${(percent * 100).toFixed(0)}%`}>
+                        label={({ name, percent }: any) => { const l = String(name ?? ''); return `${l.length > 15 ? l.slice(0, 15) + '...' : l} ${((percent ?? 0) * 100).toFixed(0)}%`; }}>
                         {chart.data.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} cursor="pointer"
                           onClick={() => openDrillDown(`${chart.title}: ${chart.data[i].name}`, filtered.filter(d => {
                             if (chart.title.includes('Budget')) return (d.budget || 'Not set') === chart.data[i].name;
@@ -478,8 +478,8 @@ export default function ManagementDashboard() {
                   <BarChart data={revenueByTier}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: any) => `$${(Number(v) / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v: any) => `$${Number(v ?? 0).toLocaleString()}`} />
                     <Bar dataKey="revenue" fill={EMERALD} radius={[8, 8, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -496,8 +496,8 @@ export default function ManagementDashboard() {
                   <AreaChart data={monthlyData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: number) => `$${(v / 1000).toFixed(0)}k`} />
-                    <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                    <YAxis tick={{ fontSize: 12 }} tickFormatter={(v: any) => `$${(Number(v) / 1000).toFixed(0)}k`} />
+                    <Tooltip formatter={(v: any) => `$${Number(v ?? 0).toLocaleString()}`} />
                     <Area dataKey="revenue" stroke={EMERALD} fill={EMERALD} fillOpacity={0.15} name="Revenue" />
                   </AreaChart>
                 </ResponsiveContainer>
