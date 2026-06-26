@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 
@@ -10,6 +10,27 @@ export default function Profile() {
   const router = useRouter();
 
   useEffect(() => { getCurrentUser().catch(() => router.push('/login')); }, [router]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const attrs = await fetchUserAttributes();
+        setFormData(prev => ({
+          ...prev,
+          firstName: attrs.given_name || prev.firstName,
+          lastName: attrs.family_name || prev.lastName,
+          email: attrs.email || prev.email,
+        }));
+      } catch {
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+        setFormData(prev => ({
+          ...prev,
+          email: currentUser.email || prev.email,
+          firstName: currentUser.firstName || prev.firstName,
+        }));
+      }
+    })();
+  }, []);
 
   const [formData, setFormData] = useState({
     firstName: '',
