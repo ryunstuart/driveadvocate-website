@@ -22,6 +22,8 @@ export default function Confirm() {
 
     const exteriorColors = [vehicleData.exteriorColor1, vehicleData.exteriorColor2, vehicleData.exteriorColor3].filter(Boolean);
     const interiorColors = [vehicleData.interiorColor1, vehicleData.interiorColor2, vehicleData.interiorColor3].filter(Boolean);
+    const validCombos = (vehicleData.colorCombos || []).filter((c: any) => c.exterior);
+    const colorCombos = validCombos.map((c: any) => JSON.stringify(c));
 
     const { data: deal, errors: dealErrors } = await dataClient.models.Deal.create({
       clientId: currentUser.email || '',
@@ -47,6 +49,7 @@ export default function Confirm() {
       make: vehicleData.make || '',
       model: vehicleData.model || '',
       trim: vehicleData.trim || '',
+      colorCombos: colorCombos.length > 0 ? colorCombos : undefined,
       exteriorColors,
       interiorColors,
       accessories: vehicleData.accessories || [],

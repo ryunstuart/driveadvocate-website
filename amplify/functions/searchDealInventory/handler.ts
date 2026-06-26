@@ -26,6 +26,7 @@ async function sleep(ms: number): Promise<void> {
 async function searchForDeal(
   apiKey: string, dealId: string, make: string, model: string,
   year: string, zip: string, radius: number, carType: string,
+  colorCombos?: any[],
 ): Promise<number> {
   const params = new URLSearchParams({
     api_key: apiKey, make, model, year, zip,
@@ -94,7 +95,25 @@ async function searchForDeal(
       lastSeenAt: listing.last_seen_at_date || '',
       isActive: true,
       syncedAt: new Date().toISOString(),
+      colorComboMatch: null as number | null,
+      colorMatchLabel: null as string | null,
     };
+
+    if (colorCombos && colorCombos.length > 0) {
+      const matched = colorCombos.find((combo: any) => {
+        const extColor = (listing.exterior_color || '').toLowerCase();
+        const intColor = (listing.interior_color || '').toLowerCase();
+        const comboExt = (combo.exterior || '').toLowerCase();
+        const comboInt = (combo.interior || '').toLowerCase();
+        const extMatch = !comboExt || extColor.includes(comboExt) || comboExt.includes(extColor);
+        const intMatch = !comboInt || intColor.includes(comboInt) || comboInt.includes(intColor);
+        return extMatch && intMatch;
+      });
+      if (matched) {
+        item.colorComboMatch = matched.rank;
+        item.colorMatchLabel = `${matched.exterior}${matched.interior ? ' / ' + matched.interior : ''}`;
+      }
+    }
 
     await db.send(new PutCommand({ TableName: TABLE_NAME, Item: item }));
     written++;

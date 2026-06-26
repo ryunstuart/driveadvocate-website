@@ -39,6 +39,8 @@ interface InventoryListing {
   stockNumber: string;
   listingUrl: string;
   photoUrl: string;
+  colorComboMatch: number | null;
+  colorMatchLabel: string | null;
 }
 
 interface CallLog {
@@ -739,6 +741,7 @@ export default function ClientDealFile() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
                             <div className="font-semibold">{listing.dealerName}</div>
+                            {listing.colorComboMatch && <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${listing.colorComboMatch === 1 ? 'bg-emerald-100 text-emerald-700' : listing.colorComboMatch === 2 ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>✓ Combo {listing.colorComboMatch} — {listing.colorMatchLabel}</span>}
                             {listing.daysOnLot >= 30 && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">30+ days</span>}
                             {listing.priceDropAmount > 0 && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Price dropped ${listing.priceDropAmount.toLocaleString()}</span>}
                             {listing.belowMarketAvg && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Below market avg</span>}

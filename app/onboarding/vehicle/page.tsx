@@ -50,6 +50,106 @@ const ACCESSORY_OPTIONS = [
   'Navigation System', 'Wireless Charging', 'Ventilated Seats',
 ];
 
+function getColorBg(rgb: string | null): string {
+  if (!rgb) return '#e2e8f0';
+  return rgb.includes(',') ? `rgb(${rgb})` : rgb;
+}
+
+function ColorComboCard({ rank, rankLabel, combo, isEmpty, extColors, intColors, onChange }: {
+  rank: number; rankLabel: string;
+  combo: { exterior: string; interior: string; rank: number };
+  isEmpty: boolean;
+  extColors: ColorOption[]; intColors: ColorOption[];
+  onChange: (c: { exterior: string; interior: string; rank: number }) => void;
+}) {
+  const [expanded, setExpanded] = useState<'exterior' | 'interior' | null>(null);
+
+  const findColor = (id: string, colors: ColorOption[]) => colors.find(c => (c.name || c.rgb) === id);
+  const extMatch = findColor(combo.exterior, extColors);
+  const intMatch = findColor(combo.interior, intColors);
+
+  return (
+    <div className={`rounded-3xl border-2 transition-all p-6 ${isEmpty ? 'border-dashed border-slate-300 bg-white' : 'border-emerald-200 bg-white shadow-sm'}`}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${isEmpty ? 'bg-slate-100 text-slate-400' : 'bg-emerald-600 text-white'}`}>{rank}</span>
+          <span className="text-sm font-medium text-slate-600">{rankLabel}</span>
+        </div>
+        {!isEmpty && (
+          <button type="button" onClick={() => onChange({ exterior: '', interior: '', rank })} className="text-xs text-slate-400 hover:text-red-500 transition">Clear</button>
+        )}
+      </div>
+
+      {!isEmpty && (
+        <div className="flex items-center gap-3 mb-4 p-3 bg-slate-50 rounded-2xl">
+          {extMatch && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg border border-slate-200 shadow-sm" style={{ backgroundColor: getColorBg(extMatch.rgb) }} />
+              <span className="text-xs text-slate-600 font-medium">{extMatch.name || 'Exterior'}</span>
+            </div>
+          )}
+          {combo.exterior && combo.interior && <span className="text-slate-300 text-sm">/</span>}
+          {intMatch && (
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg border border-slate-200 shadow-sm" style={{ backgroundColor: getColorBg(intMatch.rgb) }} />
+              <span className="text-xs text-slate-600 font-medium">{intMatch.name || 'Interior'}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mb-3">
+        <button type="button" onClick={() => setExpanded(expanded === 'exterior' ? null : 'exterior')} className="w-full flex items-center justify-between text-sm font-medium text-slate-700 py-1">
+          <span>Exterior {combo.exterior ? `— ${extMatch?.name || combo.exterior}` : ''}</span>
+          <span className="text-slate-400 text-xs">{expanded === 'exterior' ? '▲' : '▼'}</span>
+        </button>
+        {expanded === 'exterior' && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {extColors.map((c, i) => {
+              const colorId = c.name || c.rgb || `ext-${i}`;
+              const isSelected = combo.exterior === colorId;
+              return (
+                <button key={`c${rank}-ext-${colorId}-${i}`} type="button"
+                  onClick={() => { onChange({ ...combo, exterior: colorId }); setExpanded('interior'); }}
+                  title={c.name || 'Color'} style={{ backgroundColor: getColorBg(c.rgb) }}
+                  className={`relative w-12 h-12 rounded-xl border-2 transition-all hover:scale-110 hover:shadow-md ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-300 scale-110' : 'border-slate-200 hover:border-emerald-300'}`}
+                >
+                  {isSelected && <span className="absolute inset-0 flex items-center justify-center"><svg className="w-5 h-5 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg></span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <button type="button" onClick={() => combo.exterior ? setExpanded(expanded === 'interior' ? null : 'interior') : undefined}
+          className={`w-full flex items-center justify-between text-sm font-medium py-1 ${combo.exterior ? 'text-slate-700' : 'text-slate-400'}`}>
+          <span>Interior {combo.interior ? `— ${intMatch?.name || combo.interior}` : combo.exterior ? '' : '(select exterior first)'}</span>
+          {combo.exterior && <span className="text-slate-400 text-xs">{expanded === 'interior' ? '▲' : '▼'}</span>}
+        </button>
+        {expanded === 'interior' && combo.exterior && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {intColors.map((c, i) => {
+              const colorId = c.name || c.rgb || `int-${i}`;
+              const isSelected = combo.interior === colorId;
+              return (
+                <button key={`c${rank}-int-${colorId}-${i}`} type="button"
+                  onClick={() => { onChange({ ...combo, interior: colorId }); setExpanded(null); }}
+                  title={c.name || 'Color'} style={{ backgroundColor: getColorBg(c.rgb) }}
+                  className={`relative w-12 h-12 rounded-xl border-2 transition-all hover:scale-110 hover:shadow-md ${isSelected ? 'border-emerald-500 ring-2 ring-emerald-300 scale-110' : 'border-slate-200 hover:border-emerald-300'}`}
+                >
+                  {isSelected && <span className="absolute inset-0 flex items-center justify-center"><svg className="w-5 h-5 text-white drop-shadow" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg></span>}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function VehicleWizard() {
@@ -80,12 +180,12 @@ export default function VehicleWizard() {
   // Step 3
   const [extColors, setExtColors] = useState<ColorOption[]>(DEFAULT_EXT_COLORS);
   const [intColors, setIntColors] = useState<ColorOption[]>(DEFAULT_INT_COLORS);
-  const [extColor1, setExtColor1] = useState('');
-  const [extColor2, setExtColor2] = useState('');
-  const [extColor3, setExtColor3] = useState('');
-  const [intColor1, setIntColor1] = useState('');
-  const [intColor2, setIntColor2] = useState('');
-  const [intColor3, setIntColor3] = useState('');
+  const [colorCombos, setColorCombos] = useState<{ exterior: string; interior: string; rank: number }[]>([
+    { exterior: '', interior: '', rank: 1 },
+    { exterior: '', interior: '', rank: 2 },
+    { exterior: '', interior: '', rank: 3 },
+    { exterior: '', interior: '', rank: 4 },
+  ]);
   // Step 4
   const [accessories, setAccessories] = useState<string[]>([]);
   // Step 5
@@ -228,10 +328,16 @@ export default function VehicleWizard() {
     if (!make || !model) return;
     setIsSubmitting(true);
 
+    const validCombos = colorCombos.filter(c => c.exterior);
     const formData = {
       year, make, model, trim,
-      exteriorColor1: extColor1, exteriorColor2: extColor2, exteriorColor3: extColor3,
-      interiorColor1: intColor1, interiorColor2: intColor2, interiorColor3: intColor3,
+      colorCombos: validCombos,
+      exteriorColor1: validCombos[0]?.exterior || '',
+      exteriorColor2: validCombos[1]?.exterior || '',
+      exteriorColor3: validCombos[2]?.exterior || '',
+      interiorColor1: validCombos[0]?.interior || '',
+      interiorColor2: validCombos[1]?.interior || '',
+      interiorColor3: validCombos[2]?.interior || '',
       accessories, condition,
     };
     localStorage.setItem('vehicleFormData', JSON.stringify(formData));
@@ -251,7 +357,7 @@ export default function VehicleWizard() {
   const canProceed: Record<number, boolean> = {
     1: !!vehicleType,
     2: !!year && !!make && !!model,
-    3: !!extColor1,
+    3: colorCombos.some(c => !!c.exterior),
     4: true,
     5: !!budget && !!timeline && !!zipCode,
     6: true,
@@ -368,111 +474,36 @@ export default function VehicleWizard() {
           </div>
         )}
 
-        {/* ─── Step 3: Colors ─── */}
+        {/* ─── Step 3: Color Combinations ─── */}
         {step === 3 && (
           <div>
-            <h1 className="text-3xl font-bold mb-2">Color preferences</h1>
-            <p className="text-slate-500 mb-8">Rank your top 3 choices for exterior and interior</p>
-            <div className="space-y-8">
-              <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="font-semibold mb-6">Exterior Color</h2>
-                {([
-                  { rank: '1st choice', prefix: 'ext1', value: extColor1, set: setExtColor1 },
-                  { rank: '2nd choice', prefix: 'ext2', value: extColor2, set: setExtColor2 },
-                  { rank: '3rd choice', prefix: 'ext3', value: extColor3, set: setExtColor3 },
-                ] as const).map(({ rank, prefix, value, set }) => {
-                  const selectedColor = extColors.find(c => (c.name || c.rgb) === value);
-                  return (
-                    <div key={prefix} className="mb-6">
-                      <div className="text-sm font-medium text-slate-600 mb-3">{rank}</div>
-                      <div className="flex flex-wrap gap-3">
-                        {extColors.map((c, idx) => {
-                          const colorId = c.name || c.rgb || `color-${idx}`;
-                          const bgStyle = c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc';
-                          const isSelected = value === colorId;
-                          return (
-                            <button
-                              key={`${prefix}-${colorId}-${idx}`}
-                              type="button"
-                              onClick={() => set(colorId)}
-                              title={c.name || 'Color'}
-                              style={{ backgroundColor: bgStyle }}
-                              className={`relative w-14 h-14 rounded-xl transition-all duration-200 hover:scale-110 hover:shadow-lg ${
-                                isSelected
-                                  ? 'ring-4 ring-emerald-500 ring-offset-2 scale-110 shadow-lg'
-                                  : 'ring-1 ring-slate-200 hover:ring-emerald-300'
-                              }`}
-                            >
-                              {isSelected && (
-                                <span className="absolute inset-0 flex items-center justify-center">
-                                  <svg className="w-6 h-6 text-white drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {selectedColor && (
-                        <p className="text-sm text-slate-600 mt-2 font-medium">
-                          {selectedColor.name || selectedColor.rgb || 'Selected'}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="font-semibold mb-6">Interior Color</h2>
-                {([
-                  { rank: '1st choice', prefix: 'int1', value: intColor1, set: setIntColor1 },
-                  { rank: '2nd choice', prefix: 'int2', value: intColor2, set: setIntColor2 },
-                  { rank: '3rd choice', prefix: 'int3', value: intColor3, set: setIntColor3 },
-                ] as const).map(({ rank, prefix, value, set }) => {
-                  const selectedColor = intColors.find(c => (c.name || c.rgb) === value);
-                  return (
-                    <div key={prefix} className="mb-6">
-                      <div className="text-sm font-medium text-slate-600 mb-3">{rank}</div>
-                      <div className="flex flex-wrap gap-3">
-                        {intColors.map((c, idx) => {
-                          const colorId = c.name || c.rgb || `color-${idx}`;
-                          const bgStyle = c.rgb?.includes(',') ? `rgb(${c.rgb})` : c.rgb || '#ccc';
-                          const isSelected = value === colorId;
-                          return (
-                            <button
-                              key={`${prefix}-${colorId}-${idx}`}
-                              type="button"
-                              onClick={() => set(colorId)}
-                              title={c.name || 'Color'}
-                              style={{ backgroundColor: bgStyle }}
-                              className={`relative w-14 h-14 rounded-xl transition-all duration-200 hover:scale-110 hover:shadow-lg ${
-                                isSelected
-                                  ? 'ring-4 ring-emerald-500 ring-offset-2 scale-110 shadow-lg'
-                                  : 'ring-1 ring-slate-200 hover:ring-emerald-300'
-                              }`}
-                            >
-                              {isSelected && (
-                                <span className="absolute inset-0 flex items-center justify-center">
-                                  <svg className="w-6 h-6 text-white drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {selectedColor && (
-                        <p className="text-sm text-slate-600 mt-2 font-medium">
-                          {selectedColor.name || selectedColor.rgb || 'Selected'}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            <h1 className="text-3xl font-bold mb-2">Color combinations</h1>
+            <p className="text-slate-500 mb-8">Select up to 4 exterior + interior combinations in order of preference. We'll match inventory that has your exact color pairing.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {colorCombos.map((combo, index) => {
+                const rankLabels = ['1st Choice', '2nd Choice', '3rd Choice', '4th Choice'];
+                const isEmpty = !combo.exterior && !combo.interior;
+                return (
+                  <ColorComboCard
+                    key={index}
+                    rank={index + 1}
+                    rankLabel={rankLabels[index]}
+                    combo={combo}
+                    isEmpty={isEmpty}
+                    extColors={extColors}
+                    intColors={intColors}
+                    onChange={(updated) => {
+                      const next = [...colorCombos];
+                      next[index] = updated;
+                      setColorCombos(next);
+                    }}
+                  />
+                );
+              })}
             </div>
+            {colorCombos.every(c => !c.exterior) && (
+              <p className="text-amber-600 text-sm mt-4 text-center">Please select at least one color combination to continue.</p>
+            )}
           </div>
         )}
 
@@ -618,8 +649,9 @@ export default function VehicleWizard() {
               <h2 className="font-semibold mb-4">Build Summary</h2>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between"><span className="text-slate-500">Vehicle</span><span className="font-medium">{vehicleSummary}</span></div>
-                {extColor1 && <div className="flex justify-between"><span className="text-slate-500">Exterior</span><span className="font-medium">{[extColor1, extColor2, extColor3].filter(Boolean).join(', ')}</span></div>}
-                {intColor1 && <div className="flex justify-between"><span className="text-slate-500">Interior</span><span className="font-medium">{[intColor1, intColor2, intColor3].filter(Boolean).join(', ')}</span></div>}
+                {colorCombos.some(c => c.exterior) && (
+                  <div className="flex justify-between"><span className="text-slate-500">Colors</span><span className="font-medium text-right">{colorCombos.filter(c => c.exterior).map(c => `${c.exterior}${c.interior ? ' / ' + c.interior : ''}`).join(', ')}</span></div>
+                )}
                 {accessories.length > 0 && <div className="flex justify-between"><span className="text-slate-500">Options</span><span className="font-medium">{accessories.length} selected</span></div>}
                 <div className="flex justify-between"><span className="text-slate-500">Budget</span><span className="font-medium">{budget}</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">Timeline</span><span className="font-medium">{timeline}</span></div>
