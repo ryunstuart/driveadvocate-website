@@ -28,13 +28,13 @@ async function fetchAllPages(url: string, jwt: string): Promise<any[]> {
   const all: any[] = [];
   let nextUrl: string | null = url;
   while (nextUrl) {
-    const fullUrl = nextUrl.startsWith('http') ? nextUrl : `${BASE_URL}${nextUrl}`;
-    const res = await fetch(fullUrl, { headers: { Authorization: `Bearer ${jwt}` } });
+    const fullUrl: string = nextUrl.startsWith('http') ? nextUrl : `${BASE_URL}${nextUrl}`;
+    const res: Response = await fetch(fullUrl, { headers: { Authorization: `Bearer ${jwt}` } });
     if (!res.ok) {
       console.warn(`Fetch failed for ${fullUrl}: ${res.status}`);
       break;
     }
-    const body = await res.json();
+    const body: any = await res.json();
     all.push(...(body.data || []));
     nextUrl = body.collection?.next || null;
   }
