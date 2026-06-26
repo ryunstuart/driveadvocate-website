@@ -66,8 +66,9 @@ export default function Login() {
   };
 
   const completeLogin = async (normalizedEmail: string) => {
-    const { username } = await getCurrentUser();
-    const res = await fetch(`/api/user/groups?username=${encodeURIComponent(username)}`);
+    const { username, userId } = await getCurrentUser();
+    console.log('getCurrentUser:', { username, userId });
+    const res = await fetch(`/api/user/groups?username=${encodeURIComponent(username)}&email=${encodeURIComponent(normalizedEmail)}`);
     const { groups } = await res.json();
     console.log('Server-side groups:', groups);
 

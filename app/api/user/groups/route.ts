@@ -14,23 +14,27 @@ function getUserPoolId(): string {
 
 export async function GET(request: NextRequest) {
   const username = request.nextUrl.searchParams.get('username');
-  if (!username) return NextResponse.json({ groups: [] });
+  const email = request.nextUrl.searchParams.get('email');
+  if (!username && !email) return NextResponse.json({ groups: [] });
 
   const userPoolId = getUserPoolId();
-  if (!userPoolId) {
-    console.error('No user pool ID found');
-    return NextResponse.json({ groups: [] });
+  if (!userPoolId) return NextResponse.json({ groups: [] });
+
+  // Try username first, then email as fallback
+  for (const lookup of [username, email].filter(Boolean)) {
+    try {
+      console.log(`Looking up groups for: ${lookup} in pool: ${userPoolId}`);
+      const result = await cognito.send(new AdminListGroupsForUserCommand({
+        UserPoolId: userPoolId,
+        Username: lookup!,
+      }));
+      const groups = result.Groups?.map(g => g.GroupName || '').filter(Boolean) || [];
+      console.log(`Groups found for ${lookup}:`, groups);
+      if (groups.length > 0) return NextResponse.json({ groups });
+    } catch (err: any) {
+      console.error(`Group lookup failed for ${lookup}:`, err.message);
+    }
   }
 
-  try {
-    const result = await cognito.send(new AdminListGroupsForUserCommand({
-      UserPoolId: userPoolId,
-      Username: username,
-    }));
-    const groups = result.Groups?.map(g => g.GroupName || '').filter(Boolean) || [];
-    return NextResponse.json({ groups });
-  } catch (err: any) {
-    console.error('Failed to list groups:', err);
-    return NextResponse.json({ groups: [] });
-  }
+  return NextResponse.json({ groups: [] });
 }
