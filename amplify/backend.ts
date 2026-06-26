@@ -73,9 +73,32 @@ backend.syncVehicleCatalog.resources.lambda.addToRolePolicy(
 
 backend.searchDealInventory.addEnvironment('DEAL_INVENTORY_TABLE', 'DealInventory');
 
+if (dealTable) {
+  backend.searchDealInventory.addEnvironment('DEAL_TABLE_NAME', dealTable.tableName);
+  backend.searchDealInventory.resources.lambda.addToRolePolicy(
+    new PolicyStatement({
+      actions: ['dynamodb:Scan'],
+      resources: [dealTable.tableArn],
+    }),
+  );
+}
+
+const vpTable = Object.values(backend.data.resources.tables).find(
+  (table) => table.tableName.includes('VehiclePreference-')
+);
+if (vpTable) {
+  backend.searchDealInventory.addEnvironment('VP_TABLE_NAME', vpTable.tableName);
+  backend.searchDealInventory.resources.lambda.addToRolePolicy(
+    new PolicyStatement({
+      actions: ['dynamodb:Scan'],
+      resources: [vpTable.tableArn],
+    }),
+  );
+}
+
 backend.searchDealInventory.resources.lambda.addToRolePolicy(
   new PolicyStatement({
-    actions: ['dynamodb:PutItem', 'dynamodb:BatchWriteItem'],
+    actions: ['dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:Scan', 'dynamodb:Query'],
     resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/DealInventory'],
   }),
 );
