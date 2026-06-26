@@ -67,10 +67,12 @@ export default function Login() {
         }
       }
 
+      const isAdmin = groups.includes('admins');
       const currentUser = {
         email: normalizedEmail,
         firstName: clientFirstName,
         isAdvocate,
+        isAdmin,
         hasActiveDeal: !isAdvocate,
       };
       localStorage.setItem('currentUser', JSON.stringify(currentUser));
