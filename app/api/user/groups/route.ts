@@ -3,29 +3,18 @@ import { CognitoIdentityProviderClient, AdminListGroupsForUserCommand } from '@a
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
 
-function getUserPoolId(): string {
-  try {
-    const outputs = require('../../../../amplify_outputs.json');
-    return outputs.auth?.user_pool_id || '';
-  } catch {
-    return process.env.USER_POOL_ID || '';
-  }
-}
-
 export async function GET(request: NextRequest) {
   const username = request.nextUrl.searchParams.get('username');
   const email = request.nextUrl.searchParams.get('email');
-  if (!username && !email) return NextResponse.json({ groups: [] });
+  const poolId = request.nextUrl.searchParams.get('poolId');
 
-  const userPoolId = getUserPoolId();
-  if (!userPoolId) return NextResponse.json({ groups: [] });
+  if (!poolId || (!username && !email)) return NextResponse.json({ groups: [] });
 
-  // Try username first, then email as fallback
   for (const lookup of [username, email].filter(Boolean)) {
     try {
-      console.log(`Looking up groups for: ${lookup} in pool: ${userPoolId}`);
+      console.log(`Looking up groups for: ${lookup} in pool: ${poolId}`);
       const result = await cognito.send(new AdminListGroupsForUserCommand({
-        UserPoolId: userPoolId,
+        UserPoolId: poolId,
         Username: lookup!,
       }));
       const groups = result.Groups?.map(g => g.GroupName || '').filter(Boolean) || [];

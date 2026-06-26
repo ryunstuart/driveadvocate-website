@@ -67,8 +67,11 @@ export default function Login() {
 
   const completeLogin = async (normalizedEmail: string) => {
     const { username, userId } = await getCurrentUser();
-    console.log('getCurrentUser:', { username, userId });
-    const res = await fetch(`/api/user/groups?username=${encodeURIComponent(username)}&email=${encodeURIComponent(normalizedEmail)}`);
+    const session = await fetchAuthSession();
+    const issuer = (session.tokens?.accessToken?.payload?.iss as string) || '';
+    const poolId = issuer.split('/').pop() || '';
+    console.log('getCurrentUser:', { username, userId, poolId });
+    const res = await fetch(`/api/user/groups?username=${encodeURIComponent(username)}&email=${encodeURIComponent(normalizedEmail)}&poolId=${encodeURIComponent(poolId)}`);
     const { groups } = await res.json();
     console.log('Server-side groups:', groups);
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
@@ -57,7 +57,10 @@ export default function ManagementDashboard() {
     (async () => {
       try {
         const { username } = await getCurrentUser();
-        const groupsRes = await fetch(`/api/user/groups?username=${encodeURIComponent(username)}`);
+        const session = await fetchAuthSession();
+        const issuer = (session.tokens?.accessToken?.payload?.iss as string) || '';
+        const poolId = issuer.split('/').pop() || '';
+        const groupsRes = await fetch(`/api/user/groups?username=${encodeURIComponent(username)}&poolId=${encodeURIComponent(poolId)}`);
         const { groups } = await groupsRes.json();
         if (!groups.includes('admins')) { router.push('/dashboard'); return; }
       } catch { router.push('/login'); return; }
