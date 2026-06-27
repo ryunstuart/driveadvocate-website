@@ -15,7 +15,7 @@ const RATE_LIMITS = {
   delayBetweenCalls: 500,
   delayBetweenModels: 1000,
   delayBetweenMakes: 10000,
-  maxCallsPerRun: 400,
+  maxCallsPerRun: 600,
   retryDelay: 30000,
   maxRetries: 2,
 };
