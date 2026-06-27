@@ -1,6 +1,7 @@
 import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { sendClientUpdate } from '../functions/sendClientUpdate/resource';
 import { searchDealInventory } from '../functions/searchDealInventory/resource';
+import { sendEnrollment } from '../functions/sendEnrollment/resource';
 
 const schema = a.schema({
 
@@ -73,7 +74,7 @@ const schema = a.schema({
     clientName: a.string().required(),
     clientEmail: a.string(),
     advocateId: a.string(),
-    status: a.enum(['New', 'InProgress', 'FollowUp', 'OfferReceived', 'Complete', 'Dead']),
+    status: a.enum(['Pending', 'New', 'InProgress', 'FollowUp', 'OfferReceived', 'Complete', 'Dead']),
     priority: a.integer(),
     serviceLevel: a.string(),
     budget: a.string(),
@@ -83,6 +84,13 @@ const schema = a.schema({
     totalTimeMinutes: a.integer(),
     submittedAt: a.string(),
     financialProfile: a.string(),
+    agreementAccepted: a.boolean(),
+    agreementAcceptedAt: a.string(),
+    agreementVersion: a.string(),
+    stripeSessionId: a.string(),
+    stripePaymentStatus: a.string(),
+    enrollmentToken: a.string(),
+    callId: a.string(),
   }).authorization(allow => [
     allow.groups(['advocates', 'admins']),
     allow.owner().to(['create', 'read']),
@@ -168,6 +176,22 @@ const schema = a.schema({
       allow.authenticated(),
     ])
     .handler(a.handler.function(searchDealInventory)),
+
+  sendEnrollmentLink: a
+    .mutation()
+    .arguments({
+      callId: a.string().required(),
+      dealId: a.string().required(),
+      advocateId: a.string(),
+    })
+    .returns(a.customType({
+      success: a.boolean(),
+      token: a.string(),
+      enrollmentUrl: a.string(),
+      error: a.string(),
+    }))
+    .authorization(allow => [allow.groups(['advocates', 'admins'])])
+    .handler(a.handler.function(sendEnrollment)),
 
 });
 

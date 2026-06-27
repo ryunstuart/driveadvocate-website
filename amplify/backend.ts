@@ -4,6 +4,8 @@ import { data } from './data/resource';
 import { sendClientUpdate } from './functions/sendClientUpdate/resource';
 import { syncVehicleCatalog } from './functions/syncVehicleCatalog/resource';
 import { searchDealInventory } from './functions/searchDealInventory/resource';
+import { calcomWebhook } from './functions/calcomWebhook/resource';
+import { sendEnrollment } from './functions/sendEnrollment/resource';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 const backend = defineBackend({
@@ -12,6 +14,8 @@ const backend = defineBackend({
   sendClientUpdate,
   syncVehicleCatalog,
   searchDealInventory,
+  calcomWebhook,
+  sendEnrollment,
 });
 
 // --- sendClientUpdate permissions ---
@@ -140,7 +144,37 @@ const standaloneTables = [
   'arn:aws:dynamodb:us-east-1:870924848445:table/DealInventory',
   'arn:aws:dynamodb:us-east-1:870924848445:table/Incentives',
   'arn:aws:dynamodb:us-east-1:870924848445:table/SyncCheckpoints',
+  'arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls',
+  'arn:aws:dynamodb:us-east-1:870924848445:table/OnboardingTokens',
 ];
+
+// --- calcomWebhook permissions ---
+
+backend.calcomWebhook.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:GetItem'],
+    resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls'],
+  }),
+);
+
+// --- sendEnrollment permissions ---
+
+backend.sendEnrollment.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:GetItem'],
+    resources: [
+      'arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls',
+      'arn:aws:dynamodb:us-east-1:870924848445:table/OnboardingTokens',
+    ],
+  }),
+);
+
+backend.sendEnrollment.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+    resources: ['*'],
+  }),
+);
 
 authRole.addToPrincipalPolicy(new PolicyStatement({
   actions: ['dynamodb:Scan', 'dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem'],
