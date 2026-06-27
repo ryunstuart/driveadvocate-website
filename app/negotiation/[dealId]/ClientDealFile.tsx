@@ -7,6 +7,7 @@ import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
 import { calculatePricing, generateNegotiationScript, getBestCallTime } from '@/app/lib/negotiation';
+import FinancialWizard from '@/app/components/FinancialWizard';
 
 interface Dealership {
   id: number;
@@ -165,6 +166,7 @@ export default function ClientDealFile() {
   const [inventorySearching, setInventorySearching] = useState(false);
   const [incentives, setIncentives] = useState<any[]>([]);
   const [copiedScript, setCopiedScript] = useState(false);
+  const [showFinancialWizard, setShowFinancialWizard] = useState(false);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [totalTime, setTotalTime] = useState(0);
@@ -1205,6 +1207,7 @@ export default function ClientDealFile() {
                   {copied ? '✓ Copied!' : '📋 Copy Deal Summary'}
                 </button>
                 <button onClick={openEmailModal} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">📧 Send Client Update</button>
+                <button onClick={() => setShowFinancialWizard(true)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">💰 Financial Analysis</button>
                 <button onClick={() => setShowCompleteModal(true)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">🏁 Mark Deal Complete</button>
               </div>
             </div>
@@ -1386,6 +1389,16 @@ export default function ClientDealFile() {
             )}
           </div>
         </div>
+      )}
+      {showFinancialWizard && vehiclePref && (
+        <FinancialWizard
+          clientName={dealInfo.clientName}
+          vehicleMake={vehiclePref.make}
+          vehicleModel={vehiclePref.model}
+          vehicleYear={vehiclePref.year}
+          vehiclePrice={pricing?.msrp || inventory[0]?.price || 45000}
+          onClose={() => setShowFinancialWizard(false)}
+        />
       )}
       <Footer />
     </div>
