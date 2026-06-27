@@ -10,33 +10,52 @@ const CREDIT_TIERS: Record<number, { label: string; newAPR: number; usedAPR: num
   4: { label: 'Below 650', newAPR: 14.99, usedAPR: 18.99 },
 };
 
+export interface FinancialProfileData {
+  creditTier: number | null;
+  downPayment: number;
+  hasTrade: boolean;
+  tradeValue: number;
+  tradeOwed: number;
+  annualMiles: number;
+  keepDuration: number;
+  businessUse: boolean;
+  businessPercent: number;
+  taxBracket: number;
+  wantsMods: boolean;
+  primaryGoal: string;
+  monthlyBudget: number;
+  wantsOwnership: boolean | null;
+}
+
 interface Props {
   clientName: string;
   vehicleMake?: string;
   vehicleModel?: string;
   vehicleYear?: string;
   vehiclePrice?: number;
+  initialProfile?: FinancialProfileData | null;
+  onSave: (profile: FinancialProfileData) => void;
   onClose: () => void;
 }
 
-export default function FinancialWizard({ clientName, vehicleMake, vehicleModel, vehicleYear, vehiclePrice, onClose }: Props) {
-  const [step, setStep] = useState(1);
+export default function FinancialWizard({ clientName, vehicleMake, vehicleModel, vehicleYear, vehiclePrice, initialProfile, onSave, onClose }: Props) {
+  const [step, setStep] = useState(initialProfile ? 4 : 1);
   const totalSteps = 4;
 
-  const [creditTier, setCreditTier] = useState<number | null>(null);
-  const [downPayment, setDownPayment] = useState(0);
-  const [hasTrade, setHasTrade] = useState(false);
-  const [tradeValue, setTradeValue] = useState(0);
-  const [tradeOwed, setTradeOwed] = useState(0);
-  const [annualMiles, setAnnualMiles] = useState(0);
-  const [keepDuration, setKeepDuration] = useState(0);
-  const [businessUse, setBusinessUse] = useState(false);
-  const [businessPercent, setBusinessPercent] = useState(50);
-  const [taxBracket, setTaxBracket] = useState(22);
-  const [wantsMods, setWantsMods] = useState(false);
-  const [primaryGoal, setPrimaryGoal] = useState('');
-  const [monthlyBudget, setMonthlyBudget] = useState(0);
-  const [wantsOwnership, setWantsOwnership] = useState<boolean | null>(null);
+  const [creditTier, setCreditTier] = useState<number | null>(initialProfile?.creditTier ?? null);
+  const [downPayment, setDownPayment] = useState(initialProfile?.downPayment ?? 0);
+  const [hasTrade, setHasTrade] = useState(initialProfile?.hasTrade ?? false);
+  const [tradeValue, setTradeValue] = useState(initialProfile?.tradeValue ?? 0);
+  const [tradeOwed, setTradeOwed] = useState(initialProfile?.tradeOwed ?? 0);
+  const [annualMiles, setAnnualMiles] = useState(initialProfile?.annualMiles ?? 0);
+  const [keepDuration, setKeepDuration] = useState(initialProfile?.keepDuration ?? 0);
+  const [businessUse, setBusinessUse] = useState(initialProfile?.businessUse ?? false);
+  const [businessPercent, setBusinessPercent] = useState(initialProfile?.businessPercent ?? 50);
+  const [taxBracket, setTaxBracket] = useState(initialProfile?.taxBracket ?? 22);
+  const [wantsMods, setWantsMods] = useState(initialProfile?.wantsMods ?? false);
+  const [primaryGoal, setPrimaryGoal] = useState(initialProfile?.primaryGoal ?? '');
+  const [monthlyBudget, setMonthlyBudget] = useState(initialProfile?.monthlyBudget ?? 0);
+  const [wantsOwnership, setWantsOwnership] = useState<boolean | null>(initialProfile?.wantsOwnership ?? null);
 
   const tradeEquity = tradeValue - tradeOwed;
   const effectiveDown = downPayment + Math.max(0, tradeEquity);
@@ -315,7 +334,7 @@ export default function FinancialWizard({ clientName, vehicleMake, vehicleModel,
             {step < totalSteps ? (
               <button onClick={() => setStep(s => s + 1)} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition text-sm">Continue</button>
             ) : (
-              <button onClick={onClose} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition text-sm">Done</button>
+              <button onClick={() => onSave({ creditTier, downPayment, hasTrade, tradeValue, tradeOwed, annualMiles, keepDuration, businessUse, businessPercent, taxBracket, wantsMods, primaryGoal, monthlyBudget, wantsOwnership })} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition text-sm">Save Financial Profile</button>
             )}
           </div>
         </div>

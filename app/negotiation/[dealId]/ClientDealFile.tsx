@@ -7,7 +7,7 @@ import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
 import { calculatePricing, generateNegotiationScript, getBestCallTime } from '@/app/lib/negotiation';
-import FinancialWizard from '@/app/components/FinancialWizard';
+import FinancialWizard, { FinancialProfileData } from '@/app/components/FinancialWizard';
 
 interface Dealership {
   id: number;
@@ -167,6 +167,7 @@ export default function ClientDealFile() {
   const [incentives, setIncentives] = useState<any[]>([]);
   const [copiedScript, setCopiedScript] = useState(false);
   const [showFinancialWizard, setShowFinancialWizard] = useState(false);
+  const [financialProfile, setFinancialProfile] = useState<FinancialProfileData | null>(null);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [totalTime, setTotalTime] = useState(0);
@@ -274,6 +275,9 @@ export default function ClientDealFile() {
           setTotalTime(localState?.totalTime ?? d.totalTimeMinutes ?? 0);
           lastSyncTime.current = localState?.totalTime ?? d.totalTimeMinutes ?? 0;
           setDealStatus(STATUS_FROM_APPSYNC[d.status || 'New'] || 'New');
+          if (d.financialProfile) {
+            try { setFinancialProfile(JSON.parse(d.financialProfile)); } catch {}
+          }
           setDealerships(localState?.dealerships || []);
 
           try {
@@ -1207,7 +1211,9 @@ export default function ClientDealFile() {
                   {copied ? '✓ Copied!' : '📋 Copy Deal Summary'}
                 </button>
                 <button onClick={openEmailModal} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">📧 Send Client Update</button>
-                <button onClick={() => setShowFinancialWizard(true)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">💰 Financial Analysis</button>
+                <button onClick={() => setShowFinancialWizard(true)} className={`w-full text-left px-4 py-3 rounded-2xl border transition text-sm font-medium ${financialProfile ? 'border-emerald-300 bg-emerald-50 text-emerald-700' : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50'}`}>
+                  {financialProfile ? '✓ Financial Profile — Edit' : '💰 Financial Analysis'}
+                </button>
                 <button onClick={() => setShowCompleteModal(true)} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">🏁 Mark Deal Complete</button>
               </div>
             </div>
@@ -1397,6 +1403,16 @@ export default function ClientDealFile() {
           vehicleModel={vehiclePref.model}
           vehicleYear={vehiclePref.year}
           vehiclePrice={pricing?.msrp || inventory[0]?.price || 45000}
+          initialProfile={financialProfile}
+          onSave={async (profile) => {
+            setFinancialProfile(profile);
+            setShowFinancialWizard(false);
+            if (isAppSyncDeal) {
+              try {
+                await dataClient.models.Deal.update({ id: dealId, financialProfile: JSON.stringify(profile) });
+              } catch (err) { console.error('Failed to save financial profile:', err); }
+            }
+          }}
           onClose={() => setShowFinancialWizard(false)}
         />
       )}

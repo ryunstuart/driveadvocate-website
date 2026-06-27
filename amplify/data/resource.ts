@@ -82,6 +82,7 @@ const schema = a.schema({
     notes: a.string(),
     totalTimeMinutes: a.integer(),
     submittedAt: a.string(),
+    financialProfile: a.string(),
   }).authorization(allow => [
     allow.groups(['advocates', 'admins']),
     allow.owner().to(['create', 'read']),
