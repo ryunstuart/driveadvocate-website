@@ -65,17 +65,19 @@ export default function FinancialWizard({ clientName, vehicleMake, vehicleModel,
     ? check179Eligibility(vehicleMake, vehicleModel, vehicleYear) : null;
 
   const recommendation = useMemo(() => {
-    if (!creditTier || !annualMiles || !keepDuration) return null;
+    if (!creditTier) return null;
+    const miles = annualMiles || 12000;
+    const duration = keepDuration || 5;
     let leaseScore = 0, buyScore = 0;
     const reasons: string[] = [];
     const warnings: string[] = [];
 
-    if (annualMiles < 10000) { leaseScore += 3; reasons.push('Low mileage favors leasing'); }
-    else if (annualMiles > 15000) { buyScore += 3; reasons.push('High mileage — lease fees would add up'); }
+    if (miles < 10000) { leaseScore += 3; reasons.push('Low mileage favors leasing'); }
+    else if (miles > 15000) { buyScore += 3; reasons.push('High mileage — lease fees would add up'); }
     else { buyScore += 1; }
 
-    if (keepDuration <= 3) { leaseScore += 3; reasons.push('Short keep duration aligns with lease terms'); }
-    else if (keepDuration > 5) { buyScore += 3; reasons.push(`Keeping ${keepDuration}+ years — buy to maximize value`); }
+    if (duration <= 3) { leaseScore += 3; reasons.push('Short keep duration aligns with lease terms'); }
+    else if (duration > 5) { buyScore += 3; reasons.push(`Keeping ${duration}+ years — buy to maximize value`); }
 
     if (creditTier === 1) { leaseScore += 2; reasons.push('Tier 1 credit unlocks best lease rates'); }
     if (creditTier >= 3) { buyScore += 2; reasons.push('Credit union financing may beat lease rates'); }
@@ -261,7 +263,7 @@ export default function FinancialWizard({ clientName, vehicleMake, vehicleModel,
           )}
 
           {/* Step 4 — Results */}
-          {step === 4 && recommendation && (
+          {step === 4 && (recommendation ? (
             <div className="space-y-6">
               <h3 className="text-lg font-bold">Analysis Results</h3>
               <div className={`rounded-3xl p-6 ${recommendation.rec === 'BUY' ? 'bg-emerald-900' : 'bg-blue-900'} text-white`}>
@@ -326,7 +328,14 @@ export default function FinancialWizard({ clientName, vehicleMake, vehicleModel,
 
               <p className="text-xs text-slate-400 text-center">Estimates only. Payment calculations assume standard terms. Consult your financial advisor.</p>
             </div>
-          )}
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-4xl mb-3">💰</div>
+              <h3 className="text-lg font-bold text-slate-700 mb-2">Complete previous steps</h3>
+              <p className="text-sm text-slate-500">Select a credit tier in Step 1 to generate your financial analysis.</p>
+              <button onClick={() => setStep(1)} className="mt-4 text-sm text-emerald-600 hover:underline font-medium">Go to Step 1</button>
+            </div>
+          ))}
 
           {/* Navigation */}
           <div className="flex gap-4 mt-8">
