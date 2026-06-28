@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  signIn, signUp, confirmSignUp, confirmSignIn, signOut, fetchAuthSession,
-  resendSignUpCode, resetPassword, confirmResetPassword, fetchMFAPreference,
+  signIn, confirmSignIn, signOut, fetchAuthSession,
+  resetPassword, confirmResetPassword, fetchMFAPreference,
   getCurrentUser,
 } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
@@ -29,24 +29,14 @@ export default function Login() {
     return '';
   });
   const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [confirmCode, setConfirmCode] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [mfaCode, setMfaCode] = useState('');
-
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [resendCooldown]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,83 +122,6 @@ export default function Login() {
       setLoading(false);
     }
   };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await signUp({
-        username: email.trim().toLowerCase(),
-        password,
-        options: {
-          userAttributes: {
-            email: email.trim().toLowerCase(),
-            given_name: firstName,
-            family_name: lastName,
-          },
-        },
-      });
-      setView('confirm');
-    } catch (err: any) {
-      setError(err.message || 'Sign up failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleConfirm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await confirmSignUp({
-        username: email.trim().toLowerCase(),
-        confirmationCode: confirmCode,
-      });
-      await signIn({ username: email.trim().toLowerCase(), password });
-
-      const normalizedEmail = email.trim().toLowerCase();
-      try {
-        await dataClient.models.Client.create({
-          email: normalizedEmail,
-          firstName,
-          lastName,
-          profileCompleted: false,
-          onboardingCompleted: false,
-        });
-      } catch (clientErr) {
-        console.error('Failed to create client record:', clientErr);
-      }
-
-      const currentUser = {
-        email: normalizedEmail,
-        firstName,
-        isAdvocate: false,
-        hasActiveDeal: false,
-        profileCompleted: false,
-      };
-      localStorage.setItem('currentUser', JSON.stringify(currentUser));
-      router.push('/onboarding/profile');
-    } catch (err: any) {
-      setError(err.message || 'Confirmation failed. Please check your code.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendCode = useCallback(async () => {
-    if (resendCooldown > 0) return;
-    setError('');
-    setSuccess('');
-    try {
-      await resendSignUpCode({ username: email.trim().toLowerCase() });
-      setSuccess('A new code has been sent to your email.');
-      setResendCooldown(60);
-    } catch (err: any) {
-      setError(err.message || 'Failed to resend code. Please try again.');
-    }
-  }, [email, resendCooldown]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
