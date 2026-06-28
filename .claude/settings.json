@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git commit -m 'Fix Cal.com embed — use Next.js Script component *)",
+      "Bash(git commit -m 'Fix Cal.com 304 cache issue — poll window.Cal instead of onLoad *)"
+    ]
+  }
+}
