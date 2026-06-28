@@ -4,32 +4,25 @@ import { CognitoIdentityProviderClient, AdminConfirmSignUpCommand } from '@aws-s
 export const dynamic = 'force-dynamic';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
-
-function getUserPoolId(): string {
-  try {
-    const outputs = require('../../../../amplify_outputs.json');
-    return outputs.auth?.user_pool_id || '';
-  } catch {
-    return process.env.USER_POOL_ID || '';
-  }
-}
+const USER_POOL_ID = 'us-east-1_mBhomQZzY';
 
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
-    if (!email) return NextResponse.json({ success: false, error: 'Email required' }, { status: 400 });
+    if (!email) return NextResponse.json({ error: 'Email required' }, { status: 400 });
 
-    const userPoolId = getUserPoolId();
-    if (!userPoolId) return NextResponse.json({ success: false, error: 'User pool not configured' }, { status: 500 });
+    console.log('Auto-confirming user:', email);
+    console.log('User pool ID:', USER_POOL_ID);
 
     await cognito.send(new AdminConfirmSignUpCommand({
-      UserPoolId: userPoolId,
+      UserPoolId: USER_POOL_ID,
       Username: email.trim().toLowerCase(),
     }));
 
-    return NextResponse.json({ success: true });
+    console.log('User confirmed successfully:', email);
+    return NextResponse.json({ confirmed: true });
   } catch (err: any) {
-    console.error('Auto-confirm failed:', err);
-    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+    console.error('Confirm error:', err.name, err.message);
+    return NextResponse.json({ error: err.message, code: err.name }, { status: 500 });
   }
 }
