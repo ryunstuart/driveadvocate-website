@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Script from 'next/script';
+import Cal, { getCalApi } from '@calcom/embed-react';
 import { signUp, signIn } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
@@ -80,38 +80,15 @@ export default function BookPage() {
     }
   };
 
-  const [calLoaded, setCalLoaded] = useState(false);
-
   useEffect(() => {
-    if (step !== 'calendar') return;
-    const checkCal = setInterval(() => {
-      if (typeof (window as any).Cal !== 'undefined') {
-        setCalLoaded(true);
-        clearInterval(checkCal);
-      }
-    }, 100);
-    const timeout = setTimeout(() => clearInterval(checkCal), 10000);
-    return () => { clearInterval(checkCal); clearTimeout(timeout); };
-  }, [step]);
-
-  useEffect(() => {
-    if (!calLoaded || step !== 'calendar') return;
-    const w = window as any;
-    w.Cal('init', { origin: 'https://app.cal.com' });
-    w.Cal('inline', {
-      elementOrSelector: '#cal-embed',
-      calLink: CALCOM_LINK,
-      config: {
-        name: `${firstName} ${lastName}`,
-        email: email,
-        notes: `Phone: ${phone} | ZIP: ${zip}`,
-      },
-    });
-    w.Cal('on', {
-      action: 'bookingSuccessful',
-      callback: () => setStep('confirmed'),
-    });
-  }, [calLoaded, step]);
+    (async () => {
+      const cal = await getCalApi();
+      cal('on', {
+        action: 'bookingSuccessful',
+        callback: () => setStep('confirmed'),
+      });
+    })();
+  }, []);
 
   useEffect(() => {
     if (step === 'confirmed') {
@@ -200,11 +177,6 @@ export default function BookPage() {
             <h1 className="text-3xl font-bold mb-2">Pick Your Time</h1>
             <p className="text-slate-500 mb-8">Choose a time for your free 30-minute discovery call.</p>
 
-            <Script
-              src="https://app.cal.com/embed/embed.js"
-              strategy="afterInteractive"
-            />
-
             <div className="bg-white rounded-3xl shadow overflow-hidden">
               <div className="px-8 py-5 border-b border-slate-100">
                 <div className="flex items-center gap-3">
@@ -215,7 +187,15 @@ export default function BookPage() {
                   </div>
                 </div>
               </div>
-              <div id="cal-embed" style={{ minHeight: '600px' }} />
+              <Cal
+                calLink={CALCOM_LINK}
+                config={{
+                  name: `${firstName} ${lastName}`,
+                  email: email,
+                  notes: `Phone: ${phone} | ZIP: ${zip}`,
+                }}
+                style={{ width: '100%', height: '700px', overflow: 'scroll' }}
+              />
             </div>
           </div>
         )}
