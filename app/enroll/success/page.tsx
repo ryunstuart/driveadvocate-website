@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Footer from '@/app/components/Footer';
 
-export default function EnrollSuccessPage() {
+export const dynamic = 'force-dynamic';
+
+function EnrollSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -72,5 +74,17 @@ export default function EnrollSuccessPage() {
       </div>
       <Footer />
     </div>
+  );
+}
+
+export default function EnrollSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto" />
+      </div>
+    }>
+      <EnrollSuccessContent />
+    </Suspense>
   );
 }
