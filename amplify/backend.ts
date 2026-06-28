@@ -129,13 +129,13 @@ const userPoolArn = `arn:aws:cognito-idp:us-east-1:870924848445:userpool/${backe
 
 const authRole = backend.auth.resources.authenticatedUserIamRole;
 authRole.addToPrincipalPolicy(new PolicyStatement({
-  actions: ['cognito-idp:AdminListGroupsForUser'],
+  actions: ['cognito-idp:AdminListGroupsForUser', 'cognito-idp:AdminConfirmSignUp'],
   resources: [userPoolArn],
 }));
 
 const unauthRole = backend.auth.resources.unauthenticatedUserIamRole;
 unauthRole.addToPrincipalPolicy(new PolicyStatement({
-  actions: ['cognito-idp:AdminListGroupsForUser'],
+  actions: ['cognito-idp:AdminListGroupsForUser', 'cognito-idp:AdminConfirmSignUp'],
   resources: [userPoolArn],
 }));
 

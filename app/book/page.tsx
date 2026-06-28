@@ -59,27 +59,32 @@ export default function BookPage() {
 
     setLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
       await signUp({
-        username: email.trim().toLowerCase(),
+        username: normalizedEmail,
         password,
         options: {
           userAttributes: {
-            email: email.trim().toLowerCase(),
+            email: normalizedEmail,
             given_name: firstName,
             family_name: lastName,
           },
         },
       });
 
-      const signInResult = await signIn({ username: email.trim().toLowerCase(), password });
-      console.log('SignIn result:', signInResult);
+      await fetch('/api/auth/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
 
-      const user = await getCurrentUser();
-      console.log('Session established for:', user.username);
+      await signIn({ username: normalizedEmail, password });
+      await getCurrentUser();
 
       try {
         await dataClient.models.Client.create({
-          email: email.trim().toLowerCase(),
+          email: normalizedEmail,
           firstName, lastName, phone, zipCode: zip,
           profileCompleted: true, onboardingCompleted: false, emailNotifications: true,
         });
