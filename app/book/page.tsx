@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cal, { getCalApi } from '@calcom/embed-react';
-import { signUp, signIn, getCurrentUser } from 'aws-amplify/auth';
+import { signUp, signIn } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
@@ -87,13 +87,8 @@ export default function BookPage() {
       const cal = await getCalApi();
       cal('on', {
         action: 'bookingSuccessful',
-        callback: async () => {
-          try {
-            await getCurrentUser();
-            setStep('confirmed');
-          } catch {
-            router.push('/login?redirect=/dashboard?booked=true');
-          }
+        callback: () => {
+          router.push('/dashboard?booked=true');
         },
       });
     })();
