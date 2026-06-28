@@ -797,24 +797,28 @@ export default function Dashboard() {
   const [isAdvocate, setIsAdvocate] = useState(false);
 
   useEffect(() => {
-    getCurrentUser().catch(() => {
-      const justBooked = localStorage.getItem('justBooked');
-      const bookedEmail = localStorage.getItem('bookedEmail');
-      if (justBooked) {
-        localStorage.removeItem('justBooked');
-        router.push(`/login?redirect=/dashboard?booked=true${bookedEmail ? '&email=' + encodeURIComponent(bookedEmail) : ''}`);
-      } else {
-        router.push('/login');
+    (async () => {
+      try {
+        await getCurrentUser();
+      } catch {
+        const justBooked = localStorage.getItem('justBooked');
+        const bookedEmail = localStorage.getItem('bookedEmail');
+        if (justBooked) {
+          localStorage.removeItem('justBooked');
+          router.push(`/login?redirect=/dashboard?booked=true${bookedEmail ? '&email=' + encodeURIComponent(bookedEmail) : ''}`);
+        } else {
+          router.push('/login');
+        }
+        return;
       }
-      return;
-    });
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (!currentUser.email) {
-      router.push('/login');
-      return;
-    }
-    setUser(currentUser);
-    setIsAdvocate(currentUser.isAdvocate === true);
+      const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+      if (!currentUser.email) {
+        router.push('/login');
+        return;
+      }
+      setUser(currentUser);
+      setIsAdvocate(currentUser.isAdvocate === true);
+    })();
   }, [router]);
 
   const handleLogout = async () => {
