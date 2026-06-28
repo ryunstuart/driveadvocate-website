@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Script from 'next/script';
 import { signUp, signIn } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
@@ -79,34 +80,28 @@ export default function BookPage() {
     }
   };
 
-  useEffect(() => {
-    if (step !== 'calendar') return;
+  const [calLoaded, setCalLoaded] = useState(false);
 
-    const script = document.createElement('script');
-    script.src = 'https://app.cal.com/embed/embed.js';
-    script.async = true;
-    script.onload = () => {
-      const w = window as any;
-      if (w.Cal) {
-        w.Cal('init', { origin: 'https://app.cal.com' });
-        w.Cal('inline', {
-          elementOrSelector: '#cal-embed',
-          calLink: CALCOM_LINK,
-          config: {
-            name: `${firstName} ${lastName}`,
-            email: email,
-            notes: `Phone: ${phone} | ZIP: ${zip}`,
-          },
-        });
-        w.Cal('on', {
-          action: 'bookingSuccessful',
-          callback: () => setStep('confirmed'),
-        });
-      }
-    };
-    document.head.appendChild(script);
-    return () => { try { document.head.removeChild(script); } catch {} };
-  }, [step, firstName, lastName, email, phone, zip]);
+  useEffect(() => {
+    if (step !== 'calendar' || !calLoaded) return;
+    const w = window as any;
+    if (w.Cal) {
+      w.Cal('init', { origin: 'https://app.cal.com' });
+      w.Cal('inline', {
+        elementOrSelector: '#cal-embed',
+        calLink: CALCOM_LINK,
+        config: {
+          name: `${firstName} ${lastName}`,
+          email: email,
+          notes: `Phone: ${phone} | ZIP: ${zip}`,
+        },
+      });
+      w.Cal('on', {
+        action: 'bookingSuccessful',
+        callback: () => setStep('confirmed'),
+      });
+    }
+  }, [step, calLoaded, firstName, lastName, email, phone, zip]);
 
   useEffect(() => {
     if (step === 'confirmed') {
@@ -194,6 +189,12 @@ export default function BookPage() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Pick Your Time</h1>
             <p className="text-slate-500 mb-8">Choose a time for your free 30-minute discovery call.</p>
+
+            <Script
+              src="https://app.cal.com/embed/embed.js"
+              strategy="afterInteractive"
+              onLoad={() => setCalLoaded(true)}
+            />
 
             <div className="bg-white rounded-3xl shadow overflow-hidden">
               <div className="px-8 py-5 border-b border-slate-100">
