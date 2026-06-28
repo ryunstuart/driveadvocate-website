@@ -192,7 +192,7 @@ export default function BookPage() {
                 config={{
                   name: `${firstName} ${lastName}`,
                   email: email,
-                  notes: `Phone: ${phone} | ZIP: ${zip}`,
+                  'Attendee Phone Number': phone,
                 }}
                 style={{ width: '100%', height: '700px', overflow: 'scroll' }}
               />
