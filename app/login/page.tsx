@@ -97,7 +97,8 @@ export default function Login() {
       } catch {}
     }
 
-    router.push('/dashboard');
+    const params = new URLSearchParams(window.location.search);
+    router.push(params.get('redirect') || '/dashboard');
   };
 
   const handleMFAChallenge = async (e: React.FormEvent) => {
