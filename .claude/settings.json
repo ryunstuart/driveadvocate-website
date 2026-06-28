@@ -13,7 +13,8 @@
       "Bash(git commit -m 'Fix session persistence — delay redirect + verify session before calendar *)",
       "Bash(git commit -m 'Fix dashboard auth — await getCurrentUser before localStorage check *)",
       "Bash(git commit -m 'Fix signup flow — auto-confirm before signIn *)",
-      "Bash(git commit -m 'Fix client login — handle no-group users + fetch activeDealId *)"
+      "Bash(git commit -m 'Fix client login — handle no-group users + fetch activeDealId *)",
+      "Bash(git commit -m 'Fix auto-confirm route — hardcode pool ID + detailed error logging *)"
     ]
   }
 }

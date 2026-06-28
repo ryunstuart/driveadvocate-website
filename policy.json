@@ -1,0 +1,1 @@
+{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cognito-idp:AdminConfirmSignUp","cognito-idp:AdminListGroupsForUser"],"Resource":"arn:aws:cognito-idp:us-east-1:870924848445:userpool/us-east-1_mBhomQZzY"}]}
