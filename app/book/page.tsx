@@ -8,7 +8,7 @@ import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { Eye, EyeOff } from 'lucide-react';
 
-const CALCOM_LINK = 'driveadvocate/discovery';
+const CALCOM_LINK = 'driveadvocate/driveadvocate-discovery-call';
 
 const SERVICES = [
   { name: 'Research Package', price: '$149', description: 'Market report, target prices, and inventory shortlist.', features: ['Market price analysis', 'Dealer inventory search', 'Target price recommendation'], highlight: false },
