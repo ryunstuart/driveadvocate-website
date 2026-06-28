@@ -2,172 +2,258 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { signUp, signIn } from 'aws-amplify/auth';
+import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
+import { Eye, EyeOff } from 'lucide-react';
 
-// ── SWAP THIS URL when your Calendly account is ready ──────────────────────
-const CALENDLY_URL = 'https://calendly.com/stuartbrothersllc';
-// ───────────────────────────────────────────────────────────────────────────
+const CALCOM_LINK = 'driveadvocate/discovery';
 
 const SERVICES = [
-  {
-    name: 'Research Package',
-    price: '$149',
-    description: 'Expert market report, target prices, and inventory shortlist.',
-    features: ['Market price analysis', 'Dealer inventory search', 'Target price recommendation', 'Written report delivered'],
-    highlight: false,
-  },
-  {
-    name: 'Negotiation Service',
-    price: '$999',
-    description: 'Full dealer negotiation, locked OTD price, and coordination.',
-    features: ['Everything in Research', 'Direct dealer negotiation', 'OTD price locked in', 'Paperwork coordination', 'Dedicated advocate'],
-    highlight: true,
-  },
-  {
-    name: 'Full Concierge',
-    price: '$2,250',
-    description: 'End-to-end service including sourcing, negotiation, and delivery.',
-    features: ['Everything in Negotiation', 'Vehicle sourcing', 'Trade-in handling', 'Financing review', 'Delivery coordination'],
-    highlight: false,
-  },
+  { name: 'Research Package', price: '$149', description: 'Market report, target prices, and inventory shortlist.', features: ['Market price analysis', 'Dealer inventory search', 'Target price recommendation'], highlight: false },
+  { name: 'Negotiation Service', price: '$999', description: 'Full dealer negotiation, locked OTD price, and coordination.', features: ['Everything in Research', 'Direct dealer negotiation', 'OTD price locked in', 'Dedicated advocate'], highlight: true },
+  { name: 'Full Concierge', price: '$2,250', description: 'End-to-end service including sourcing, negotiation, and delivery.', features: ['Everything in Negotiation', 'Vehicle sourcing', 'Trade-in handling', 'Delivery coordination'], highlight: false },
 ];
+
+type Step = 'profile' | 'calendar' | 'confirmed';
 
 export default function BookPage() {
   const router = useRouter();
-  const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [calendlyLoaded, setCalendlyLoaded] = useState(false);
+  const [step, setStep] = useState<Step>('profile');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  // Load Calendly widget script
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [zip, setZip] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [selectedService, setSelectedService] = useState('Negotiation Service');
+
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
+
+    setLoading(true);
+    try {
+      await signUp({
+        username: email.trim().toLowerCase(),
+        password,
+        options: {
+          userAttributes: {
+            email: email.trim().toLowerCase(),
+            given_name: firstName,
+            family_name: lastName,
+          },
+        },
+      });
+
+      try {
+        await dataClient.models.Client.create({
+          email: email.trim().toLowerCase(),
+          firstName, lastName, phone, zipCode: zip,
+          profileCompleted: true, onboardingCompleted: false, emailNotifications: true,
+        });
+      } catch {}
+
+      localStorage.setItem('currentUser', JSON.stringify({
+        email: email.trim().toLowerCase(), firstName, isAdvocate: false, hasActiveDeal: false,
+      }));
+      localStorage.setItem('profileData', JSON.stringify({
+        firstName, lastName, email: email.trim().toLowerCase(), phone, zipCode: zip, city, state,
+        searchRadius: '100', budget: '', timeline: '', notes: '',
+      }));
+
+      setStep('calendar');
+    } catch (err: any) {
+      if (err.name === 'UsernameExistsException') {
+        setError('An account with this email already exists. Please log in instead.');
+      } else {
+        setError(err.message || 'Failed to create account.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
+    if (step !== 'calendar') return;
+
     const script = document.createElement('script');
-    script.src = 'https://assets.calendly.com/assets/external/widget.js';
+    script.src = 'https://app.cal.com/embed/embed.js';
     script.async = true;
-    script.onload = () => setCalendlyLoaded(true);
-    document.head.appendChild(script);
-
-    const link = document.createElement('link');
-    link.href = 'https://assets.calendly.com/assets/external/widget.css';
-    link.rel = 'stylesheet';
-    document.head.appendChild(link);
-
-    return () => {
-      document.head.removeChild(script);
-      document.head.removeChild(link);
+    script.onload = () => {
+      const w = window as any;
+      if (w.Cal) {
+        w.Cal('init', { origin: 'https://app.cal.com' });
+        w.Cal('inline', {
+          elementOrSelector: '#cal-embed',
+          calLink: CALCOM_LINK,
+          config: {
+            name: `${firstName} ${lastName}`,
+            email: email,
+            notes: `Service: ${selectedService} | Phone: ${phone} | ZIP: ${zip}`,
+          },
+        });
+        w.Cal('on', {
+          action: 'bookingSuccessful',
+          callback: () => setStep('confirmed'),
+        });
+      }
     };
-  }, []);
+    document.head.appendChild(script);
+    return () => { try { document.head.removeChild(script); } catch {} };
+  }, [step, firstName, lastName, email, phone, zip, selectedService]);
 
-  const calendlyUrlWithService = selectedService
-    ? `${CALENDLY_URL}?a1=${encodeURIComponent(selectedService)}`
-    : CALENDLY_URL;
+  useEffect(() => {
+    if (step === 'confirmed') {
+      setTimeout(() => router.push('/dashboard'), 4000);
+    }
+  }, [step, router]);
+
+  const stepIndex = { profile: 0, calendar: 1, confirmed: 2 };
+  const progressSteps = [
+    { key: 'profile', label: 'Your Profile' },
+    { key: 'calendar', label: 'Pick a Time' },
+    { key: 'confirmed', label: 'Confirmed' },
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       <Header variant="public" />
+      <div className="max-w-2xl mx-auto px-6 py-10 flex-1 w-full">
 
-      <div className="max-w-6xl mx-auto px-6 py-12 flex-1 w-full">
-
-        {/* Page header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Book Your Free Discovery Call</h1>
-          <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-            A 20-minute call to understand your needs, answer your questions, and match you with the right service level.
-          </p>
-        </div>
-
-        {/* Service selector */}
-        <div className="mb-10">
-          <h2 className="text-lg font-semibold text-center mb-6 text-slate-700">
-            Which service are you interested in? <span className="text-slate-400 font-normal">(optional)</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {SERVICES.map(service => (
-              <button
-                key={service.name}
-                onClick={() => setSelectedService(selectedService === service.name ? null : service.name)}
-                className={`text-left p-6 rounded-3xl border-2 transition ${
-                  selectedService === service.name
-                    ? 'border-emerald-500 bg-emerald-50'
-                    : service.highlight
-                    ? 'border-emerald-200 bg-white hover:border-emerald-400'
-                    : 'border-slate-200 bg-white hover:border-slate-300'
-                }`}
-              >
-                {service.highlight && (
-                  <div className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">Most Popular</div>
-                )}
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="font-semibold text-slate-800">{service.name}</h3>
-                  <span className={`text-lg font-bold shrink-0 ${selectedService === service.name ? 'text-emerald-600' : 'text-slate-800'}`}>
-                    {service.price}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-500 mb-4">{service.description}</p>
-                <ul className="space-y-1">
-                  {service.features.map(f => (
-                    <li key={f} className="text-xs text-slate-600 flex items-center gap-2">
-                      <span className="text-emerald-500 shrink-0">✓</span>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                {selectedService === service.name && (
-                  <div className="mt-4 text-xs font-semibold text-emerald-600 flex items-center gap-1">
-                    <span>✓</span> Selected
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Calendly embed */}
-        <div className="bg-white rounded-3xl shadow overflow-hidden">
-          <div className="px-8 py-6 border-b border-slate-100">
-            <h2 className="text-xl font-semibold">Pick a Time That Works for You</h2>
-            {selectedService && (
-              <p className="text-sm text-emerald-600 mt-1">
-                You selected: <strong>{selectedService}</strong> — we'll discuss this on the call
-              </p>
-            )}
-          </div>
-
-          {/* Calendly inline widget */}
-          <div
-            className="calendly-inline-widget"
-            data-url={calendlyUrlWithService}
-            style={{ minWidth: '320px', height: '700px' }}
-          />
-
-          {/* Fallback if Calendly hasn't loaded */}
-          {!calendlyLoaded && (
-            <div className="flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-slate-400 text-sm">Loading calendar...</p>
+        {/* Progress */}
+        <div className="flex items-center gap-4 mb-10">
+          {progressSteps.map((s, i) => (
+            <div key={s.key} className="flex items-center gap-2">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition ${
+                step === s.key ? 'bg-emerald-600 text-white' :
+                stepIndex[step] > i ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-400'
+              }`}>
+                {stepIndex[step] > i ? '✓' : i + 1}
               </div>
+              <span className={`text-sm font-medium ${step === s.key ? 'text-slate-800' : 'text-slate-400'}`}>{s.label}</span>
+              {i < 2 && <div className="w-8 h-0.5 bg-slate-200" />}
             </div>
-          )}
+          ))}
         </div>
 
-        {/* Reassurance */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 text-center">
+        {/* Step 1 — Profile */}
+        {step === 'profile' && (
           <div>
-            <div className="text-2xl mb-2">🆓</div>
-            <h3 className="font-semibold text-sm mb-1">Free Call</h3>
-            <p className="text-xs text-slate-500">No obligation — just a conversation about your next car</p>
+            <h1 className="text-3xl font-bold mb-2">Book Your Free Discovery Call</h1>
+            <p className="text-slate-500 mb-8">Tell us about yourself, then pick a time.</p>
+
+            <form onSubmit={handleProfileSubmit} className="space-y-5">
+              <div className="bg-white rounded-3xl shadow p-8 space-y-5">
+                <h2 className="font-semibold text-slate-800">Your Information</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">First Name *</label><input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} required className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">Last Name *</label><input type="text" value={lastName} onChange={e => setLastName(e.target.value)} required className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
+                </div>
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Email Address *</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Phone Number *</label><input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="(636) 555-0123" className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">ZIP *</label><input type="text" value={zip} onChange={e => setZip(e.target.value)} required maxLength={5} className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">City</label><input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
+                  <div><label className="block text-sm font-medium text-slate-700 mb-1">State</label><input type="text" value={state} onChange={e => setState(e.target.value)} maxLength={2} placeholder="MO" className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
+                </div>
+              </div>
+
+              {/* Service selector */}
+              <div className="bg-white rounded-3xl shadow p-8">
+                <h2 className="font-semibold text-slate-800 mb-4">Which service interests you?</h2>
+                <div className="space-y-3">
+                  {SERVICES.map(svc => (
+                    <button key={svc.name} type="button" onClick={() => setSelectedService(svc.name)}
+                      className={`w-full text-left p-4 rounded-2xl border-2 transition ${selectedService === svc.name ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold text-sm">{svc.name}</div>
+                          <div className="text-xs text-slate-500">{svc.description}</div>
+                        </div>
+                        <span className="font-bold text-emerald-600 shrink-0 ml-4">{svc.price}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Password */}
+              <div className="bg-white rounded-3xl shadow p-8 space-y-5">
+                <h2 className="font-semibold text-slate-800">Create Your Password</h2>
+                <p className="text-sm text-slate-500">Access your DriveAdvocate dashboard to track your deal.</p>
+                <div className="relative">
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Password *</label>
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required minLength={8} placeholder="Minimum 8 characters" className="w-full p-3 pr-12 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-9 text-slate-400 hover:text-slate-600">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <div><label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password *</label><input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
+              </div>
+
+              {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
+
+              <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
+                {loading ? 'Creating your account...' : 'Continue to Schedule →'}
+              </button>
+
+              <p className="text-center text-sm text-slate-500">Already have an account? <a href="/login" className="text-emerald-600 hover:underline">Log in</a></p>
+            </form>
           </div>
+        )}
+
+        {/* Step 2 — Cal.com Calendar */}
+        {step === 'calendar' && (
           <div>
-            <div className="text-2xl mb-2">⏱️</div>
-            <h3 className="font-semibold text-sm mb-1">20 Minutes</h3>
-            <p className="text-xs text-slate-500">Quick and focused — we respect your time</p>
+            <h1 className="text-3xl font-bold mb-2">Pick Your Time</h1>
+            <p className="text-slate-500 mb-8">Choose a time for your free 30-minute discovery call.</p>
+
+            <div className="bg-white rounded-3xl shadow overflow-hidden">
+              <div className="px-8 py-5 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-lg">📞</div>
+                  <div>
+                    <div className="font-semibold">DriveAdvocate Discovery Call</div>
+                    <div className="text-sm text-slate-500">30 minutes · Free · Phone call</div>
+                  </div>
+                </div>
+              </div>
+              <div id="cal-embed" style={{ minHeight: '600px' }} />
+            </div>
           </div>
-          <div>
-            <div className="text-2xl mb-2">🔒</div>
-            <h3 className="font-semibold text-sm mb-1">No Pressure</h3>
-            <p className="text-xs text-slate-500">We'll only work together if it's the right fit</p>
+        )}
+
+        {/* Step 3 — Confirmed */}
+        {step === 'confirmed' && (
+          <div className="text-center py-16">
+            <div className="text-5xl mb-4">🎉</div>
+            <h1 className="text-3xl font-bold mb-2">You're Booked!</h1>
+            <p className="text-slate-500 mb-2">Check your email for a confirmation with the call details.</p>
+            <p className="text-sm text-slate-400">Redirecting to your dashboard...</p>
+            <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mt-6" />
           </div>
-        </div>
+        )}
+
+        {/* Reassurance — only on profile step */}
+        {step === 'profile' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10 text-center">
+            <div><div className="text-2xl mb-2">🆓</div><h3 className="font-semibold text-sm mb-1">Free Call</h3><p className="text-xs text-slate-500">No obligation — just a conversation</p></div>
+            <div><div className="text-2xl mb-2">⏱</div><h3 className="font-semibold text-sm mb-1">30 Minutes</h3><p className="text-xs text-slate-500">Quick and focused</p></div>
+            <div><div className="text-2xl mb-2">🔒</div><h3 className="font-semibold text-sm mb-1">No Pressure</h3><p className="text-xs text-slate-500">We'll only work together if it's the right fit</p></div>
+          </div>
+        )}
       </div>
       <Footer />
     </div>
