@@ -80,15 +80,28 @@ export default function Login() {
     const isAdvocate = groups.includes('advocates') || isAdmin;
 
     let clientFirstName = '';
+    let activeDealId = '';
     if (!isAdvocate) {
       try {
         const { data: clients } = await dataClient.models.Client.list({ filter: { email: { eq: normalizedEmail } } });
         if (clients.length > 0) clientFirstName = clients[0].firstName;
-      } catch {}
+      } catch (err) {
+        console.warn('Client lookup failed:', err);
+      }
+      try {
+        const { data: deals } = await dataClient.models.Deal.list({ filter: { clientId: { eq: normalizedEmail } } });
+        const activeDeal = deals.find((d: any) => d.status !== 'Complete' && d.status !== 'Dead');
+        if (activeDeal) activeDealId = activeDeal.id;
+      } catch (err) {
+        console.warn('Deal lookup failed:', err);
+      }
     }
 
-    console.log('isAdmin:', isAdmin, 'isAdvocate:', isAdvocate);
-    const currentUser = { email: normalizedEmail, firstName: clientFirstName, isAdvocate, isAdmin, hasActiveDeal: !isAdvocate };
+    const currentUser = {
+      email: normalizedEmail, firstName: clientFirstName,
+      isAdvocate, isAdmin, hasActiveDeal: !!activeDealId,
+      activeDealId: activeDealId || undefined,
+    };
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
 
     if (isAdvocate) {
