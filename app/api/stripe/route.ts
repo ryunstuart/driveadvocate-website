@@ -1,43 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-04-30.basil' as any });
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' }), {
   marshallOptions: { removeUndefinedValues: true },
 });
+const ssm = new SSMClient({ region: 'us-east-1' });
 
-const SERVICE_PRICES: Record<string, number> = {
-  'Research Package': 14900,
-  'Negotiation Service': 99900,
-  'Full Concierge': 225000,
-};
+async function getSSMParam(name: string): Promise<string> {
+  const result = await ssm.send(new GetParameterCommand({ Name: name, WithDecryption: true }));
+  return result.Parameter?.Value || '';
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { token, dealId, clientEmail, clientName, serviceLevel } = await request.json();
+    const { token, dealId, clientEmail, clientName } = await request.json();
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://driveadvocate.com';
-    const amount = SERVICE_PRICES[serviceLevel] || 99900;
+    const priceId = await getSSMParam('/driveadvocate/stripe/price-id');
 
     const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
       payment_method_types: ['card'],
       customer_email: clientEmail,
-      line_items: [{
-        price_data: {
-          currency: 'usd',
-          product_data: {
-            name: `DriveAdvocate ${serviceLevel || 'Negotiation Service'}`,
-            description: `Car buying advocacy service for ${clientName}`,
-          },
-          unit_amount: amount,
-        },
-        quantity: 1,
-      }],
-      mode: 'payment',
+      line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
+      metadata: { token, dealId, clientEmail, clientName },
       success_url: `${baseUrl}/enroll/success?token=${token}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/enroll/${token}?cancelled=true`,
-      metadata: { token, dealId, clientEmail },
     });
 
     return NextResponse.json({ url: session.url, sessionId: session.id });

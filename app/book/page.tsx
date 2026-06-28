@@ -10,11 +10,6 @@ import { Eye, EyeOff } from 'lucide-react';
 
 const CALCOM_LINK = 'driveadvocate/driveadvocate-discovery-call';
 
-const SERVICES = [
-  { name: 'Research Package', price: '$149', description: 'Market report, target prices, and inventory shortlist.', features: ['Market price analysis', 'Dealer inventory search', 'Target price recommendation'], highlight: false },
-  { name: 'Negotiation Service', price: '$999', description: 'Full dealer negotiation, locked OTD price, and coordination.', features: ['Everything in Research', 'Direct dealer negotiation', 'OTD price locked in', 'Dedicated advocate'], highlight: true },
-  { name: 'Full Concierge', price: '$2,250', description: 'End-to-end service including sourcing, negotiation, and delivery.', features: ['Everything in Negotiation', 'Vehicle sourcing', 'Trade-in handling', 'Delivery coordination'], highlight: false },
-];
 
 type Step = 'profile' | 'calendar' | 'confirmed';
 
@@ -34,7 +29,6 @@ export default function BookPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedService, setSelectedService] = useState('Negotiation Service');
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +95,7 @@ export default function BookPage() {
           config: {
             name: `${firstName} ${lastName}`,
             email: email,
-            notes: `Service: ${selectedService} | Phone: ${phone} | ZIP: ${zip}`,
+            notes: `Phone: ${phone} | ZIP: ${zip}`,
           },
         });
         w.Cal('on', {
@@ -112,7 +106,7 @@ export default function BookPage() {
     };
     document.head.appendChild(script);
     return () => { try { document.head.removeChild(script); } catch {} };
-  }, [step, firstName, lastName, email, phone, zip, selectedService]);
+  }, [step, firstName, lastName, email, phone, zip]);
 
   useEffect(() => {
     if (step === 'confirmed') {
@@ -167,25 +161,6 @@ export default function BookPage() {
                   <div><label className="block text-sm font-medium text-slate-700 mb-1">ZIP *</label><input type="text" value={zip} onChange={e => setZip(e.target.value)} required maxLength={5} className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
                   <div><label className="block text-sm font-medium text-slate-700 mb-1">City</label><input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
                   <div><label className="block text-sm font-medium text-slate-700 mb-1">State</label><input type="text" value={state} onChange={e => setState(e.target.value)} maxLength={2} placeholder="MO" className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
-                </div>
-              </div>
-
-              {/* Service selector */}
-              <div className="bg-white rounded-3xl shadow p-8">
-                <h2 className="font-semibold text-slate-800 mb-4">Which service interests you?</h2>
-                <div className="space-y-3">
-                  {SERVICES.map(svc => (
-                    <button key={svc.name} type="button" onClick={() => setSelectedService(svc.name)}
-                      className={`w-full text-left p-4 rounded-2xl border-2 transition ${selectedService === svc.name ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 hover:border-slate-300'}`}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-semibold text-sm">{svc.name}</div>
-                          <div className="text-xs text-slate-500">{svc.description}</div>
-                        </div>
-                        <span className="font-bold text-emerald-600 shrink-0 ml-4">{svc.price}</span>
-                      </div>
-                    </button>
-                  ))}
                 </div>
               </div>
 
