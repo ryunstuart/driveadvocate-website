@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(git commit -m 'Fix Cal.com embed — use Next.js Script component *)",
-      "Bash(git commit -m 'Fix Cal.com 304 cache issue — poll window.Cal instead of onLoad *)"
+      "Bash(git commit -m 'Fix Cal.com 304 cache issue — poll window.Cal instead of onLoad *)",
+      "Bash(git commit -m 'Use @calcom/embed-react instead of manual script injection *)",
+      "Bash(git commit -m 'Fix Cal.com phone pre-fill and remove notes field *)",
+      "Bash(git commit -m 'Fix client session after /book signup + redirect support *)",
+      "Bash(git commit -m 'Remove session check from booking callback — direct redirect *)",
+      "Bash(git commit -m 'Fix post-booking redirect — hard redirect + localStorage flag *)",
+      "PowerShell(aws cognito-idp admin-delete-user --user-pool-id us-east-1_mBhomQZzY --username info@driveadvocate.com --region us-east-1 2>&1)",
+      "Bash(git commit -m 'Skip profile step for logged-in users on /book page *)",
+      "Bash(git commit -m 'Fix session persistence — delay redirect + verify session before calendar *)",
+      "Bash(git commit -m 'Fix dashboard auth — await getCurrentUser before localStorage check *)",
+      "Bash(git commit -m 'Fix signup flow — auto-confirm before signIn *)"
     ]
   }
 }
