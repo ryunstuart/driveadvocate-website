@@ -5,10 +5,29 @@ const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' 
   marshallOptions: { removeUndefinedValues: true },
 });
 
-export const handler = async (event: any) => {
-  const body = JSON.parse(event.body || '{}');
-  const { triggerEvent, payload } = body;
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': '*',
+  'Content-Type': 'application/json',
+};
 
+export const handler = async (event: any) => {
+  console.log('Received event:', JSON.stringify(event));
+
+  if (event.requestContext?.http?.method === 'OPTIONS') {
+    return { statusCode: 200, headers: CORS_HEADERS, body: '' };
+  }
+
+  const body = typeof event.body === 'string'
+    ? JSON.parse(event.body || '{}')
+    : (event.body || {});
+
+  if (!body.triggerEvent) {
+    return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ received: true, ping: true }) };
+  }
+
+  const { triggerEvent, payload } = body;
   console.log('Cal.com webhook:', triggerEvent, payload?.uid);
 
   try {
@@ -68,9 +87,9 @@ export const handler = async (event: any) => {
       }
     }
 
-    return { statusCode: 200, body: JSON.stringify({ received: true }) };
+    return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify({ received: true }) };
   } catch (err) {
     console.error('Webhook error:', err);
-    return { statusCode: 500, body: JSON.stringify({ error: 'Webhook processing failed' }) };
+    return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify({ error: 'Webhook processing failed' }) };
   }
 };
