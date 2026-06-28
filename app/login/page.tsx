@@ -12,7 +12,7 @@ import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { Eye, EyeOff } from 'lucide-react';
 
-type AuthView = 'login' | 'signup' | 'confirm' | 'forgot' | 'reset' | 'mfa';
+type AuthView = 'login' | 'forgot' | 'reset' | 'mfa';
 
 export default function Login() {
   const router = useRouter();
@@ -256,17 +256,10 @@ export default function Login() {
           <img src="/logo.png" alt="DriveAdvocate" className="h-12 mx-auto mb-4" />
           <h1 className="text-3xl font-bold">
             {view === 'login' ? 'Welcome Back' :
-             view === 'signup' ? 'Create Account' :
-             view === 'confirm' ? 'Check Your Email' :
              view === 'forgot' ? 'Forgot Password' :
              view === 'mfa' ? 'Verify Identity' :
              'Reset Password'}
           </h1>
-          {view === 'confirm' && (
-            <p className="text-slate-500 text-sm mt-2">
-              We sent a confirmation code to <strong>{email}</strong>
-            </p>
-          )}
           {view === 'forgot' && (
             <p className="text-slate-500 text-sm mt-2">
               Enter your email and we'll send you a reset code.
@@ -278,23 +271,6 @@ export default function Login() {
             </p>
           )}
         </div>
-
-        {(view === 'login' || view === 'signup') && (
-          <div className="flex mb-8 border-b border-slate-200">
-            <button
-              onClick={() => { setView('login'); setError(''); setSuccess(''); }}
-              className={`flex-1 pb-4 text-lg font-medium transition ${view === 'login' ? 'border-b-2 border-emerald-600 text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              Log In
-            </button>
-            <button
-              onClick={() => { setView('signup'); setError(''); setSuccess(''); }}
-              className={`flex-1 pb-4 text-lg font-medium transition ${view === 'signup' ? 'border-b-2 border-emerald-600 text-emerald-700' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              Create Account
-            </button>
-          </div>
-        )}
 
         {success && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-2xl mb-5">{success}</div>}
 
@@ -314,47 +290,9 @@ export default function Login() {
             <button type="button" onClick={() => { setView('forgot'); setError(''); setSuccess(''); }} className="w-full py-2 text-sm text-slate-500 hover:text-emerald-600 transition">
               Forgot your password?
             </button>
-          </form>
-        )}
-
-        {view === 'signup' && (
-          <form onSubmit={handleSignUp} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input type="text" placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
-              <input type="text" placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
+            <div className="text-center mt-4 pt-4 border-t border-slate-200">
+              <p className="text-sm text-slate-500">New to DriveAdvocate? <a href="/book" className="text-emerald-600 hover:underline font-medium">Book your free discovery call →</a></p>
             </div>
-            <input type="email" placeholder="Email address" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
-            <div className="relative">
-              <input type={showPassword ? 'text' : 'password'} placeholder="Password (min 8 characters)" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} className="w-full p-4 pr-12 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
-            <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
-              {loading ? 'Creating account...' : 'Create Account'}
-            </button>
-          </form>
-        )}
-
-        {view === 'confirm' && (
-          <form onSubmit={handleConfirm} className="space-y-5">
-            <input type="text" placeholder="Enter confirmation code" value={confirmCode} onChange={e => setConfirmCode(e.target.value)} required className="w-full p-4 border border-slate-300 rounded-2xl bg-white focus:outline-none focus:border-emerald-500 transition text-center text-2xl tracking-widest" />
-            {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
-            <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
-              {loading ? 'Confirming...' : 'Confirm Account'}
-            </button>
-            <button
-              type="button"
-              onClick={handleResendCode}
-              disabled={resendCooldown > 0}
-              className="w-full py-3 text-sm text-emerald-600 hover:text-emerald-700 disabled:text-slate-400 transition font-medium"
-            >
-              {resendCooldown > 0 ? `Resend code in ${resendCooldown}s` : 'Didn\'t get the code? Resend'}
-            </button>
-            <button type="button" onClick={() => { setView('signup'); setError(''); setSuccess(''); }} className="w-full py-2 text-sm text-slate-500 hover:text-slate-700 transition">
-              ← Back to sign up
-            </button>
           </form>
         )}
 
