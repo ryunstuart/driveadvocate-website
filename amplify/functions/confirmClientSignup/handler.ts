@@ -1,20 +1,28 @@
-import { CognitoIdentityProviderClient, AdminConfirmSignUpCommand } from '@aws-sdk/client-cognito-identity-provider';
+import { CognitoIdentityProviderClient, AdminConfirmSignUpCommand, AdminUpdateUserAttributesCommand } from '@aws-sdk/client-cognito-identity-provider';
 
 const cognito = new CognitoIdentityProviderClient({ region: 'us-east-1' });
+const USER_POOL_ID = 'us-east-1_mBhomQZzY';
 
 export const handler = async (event: any) => {
   const email = event.arguments.email;
-  console.log('Auto-confirming:', email);
+  console.log('Confirming user:', email);
 
   try {
     await cognito.send(new AdminConfirmSignUpCommand({
-      UserPoolId: process.env.USER_POOL_ID || 'us-east-1_mBhomQZzY',
+      UserPoolId: USER_POOL_ID,
       Username: email.trim().toLowerCase(),
     }));
-    console.log('Confirmed:', email);
-    return { confirmed: true };
+
+    await cognito.send(new AdminUpdateUserAttributesCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: email.trim().toLowerCase(),
+      UserAttributes: [{ Name: 'email_verified', Value: 'true' }],
+    }));
+
+    console.log('Confirmed + verified:', email);
+    return { confirmed: true, error: null };
   } catch (err: any) {
-    console.error('Confirm failed:', err.name, err.message);
-    return { confirmed: false };
+    console.error('Confirm error:', err.name, err.message);
+    return { confirmed: false, error: err.message };
   }
 };

@@ -207,7 +207,7 @@ unauthRole.addToPrincipalPolicy(new PolicyStatement({
 
 backend.confirmClientSignup.resources.lambda.addToRolePolicy(
   new PolicyStatement({
-    actions: ['cognito-idp:AdminConfirmSignUp'],
+    actions: ['cognito-idp:AdminConfirmSignUp', 'cognito-idp:AdminUpdateUserAttributes'],
     resources: ['arn:aws:cognito-idp:us-east-1:870924848445:userpool/us-east-1_mBhomQZzY'],
   }),
 );

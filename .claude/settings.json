@@ -14,7 +14,10 @@
       "Bash(git commit -m 'Fix dashboard auth — await getCurrentUser before localStorage check *)",
       "Bash(git commit -m 'Fix signup flow — auto-confirm before signIn *)",
       "Bash(git commit -m 'Fix client login — handle no-group users + fetch activeDealId *)",
-      "Bash(git commit -m 'Fix auto-confirm route — hardcode pool ID + detailed error logging *)"
+      "Bash(git commit -m 'Fix auto-confirm route — hardcode pool ID + detailed error logging *)",
+      "Bash(git commit -m 'Remove Create Account from login — all signups go through /book *)",
+      "Bash(git commit -m 'Remove all signup/confirm remnants from login page *)",
+      "Bash(git commit -m 'Add email_verified + delete old API route for auto-confirm *)"
     ]
   }
 }

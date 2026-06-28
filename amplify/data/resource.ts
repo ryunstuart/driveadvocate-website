@@ -197,7 +197,7 @@ const schema = a.schema({
   confirmClientSignup: a
     .mutation()
     .arguments({ email: a.string().required() })
-    .returns(a.customType({ confirmed: a.boolean() }))
+    .returns(a.customType({ confirmed: a.boolean(), error: a.string() }))
     .authorization(allow => [allow.publicApiKey()])
     .handler(a.handler.function(confirmClientSignup)),
 
