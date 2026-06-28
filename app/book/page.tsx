@@ -73,11 +73,10 @@ export default function BookPage() {
         },
       });
 
-      await fetch('/api/auth/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail }),
-      });
+      await dataClient.mutations.confirmClientSignup(
+        { email: normalizedEmail },
+        { authMode: 'apiKey' },
+      );
 
       await signIn({ username: normalizedEmail, password });
       await getCurrentUser();

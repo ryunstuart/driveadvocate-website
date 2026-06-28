@@ -6,6 +6,7 @@ import { syncVehicleCatalog } from './functions/syncVehicleCatalog/resource';
 import { searchDealInventory } from './functions/searchDealInventory/resource';
 import { calcomWebhook } from './functions/calcomWebhook/resource';
 import { sendEnrollment } from './functions/sendEnrollment/resource';
+import { confirmClientSignup } from './functions/confirmClientSignup/resource';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { CfnOutput } from 'aws-cdk-lib';
@@ -18,6 +19,7 @@ const backend = defineBackend({
   searchDealInventory,
   calcomWebhook,
   sendEnrollment,
+  confirmClientSignup,
 });
 
 // --- sendClientUpdate permissions ---
@@ -200,3 +202,12 @@ unauthRole.addToPrincipalPolicy(new PolicyStatement({
   actions: ['dynamodb:Scan', 'dynamodb:Query', 'dynamodb:GetItem'],
   resources: standaloneTables,
 }));
+
+// --- confirmClientSignup permissions ---
+
+backend.confirmClientSignup.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['cognito-idp:AdminConfirmSignUp'],
+    resources: ['arn:aws:cognito-idp:us-east-1:870924848445:userpool/us-east-1_mBhomQZzY'],
+  }),
+);

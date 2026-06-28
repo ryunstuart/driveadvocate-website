@@ -2,6 +2,7 @@ import { type ClientSchema, a, defineData } from '@aws-amplify/backend';
 import { sendClientUpdate } from '../functions/sendClientUpdate/resource';
 import { searchDealInventory } from '../functions/searchDealInventory/resource';
 import { sendEnrollment } from '../functions/sendEnrollment/resource';
+import { confirmClientSignup } from '../functions/confirmClientSignup/resource';
 
 const schema = a.schema({
 
@@ -193,6 +194,13 @@ const schema = a.schema({
     .authorization(allow => [allow.groups(['advocates', 'admins'])])
     .handler(a.handler.function(sendEnrollment)),
 
+  confirmClientSignup: a
+    .mutation()
+    .arguments({ email: a.string().required() })
+    .returns(a.customType({ confirmed: a.boolean() }))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(a.handler.function(confirmClientSignup)),
+
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -201,5 +209,8 @@ export const data = defineData({
   schema,
   authorizationModes: {
     defaultAuthorizationMode: 'userPool',
+    apiKeyAuthorizationMode: {
+      expiresInDays: 365,
+    },
   },
 });
