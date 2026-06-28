@@ -7,6 +7,8 @@ import { searchDealInventory } from './functions/searchDealInventory/resource';
 import { calcomWebhook } from './functions/calcomWebhook/resource';
 import { sendEnrollment } from './functions/sendEnrollment/resource';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
+import { CfnOutput } from 'aws-cdk-lib';
 
 const backend = defineBackend({
   auth,
@@ -156,6 +158,19 @@ backend.calcomWebhook.resources.lambda.addToRolePolicy(
     resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls'],
   }),
 );
+
+const calcomFnUrl = backend.calcomWebhook.resources.lambda.addFunctionUrl({
+  authType: FunctionUrlAuthType.NONE,
+  cors: {
+    allowedOrigins: ['*'],
+    allowedMethods: [HttpMethod.ALL],
+    allowedHeaders: ['*'],
+  },
+});
+
+new CfnOutput(backend.calcomWebhook.resources.lambda.stack, 'CalcomWebhookUrl', {
+  value: calcomFnUrl.url,
+});
 
 // --- sendEnrollment permissions ---
 
