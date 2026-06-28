@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { SSMClient, GetParameterCommand } from '@aws-sdk/client-ssm';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-04-30.basil' as any });
+export const dynamic = 'force-dynamic';
+
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' }), {
   marshallOptions: { removeUndefinedValues: true },
 });
@@ -15,8 +15,14 @@ async function getSSMParam(name: string): Promise<string> {
   return result.Parameter?.Value || '';
 }
 
+function getStripe() {
+  const Stripe = require('stripe');
+  return new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2025-04-30.basil' });
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const stripe = getStripe();
     const { token, dealId, clientEmail, clientName } = await request.json();
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://driveadvocate.com';
     const priceId = await getSSMParam('/driveadvocate/stripe/price-id');
@@ -41,11 +47,12 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const stripe = getStripe();
     const body = await request.text();
     const sig = request.headers.get('stripe-signature') || '';
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
 
-    let event: Stripe.Event;
+    let event: any;
     try {
       event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
     } catch {
@@ -53,7 +60,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+      const session = event.data.object;
       const { token, dealId } = session.metadata || {};
 
       if (token) {
@@ -65,8 +72,8 @@ export async function PUT(request: NextRequest) {
       }
 
       if (dealId) {
-        const amplifyData = await import('@/app/lib/amplify-data');
-        await amplifyData.dataClient.models.Deal.update({
+        const { dataClient } = await import('@/app/lib/amplify-data');
+        await dataClient.models.Deal.update({
           id: dealId, status: 'New' as any,
           stripeSessionId: session.id, stripePaymentStatus: 'complete',
         });
