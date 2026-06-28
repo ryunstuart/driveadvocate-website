@@ -12,7 +12,8 @@
       "Bash(git commit -m 'Skip profile step for logged-in users on /book page *)",
       "Bash(git commit -m 'Fix session persistence — delay redirect + verify session before calendar *)",
       "Bash(git commit -m 'Fix dashboard auth — await getCurrentUser before localStorage check *)",
-      "Bash(git commit -m 'Fix signup flow — auto-confirm before signIn *)"
+      "Bash(git commit -m 'Fix signup flow — auto-confirm before signIn *)",
+      "Bash(git commit -m 'Fix client login — handle no-group users + fetch activeDealId *)"
     ]
   }
 }
