@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cal, { getCalApi } from '@calcom/embed-react';
-import { signUp, signIn } from 'aws-amplify/auth';
+import { signUp, signIn, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
@@ -30,6 +30,25 @@ export default function BookPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    getCurrentUser()
+      .then(async () => {
+        try {
+          const attrs = await fetchUserAttributes();
+          setFirstName(attrs.given_name || '');
+          setLastName(attrs.family_name || '');
+          setEmail(attrs.email || '');
+          setPhone(attrs.phone_number || '');
+          setStep('calendar');
+        } catch {
+          setStep('calendar');
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCheckingAuth(false));
+  }, []);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,7 +152,7 @@ export default function BookPage() {
         </div>
 
         {/* Step 1 — Profile */}
-        {step === 'profile' && (
+        {step === 'profile' && !checkingAuth && (
           <div>
             <h1 className="text-3xl font-bold mb-2">Book Your Free Discovery Call</h1>
             <p className="text-slate-500 mb-8">Tell us about yourself, then pick a time.</p>
