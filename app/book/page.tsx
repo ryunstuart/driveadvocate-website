@@ -71,7 +71,11 @@ export default function BookPage() {
         },
       });
 
-      await signIn({ username: email.trim().toLowerCase(), password });
+      const signInResult = await signIn({ username: email.trim().toLowerCase(), password });
+      console.log('SignIn result:', signInResult);
+
+      const user = await getCurrentUser();
+      console.log('Session established for:', user.username);
 
       try {
         await dataClient.models.Client.create({
@@ -107,7 +111,10 @@ export default function BookPage() {
       cal('on', {
         action: 'bookingSuccessful',
         callback: () => {
-          window.location.href = '/dashboard?booked=true';
+          localStorage.setItem('justBooked', 'true');
+          setTimeout(() => {
+            window.location.href = '/dashboard?booked=true';
+          }, 1500);
         },
       });
     })();
