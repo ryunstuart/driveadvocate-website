@@ -83,25 +83,35 @@ export default function BookPage() {
   const [calLoaded, setCalLoaded] = useState(false);
 
   useEffect(() => {
-    if (step !== 'calendar' || !calLoaded) return;
+    if (step !== 'calendar') return;
+    const checkCal = setInterval(() => {
+      if (typeof (window as any).Cal !== 'undefined') {
+        setCalLoaded(true);
+        clearInterval(checkCal);
+      }
+    }, 100);
+    const timeout = setTimeout(() => clearInterval(checkCal), 10000);
+    return () => { clearInterval(checkCal); clearTimeout(timeout); };
+  }, [step]);
+
+  useEffect(() => {
+    if (!calLoaded || step !== 'calendar') return;
     const w = window as any;
-    if (w.Cal) {
-      w.Cal('init', { origin: 'https://app.cal.com' });
-      w.Cal('inline', {
-        elementOrSelector: '#cal-embed',
-        calLink: CALCOM_LINK,
-        config: {
-          name: `${firstName} ${lastName}`,
-          email: email,
-          notes: `Phone: ${phone} | ZIP: ${zip}`,
-        },
-      });
-      w.Cal('on', {
-        action: 'bookingSuccessful',
-        callback: () => setStep('confirmed'),
-      });
-    }
-  }, [step, calLoaded, firstName, lastName, email, phone, zip]);
+    w.Cal('init', { origin: 'https://app.cal.com' });
+    w.Cal('inline', {
+      elementOrSelector: '#cal-embed',
+      calLink: CALCOM_LINK,
+      config: {
+        name: `${firstName} ${lastName}`,
+        email: email,
+        notes: `Phone: ${phone} | ZIP: ${zip}`,
+      },
+    });
+    w.Cal('on', {
+      action: 'bookingSuccessful',
+      callback: () => setStep('confirmed'),
+    });
+  }, [calLoaded, step]);
 
   useEffect(() => {
     if (step === 'confirmed') {
@@ -193,7 +203,6 @@ export default function BookPage() {
             <Script
               src="https://app.cal.com/embed/embed.js"
               strategy="afterInteractive"
-              onLoad={() => setCalLoaded(true)}
             />
 
             <div className="bg-white rounded-3xl shadow overflow-hidden">
