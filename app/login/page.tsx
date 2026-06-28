@@ -22,7 +22,12 @@ export default function Login() {
   }, []);
 
   const [view, setView] = useState<AuthView>('login');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return new URLSearchParams(window.location.search).get('email') || '';
+    }
+    return '';
+  });
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');

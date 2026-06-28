@@ -88,13 +88,17 @@ export default function BookPage() {
       cal('on', {
         action: 'bookingSuccessful',
         callback: () => {
-          router.push('/dashboard?booked=true');
+          window.location.href = '/dashboard?booked=true';
         },
       });
     })();
   }, []);
 
   useEffect(() => {
+    if (step === 'calendar') {
+      localStorage.setItem('justBooked', 'true');
+      localStorage.setItem('bookedEmail', email);
+    }
     if (step === 'confirmed') {
       setTimeout(() => router.push('/dashboard'), 4000);
     }

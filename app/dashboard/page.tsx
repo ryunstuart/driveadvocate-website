@@ -797,7 +797,17 @@ export default function Dashboard() {
   const [isAdvocate, setIsAdvocate] = useState(false);
 
   useEffect(() => {
-    getCurrentUser().catch(() => { router.push('/login'); return; });
+    getCurrentUser().catch(() => {
+      const justBooked = localStorage.getItem('justBooked');
+      const bookedEmail = localStorage.getItem('bookedEmail');
+      if (justBooked) {
+        localStorage.removeItem('justBooked');
+        router.push(`/login?redirect=/dashboard?booked=true${bookedEmail ? '&email=' + encodeURIComponent(bookedEmail) : ''}`);
+      } else {
+        router.push('/login');
+      }
+      return;
+    });
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     if (!currentUser.email) {
       router.push('/login');
