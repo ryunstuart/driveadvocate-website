@@ -409,16 +409,22 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
           localStorage.removeItem('justBooked');
           localStorage.removeItem('bookedEmail');
         }
-        try {
-          const result = await dataClient.queries.getPendingCall({ email: clientEmail });
-          if (result.data) {
-            const callData = JSON.parse(result.data as string);
-            console.log('PendingCall data:', callData, 'scheduledAt:', callData.scheduledAt);
-            setPendingCall(callData);
-            setClientState('call-scheduled');
-            return;
+        console.log('Dashboard: no activeDealId, checking PendingCalls for:', clientEmail);
+        if (clientEmail) {
+          try {
+            const result = await dataClient.queries.getPendingCall({ email: clientEmail });
+            console.log('getPendingCall result:', result);
+            if (result.data) {
+              const callData = JSON.parse(result.data as string);
+              console.log('Parsed call:', callData, 'scheduledAt:', callData.scheduledAt);
+              setPendingCall(callData);
+              setClientState('call-scheduled');
+              return;
+            }
+          } catch (err) {
+            console.error('getPendingCall error:', err);
           }
-        } catch {}
+        }
         if (justBooked) {
           setClientState('call-scheduled');
           setPendingCall({ scheduledAt: new Date(Date.now() + 86400000).toISOString() });
