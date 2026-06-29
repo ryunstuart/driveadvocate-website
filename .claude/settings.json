@@ -17,7 +17,9 @@
       "Bash(git commit -m 'Fix auto-confirm route — hardcode pool ID + detailed error logging *)",
       "Bash(git commit -m 'Remove Create Account from login — all signups go through /book *)",
       "Bash(git commit -m 'Remove all signup/confirm remnants from login page *)",
-      "Bash(git commit -m 'Add email_verified + delete old API route for auto-confirm *)"
+      "Bash(git commit -m 'Add email_verified + delete old API route for auto-confirm *)",
+      "Bash(git commit -m 'Add call-scheduled dashboard state + clean up useEffect *)",
+      "Bash(git commit -m 'Fix /api/calls route — add error logging + force-dynamic *)"
     ]
   }
 }
