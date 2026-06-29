@@ -404,17 +404,11 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
           return;
         }
         try {
-          const callRes = await fetch('/api/calls');
-          if (callRes.ok) {
-            const callData = await callRes.json();
-            const scheduled = (callData.calls || []).find((c: any) =>
-              c.clientEmail === clientEmail && c.status === 'scheduled'
-            );
-            if (scheduled) {
-              setPendingCall(scheduled);
-              setClientState('call-scheduled');
-              return;
-            }
+          const result = await dataClient.queries.getPendingCall({ email: clientEmail });
+          if (result.data) {
+            setPendingCall(result.data);
+            setClientState('call-scheduled');
+            return;
           }
         } catch {}
         setClientState('no-deal');

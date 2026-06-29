@@ -3,6 +3,7 @@ import { sendClientUpdate } from '../functions/sendClientUpdate/resource';
 import { searchDealInventory } from '../functions/searchDealInventory/resource';
 import { sendEnrollment } from '../functions/sendEnrollment/resource';
 import { confirmClientSignup } from '../functions/confirmClientSignup/resource';
+import { getPendingCall } from '../functions/getPendingCall/resource';
 
 const schema = a.schema({
 
@@ -200,6 +201,19 @@ const schema = a.schema({
     .returns(a.customType({ confirmed: a.boolean(), error: a.string() }))
     .authorization(allow => [allow.publicApiKey()])
     .handler(a.handler.function(confirmClientSignup)),
+
+  getPendingCall: a
+    .query()
+    .arguments({ email: a.string().required() })
+    .returns(a.customType({
+      callId: a.string(),
+      clientName: a.string(),
+      scheduledAt: a.string(),
+      status: a.string(),
+      notes: a.string(),
+    }))
+    .authorization(allow => [allow.authenticated()])
+    .handler(a.handler.function(getPendingCall)),
 
 });
 
