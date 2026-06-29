@@ -342,7 +342,8 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
   const [clientRecordId, setClientRecordId] = useState<string | null>(null);
 
   const [pastDeals, setPastDeals] = useState<any[]>([]);
-  const [clientState, setClientState] = useState<'loading' | 'no-deal' | 'pending' | 'active'>('loading');
+  const [clientState, setClientState] = useState<'loading' | 'no-deal' | 'call-scheduled' | 'pending' | 'active'>('loading');
+  const [pendingCall, setPendingCall] = useState<any>(null);
 
   const fetchDealData = async (dealId: string) => {
     setIsPolling(true);
@@ -390,66 +391,61 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
     const activeDealId = currentUser.activeDealId;
     const clientEmail = currentUser.email;
+    let pollInterval: NodeJS.Timeout | null = null;
 
-    if (!activeDealId) {
-      setClientState('no-deal');
-      return;
-    }
+    (async () => {
+      if (!activeDealId) {
+        if (clientEmail) {
+          try {
+            const callRes = await fetch('/api/calls?date=');
+            if (callRes.ok) {
+              const callData = await callRes.json();
+              const scheduled = (callData.calls || []).find((c: any) =>
+                c.clientEmail === clientEmail && c.status === 'scheduled'
+              );
+              if (scheduled) {
+                setPendingCall(scheduled);
+                setClientState('call-scheduled');
+                return;
+              }
+            }
+          } catch {}
+        }
+        setClientState('no-deal');
+        return;
+      }
 
-    fetchDealData(activeDealId).then(() => {
+      await fetchDealData(activeDealId);
       if (dealStatus === 'Pending') setClientState('pending');
       else setClientState('active');
-    });
-    const pollInterval = setInterval(() => fetchDealData(activeDealId), 60000);
-    {
+      pollInterval = setInterval(() => fetchDealData(activeDealId), 60000);
 
-      // Load past deals + client preferences
-      (async () => {
-        try {
-          if (clientEmail) {
-            const { data: allDeals } = await dataClient.models.Deal.list({
-              filter: { clientId: { eq: clientEmail } },
-            });
-            const completed = (allDeals || []).filter(d =>
-              d.id !== activeDealId && (d.status === 'Complete' || d.status === 'Dead')
-            );
-            if (completed.length > 0) {
-              const pastWithVehicles = await Promise.all(completed.map(async (d) => {
-                let vehicleName = 'Vehicle';
-                let bestOfferPrice = '';
-                try {
-                  const { data: vps } = await dataClient.models.VehiclePreference.list({ filter: { dealId: { eq: d.id } } });
-                  if (vps.length > 0) vehicleName = [vps[0].year, vps[0].make, vps[0].model, vps[0].trim].filter(Boolean).join(' ');
-                  const { data: ofrs } = await dataClient.models.Offer.list({ filter: { dealId: { eq: d.id } } });
-                  const best = ofrs.find(o => o.status === 'Best');
-                  if (best) bestOfferPrice = '$' + best.quotedPrice.toLocaleString('en-US', { minimumFractionDigits: 0 });
-                } catch {}
-                return {
-                  id: d.id,
-                  vehicle: vehicleName,
-                  status: STATUS_DISPLAY[d.status || 'Complete'] || 'Complete',
-                  submitted: d.submittedAt?.split('T')[0] || '',
-                  bestOffer: bestOfferPrice,
-                };
-              }));
-              setPastDeals(pastWithVehicles);
-            }
-
-            const { data: clients } = await dataClient.models.Client.list({
-              filter: { email: { eq: clientEmail } },
-            });
-            if (clients.length > 0) {
-              setClientRecordId(clients[0].id);
-              setEmailNotifications(clients[0].emailNotifications !== false);
-            }
+      try {
+        if (clientEmail) {
+          const { data: allDeals } = await dataClient.models.Deal.list({ filter: { clientId: { eq: clientEmail } } });
+          const completed = (allDeals || []).filter(d => d.id !== activeDealId && (d.status === 'Complete' || d.status === 'Dead'));
+          if (completed.length > 0) {
+            const pastWithVehicles = await Promise.all(completed.map(async (d) => {
+              let vehicleName = 'Vehicle';
+              let bestOfferPrice = '';
+              try {
+                const { data: vps } = await dataClient.models.VehiclePreference.list({ filter: { dealId: { eq: d.id } } });
+                if (vps.length > 0) vehicleName = [vps[0].year, vps[0].make, vps[0].model, vps[0].trim].filter(Boolean).join(' ');
+                const { data: ofrs } = await dataClient.models.Offer.list({ filter: { dealId: { eq: d.id } } });
+                const best = ofrs.find(o => o.status === 'Best');
+                if (best) bestOfferPrice = '$' + best.quotedPrice.toLocaleString('en-US', { minimumFractionDigits: 0 });
+              } catch {}
+              return { id: d.id, vehicle: vehicleName, status: STATUS_DISPLAY[d.status || 'Complete'] || 'Complete', submitted: d.submittedAt?.split('T')[0] || '', bestOffer: bestOfferPrice };
+            }));
+            setPastDeals(pastWithVehicles);
           }
-        } catch (err) {
-          console.error('Failed to load client preferences', err);
+          const { data: clients } = await dataClient.models.Client.list({ filter: { email: { eq: clientEmail } } });
+          if (clients.length > 0) { setClientRecordId(clients[0].id); setEmailNotifications(clients[0].emailNotifications !== false); }
         }
-      })();
+      } catch (err) { console.error('Failed to load client preferences', err); }
+    })();
 
-      return () => clearInterval(pollInterval);
-    }
+    return () => { if (pollInterval) clearInterval(pollInterval); };
   }, []);
 
   useEffect(() => {
@@ -513,16 +509,47 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
   const hc = headerConfig[dealStatus] || headerConfig['New'];
   const steps = getSteps();
 
+  if (clientState === 'call-scheduled' && pendingCall) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <Header variant="authenticated" />
+        <div className="max-w-2xl mx-auto px-6 py-12 flex-1 w-full text-center">
+          <div className="bg-white rounded-3xl shadow p-10">
+            <div className="text-5xl mb-6">🗓</div>
+            <h1 className="text-2xl font-bold mb-2">Your Discovery Call is Scheduled!</h1>
+            <p className="text-slate-500 mb-6">We're looking forward to speaking with you.</p>
+            <div className="bg-emerald-50 rounded-2xl p-5 mb-6">
+              <div className="font-semibold text-emerald-800 mb-1">
+                {new Date(pendingCall.scheduledAt).toLocaleString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}
+              </div>
+              <div className="text-sm text-emerald-600">30 minutes · Phone call</div>
+            </div>
+            <div className="text-left space-y-3 text-sm text-slate-600 mb-6">
+              <div className="font-semibold text-slate-800">What to expect:</div>
+              <div className="flex items-center gap-2"><span className="text-emerald-500">✓</span>We'll discuss your vehicle needs and budget</div>
+              <div className="flex items-center gap-2"><span className="text-emerald-500">✓</span>We'll explain exactly how we negotiate for you</div>
+              <div className="flex items-center gap-2"><span className="text-emerald-500">✓</span>No commitment required on the call</div>
+            </div>
+            <p className="text-sm text-slate-400">Questions? <a href="mailto:info@driveadvocate.com" className="text-emerald-600 hover:underline">info@driveadvocate.com</a></p>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   if (clientState === 'no-deal') {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col">
         <Header variant="authenticated" />
-        <div className="max-w-2xl mx-auto px-6 py-16 flex-1 w-full text-center">
-          <div className="text-5xl mb-6">👋</div>
-          <h1 className="text-3xl font-bold mb-3">{getGreeting()}, {user.firstName || 'there'}</h1>
-          <p className="text-slate-500 mb-8">You don't have an active deal yet. Book a discovery call to get started.</p>
-          <a href="/book" className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-semibold transition">Book Your Free Discovery Call</a>
-          <p className="text-sm text-slate-400 mt-4">Already booked? Your advocate will update your dashboard after your call.</p>
+        <div className="max-w-2xl mx-auto px-6 py-12 flex-1 w-full text-center">
+          <div className="bg-white rounded-3xl shadow p-10">
+            <div className="text-5xl mb-4">👋</div>
+            <h1 className="text-2xl font-bold mb-2">Welcome to DriveAdvocate</h1>
+            <p className="text-slate-500 mb-8">Ready to stop negotiating alone? Book your free discovery call and let's talk about your next vehicle.</p>
+            <a href="/book" className="inline-block bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-semibold text-lg transition">Book Your Free Discovery Call →</a>
+            <p className="text-sm text-slate-400 mt-4">Already booked? Your advocate will update your dashboard after your call.</p>
+          </div>
         </div>
         <Footer />
       </div>

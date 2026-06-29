@@ -118,7 +118,7 @@ export default function BookPage() {
           localStorage.setItem('justBooked', 'true');
           setTimeout(() => {
             window.location.href = '/dashboard?booked=true';
-          }, 1500);
+          }, 2000);
         },
       });
     })();
