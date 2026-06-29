@@ -22,6 +22,14 @@ export default function PreCallPrep() {
       try {
         const result = await dataClient.queries.getCallById({ callId: callId as string });
         const data = result.data ? JSON.parse(result.data) : null;
+        if (data) {
+          if (!data.clientZip && data.clientEmail) {
+            try {
+              const clientResult = await dataClient.models.Client.list({ filter: { email: { eq: data.clientEmail } } });
+              if (clientResult.data?.[0]?.zipCode) data.clientZip = clientResult.data[0].zipCode;
+            } catch {}
+          }
+        }
         setCall(data);
         setNotes(data?.notes || '');
       } catch {}
