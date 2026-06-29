@@ -408,18 +408,20 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
         if (justBooked) {
           localStorage.removeItem('justBooked');
           localStorage.removeItem('bookedEmail');
-          setClientState('call-scheduled');
-          setPendingCall({ scheduledAt: new Date(Date.now() + 86400000).toISOString() });
-          return;
         }
         try {
           const result = await dataClient.queries.getPendingCall({ email: clientEmail });
           if (result.data) {
-            setPendingCall(result.data);
+            setPendingCall(JSON.parse(result.data as string));
             setClientState('call-scheduled');
             return;
           }
         } catch {}
+        if (justBooked) {
+          setClientState('call-scheduled');
+          setPendingCall({ scheduledAt: new Date(Date.now() + 86400000).toISOString() });
+          return;
+        }
         setClientState('no-deal');
         return;
       }
