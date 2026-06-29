@@ -30,7 +30,8 @@ export default function VehicleWizardModal({ clientZip, onComplete, onClose }: P
     (async () => {
       try {
         const result = await dataClient.queries.getCatalog({});
-        setAllCatalog(JSON.parse(result.data || '[]'));
+        const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : (result.data || []);
+        setAllCatalog(Array.isArray(parsed) ? parsed : []);
       } catch { }
       setLoadingCatalog(false);
     })();

@@ -6,6 +6,7 @@ import { signOut, getCurrentUser } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
+import { parseAppSyncResult } from '@/app/lib/parse-result';
 
 
 interface Deal {
@@ -119,7 +120,7 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
       try {
         const dateStr = viewDate.toISOString().split('T')[0];
         const result = await dataClient.queries.getCallsByDate({ date: dateStr });
-        setTodaysCalls(JSON.parse(result.data || '[]'));
+        setTodaysCalls(parseAppSyncResult(result.data, []));
       } catch { setTodaysCalls([]); }
     })();
   }, [viewDate]);
@@ -415,8 +416,8 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
             const result = await dataClient.queries.getPendingCall({ email: clientEmail });
             console.log('getPendingCall result:', result);
             if (result.data) {
-              const callData = JSON.parse(result.data as string);
-              console.log('Parsed call:', callData, 'scheduledAt:', callData.scheduledAt);
+              const callData = parseAppSyncResult(result.data);
+              console.log('Parsed call:', callData, 'scheduledAt:', callData?.scheduledAt);
               setPendingCall(callData);
               setClientState('call-scheduled');
               return;

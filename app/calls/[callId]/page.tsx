@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
+import { parseAppSyncResult } from '@/app/lib/parse-result';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import FinancialWizard, { FinancialProfileData } from '@/app/components/FinancialWizard';
@@ -33,7 +34,7 @@ export default function PreCallPrep() {
     (async () => {
       try {
         const result = await dataClient.queries.getCallById({ callId: callId as string });
-        const data = result.data ? JSON.parse(result.data) : null;
+        const data = result.data ? parseAppSyncResult(result.data) : null;
         if (data && !data.clientZip && data.clientEmail) {
           try {
             const clientResult = await dataClient.models.Client.list({ filter: { email: { eq: data.clientEmail } } });

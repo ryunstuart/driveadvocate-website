@@ -228,7 +228,8 @@ export default function VehicleWizard() {
     (async () => {
       try {
         const result = await dataClient.queries.getCatalog({});
-        setAllCatalogData(JSON.parse(result.data || '[]'));
+        const { parseAppSyncResult } = await import('@/app/lib/parse-result');
+        setAllCatalogData(parseAppSyncResult(result.data, []));
       } catch {}
       setCatalogLoaded(true);
     })();
