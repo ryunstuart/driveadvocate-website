@@ -117,7 +117,7 @@ export default function FinancialWizard({ clientName, vehicleMake, vehicleModel,
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div id="fw-scroll" className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="bg-slate-900 text-white px-8 py-6 rounded-t-3xl">
           <div className="flex items-center justify-between">
             <div>
@@ -339,9 +339,9 @@ export default function FinancialWizard({ clientName, vehicleMake, vehicleModel,
 
           {/* Navigation */}
           <div className="flex gap-4 mt-8">
-            {step > 1 && <button onClick={() => setStep(s => s - 1)} className="flex-1 py-3 border border-slate-300 rounded-2xl font-medium hover:bg-slate-50 transition text-sm">Back</button>}
+            {step > 1 && <button onClick={() => { setStep(s => s - 1); document.getElementById('fw-scroll')?.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex-1 py-3 border border-slate-300 rounded-2xl font-medium hover:bg-slate-50 transition text-sm">Back</button>}
             {step < totalSteps ? (
-              <button onClick={() => setStep(s => s + 1)} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition text-sm">Continue</button>
+              <button onClick={() => { setStep(s => s + 1); document.getElementById('fw-scroll')?.scrollTo({ top: 0, behavior: 'smooth' }); }} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition text-sm">Continue</button>
             ) : (
               <button onClick={() => onSave({ creditTier, downPayment, hasTrade, tradeValue, tradeOwed, annualMiles, keepDuration, businessUse, businessPercent, taxBracket, wantsMods, primaryGoal, monthlyBudget, wantsOwnership })} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition text-sm">Save Financial Profile</button>
             )}

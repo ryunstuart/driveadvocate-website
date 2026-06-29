@@ -7,6 +7,7 @@ import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import FinancialWizard, { FinancialProfileData } from '@/app/components/FinancialWizard';
+import VehicleWizardModal from '@/app/components/VehicleWizardModal';
 
 export default function PreCallPrep() {
   const router = useRouter();
@@ -25,11 +26,6 @@ export default function PreCallPrep() {
   const [vehiclePrefs, setVehiclePrefs] = useState<any>(null);
   const [enrollmentSent, setEnrollmentSent] = useState(false);
 
-  const [vMake, setVMake] = useState('');
-  const [vModel, setVModel] = useState('');
-  const [vYear, setVYear] = useState('2026');
-  const [vTrim, setVTrim] = useState('');
-  const [vCondition, setVCondition] = useState('used');
 
   useEffect(() => { getCurrentUser().catch(() => router.push('/login')); }, [router]);
 
@@ -263,26 +259,13 @@ export default function PreCallPrep() {
         />
       )}
 
-      {/* Vehicle Preferences Quick Form */}
+      {/* Vehicle Wizard Modal */}
       {showVehicleWizard && (
-        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg p-8 shadow-2xl">
-            <h3 className="text-xl font-semibold mb-6">Vehicle Preferences</h3>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-slate-700 mb-1">Year</label><select value={vYear} onChange={e => setVYear(e.target.value)} className="w-full p-3 border border-slate-300 rounded-2xl text-sm"><option>2026</option><option>2025</option><option>2024</option><option>2020</option></select></div>
-                <div><label className="block text-sm font-medium text-slate-700 mb-1">Condition</label><select value={vCondition} onChange={e => setVCondition(e.target.value)} className="w-full p-3 border border-slate-300 rounded-2xl text-sm"><option value="new">New</option><option value="used">Used</option></select></div>
-              </div>
-              <div><label className="block text-sm font-medium text-slate-700 mb-1">Make</label><input type="text" value={vMake} onChange={e => setVMake(e.target.value)} placeholder="Ford" className="w-full p-3 border border-slate-300 rounded-2xl text-sm focus:outline-none focus:border-emerald-500" /></div>
-              <div><label className="block text-sm font-medium text-slate-700 mb-1">Model</label><input type="text" value={vModel} onChange={e => setVModel(e.target.value)} placeholder="F-150" className="w-full p-3 border border-slate-300 rounded-2xl text-sm focus:outline-none focus:border-emerald-500" /></div>
-              <div><label className="block text-sm font-medium text-slate-700 mb-1">Trim (optional)</label><input type="text" value={vTrim} onChange={e => setVTrim(e.target.value)} placeholder="Lariat" className="w-full p-3 border border-slate-300 rounded-2xl text-sm focus:outline-none focus:border-emerald-500" /></div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowVehicleWizard(false)} className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50 text-sm font-medium">Cancel</button>
-              <button onClick={() => { setVehiclePrefs({ make: vMake, model: vModel, year: vYear, trim: vTrim, condition: vCondition }); setVehicleComplete(true); setShowVehicleWizard(false); }} disabled={!vMake || !vModel} className="flex-1 py-3 bg-emerald-600 text-white rounded-2xl hover:bg-emerald-700 disabled:bg-slate-300 text-sm font-semibold">Save Vehicle</button>
-            </div>
-          </div>
-        </div>
+        <VehicleWizardModal
+          clientZip={call.clientZip}
+          onComplete={(prefs) => { setVehiclePrefs(prefs); setVehicleComplete(true); setShowVehicleWizard(false); }}
+          onClose={() => setShowVehicleWizard(false)}
+        />
       )}
 
       <Footer />
