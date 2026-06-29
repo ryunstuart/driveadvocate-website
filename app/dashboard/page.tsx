@@ -68,6 +68,7 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
   const [pendingDeals, setPendingDeals] = useState<any[]>([]);
   const [todaysCalls, setTodaysCalls] = useState<any[]>([]);
   const [upcomingPopup, setUpcomingPopup] = useState<any>(null);
+  const [viewDate, setViewDate] = useState(new Date());
 
   useEffect(() => {
     async function loadDeals() {
@@ -111,15 +112,18 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
       }
     }
     loadDeals();
+  }, []);
 
+  useEffect(() => {
     (async () => {
       try {
-        const today = new Date().toISOString().split('T')[0];
-        const res = await fetch(`/api/calls?date=${today}`);
+        const dateStr = viewDate.toISOString().split('T')[0];
+        const res = await fetch(`/api/calls?date=${dateStr}`);
         if (res.ok) { const data = await res.json(); setTodaysCalls(data.calls || []); }
-      } catch {}
+        else setTodaysCalls([]);
+      } catch { setTodaysCalls([]); }
     })();
-  }, []);
+  }, [viewDate]);
 
   useEffect(() => {
     const check = () => {
@@ -268,14 +272,20 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
             </div>
           </div>
         </div>
-        {/* Today's Discovery Calls */}
+        {/* Discovery Calls */}
         <div className="bg-white rounded-3xl shadow p-6 mt-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold">Today's Discovery Calls{todaysCalls.length > 0 && <span className="ml-2 bg-emerald-100 text-emerald-700 text-sm px-2 py-0.5 rounded-full">{todaysCalls.length}</span>}</h2>
-            <span className="text-sm text-slate-500">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+            <h2 className="text-lg font-bold">Discovery Calls{todaysCalls.length > 0 && <span className="ml-2 bg-emerald-100 text-emerald-700 text-sm px-2 py-0.5 rounded-full">{todaysCalls.length}</span>}</h2>
+            <div className="flex items-center gap-3">
+              <button onClick={() => { const d = new Date(viewDate); d.setDate(d.getDate() - 1); setViewDate(d); }} className="w-8 h-8 rounded-full border border-slate-200 hover:border-emerald-500 flex items-center justify-center transition">←</button>
+              <button onClick={() => setViewDate(new Date())} className={`text-sm font-medium px-3 py-1 rounded-full transition ${viewDate.toDateString() === new Date().toDateString() ? 'bg-emerald-100 text-emerald-700' : 'text-slate-500 hover:text-emerald-600'}`}>
+                {viewDate.toDateString() === new Date().toDateString() ? 'Today' : viewDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+              </button>
+              <button onClick={() => { const d = new Date(viewDate); d.setDate(d.getDate() + 1); setViewDate(d); }} className="w-8 h-8 rounded-full border border-slate-200 hover:border-emerald-500 flex items-center justify-center transition">→</button>
+            </div>
           </div>
           {todaysCalls.length === 0 ? (
-            <div className="text-center py-8 text-slate-400"><div className="text-3xl mb-2">📅</div><div className="text-sm">No discovery calls scheduled today</div></div>
+            <div className="text-center py-8 text-slate-400"><div className="text-3xl mb-2">📅</div><div className="text-sm">No discovery calls scheduled {viewDate.toDateString() === new Date().toDateString() ? 'today' : 'this day'}</div></div>
           ) : (
             <div className="space-y-3">
               {todaysCalls.map((call: any) => {
