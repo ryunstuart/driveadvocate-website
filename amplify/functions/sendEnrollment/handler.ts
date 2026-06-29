@@ -18,6 +18,7 @@ export const handler = async (event: any) => {
 
     const token = randomUUID();
     const expiresAt = new Date(Date.now() + 72 * 3600000).toISOString();
+    console.log('Token:', token, 'Expires:', expiresAt);
 
     await db.send(new PutCommand({
       TableName: 'OnboardingTokens',
@@ -37,7 +38,9 @@ export const handler = async (event: any) => {
       ExpressionAttributeValues: { ':t': true, ':a': new Date().toISOString(), ':u': new Date().toISOString() },
     }));
 
-    const enrollmentUrl = `https://driveadvocate.com/enroll/${token}`;
+    const BASE_URL = process.env.ENROLLMENT_BASE_URL || 'https://driveadvocate.com';
+    const enrollmentUrl = `${BASE_URL}/enroll/${token}`;
+    console.log('Enrollment URL:', enrollmentUrl);
     const firstName = call.clientName.split(' ')[0];
 
     await ses.send(new SendEmailCommand({

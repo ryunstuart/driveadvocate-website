@@ -186,6 +186,8 @@ new CfnOutput(backend.calcomWebhook.resources.lambda.stack, 'CalcomWebhookUrl', 
 
 // --- sendEnrollment permissions ---
 
+backend.sendEnrollment.addEnvironment('ENROLLMENT_BASE_URL', 'https://driveadvocate.com');
+
 backend.sendEnrollment.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:GetItem'],
