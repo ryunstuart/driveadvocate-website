@@ -5,6 +5,7 @@ const db = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' 
 
 export const handler = async (event: any) => {
   const email = event.arguments.email;
+  console.log('getPendingCall for:', email);
 
   try {
     const result = await db.send(new ScanCommand({
@@ -15,15 +16,19 @@ export const handler = async (event: any) => {
     }));
 
     const call = result.Items?.[0];
-    if (!call) return null;
+    if (!call) { console.log('No scheduled call found'); return null; }
 
-    return {
+    console.log('Found call — scheduledAt:', call.scheduledAt, 'createdAt:', call.createdAt);
+
+    return JSON.stringify({
       callId: call.callId,
       clientName: call.clientName,
+      clientEmail: call.clientEmail,
+      clientPhone: call.clientPhone,
       scheduledAt: call.scheduledAt,
       status: call.status,
       notes: call.notes || '',
-    };
+    });
   } catch (err: any) {
     console.error('getPendingCall error:', err);
     return null;
