@@ -98,6 +98,7 @@ export default function PreCallPrep() {
       await updateStatus('completed');
       setShowCallWorkflow(false);
       setEnrollmentSent(true);
+      setTimeout(() => router.push('/dashboard'), 2000);
     } catch (err) {
       console.error('Enrollment failed:', err);
     }
@@ -127,9 +128,9 @@ export default function PreCallPrep() {
         <button onClick={() => router.push('/dashboard')} className="text-emerald-600 hover:underline text-sm mb-6 block">← Back to Dashboard</button>
 
         {enrollmentSent && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
-            <span className="text-emerald-600 text-lg">✓</span>
-            <div><div className="font-semibold text-emerald-800">Enrollment link sent!</div><div className="text-sm text-emerald-600">{call.clientEmail}</div></div>
+          <div className="fixed bottom-6 right-6 bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-xl z-50 flex items-center gap-3">
+            <span className="text-xl">✓</span>
+            <div><div className="font-semibold">Enrollment link sent!</div><div className="text-sm opacity-90">Returning to dashboard...</div></div>
           </div>
         )}
 
