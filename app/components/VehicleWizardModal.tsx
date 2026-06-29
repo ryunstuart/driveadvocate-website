@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { dataClient } from '@/app/lib/amplify-data';
 
 interface VehicleResult {
   make: string; model: string; year: string; trim: string; condition: string;
@@ -28,12 +29,9 @@ export default function VehicleWizardModal({ clientZip, onComplete, onClose }: P
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/catalog/all');
-        if (res.ok) {
-          const data = await res.json();
-          setAllCatalog(data.items || []);
-        }
-      } catch {}
+        const result = await dataClient.queries.getCatalog({});
+        setAllCatalog(JSON.parse(result.data || '[]'));
+      } catch { }
       setLoadingCatalog(false);
     })();
   }, []);

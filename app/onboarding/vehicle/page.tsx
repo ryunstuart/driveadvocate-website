@@ -227,11 +227,8 @@ export default function VehicleWizard() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch('/api/catalog/all');
-        if (res.ok) {
-          const data = await res.json();
-          setAllCatalogData(data.items || []);
-        }
+        const result = await dataClient.queries.getCatalog({});
+        setAllCatalogData(JSON.parse(result.data || '[]'));
       } catch {}
       setCatalogLoaded(true);
     })();

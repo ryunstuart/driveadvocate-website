@@ -7,6 +7,7 @@ import { getPendingCall } from '../functions/getPendingCall/resource';
 import { getCallsByDate } from '../functions/getCallsByDate/resource';
 import { getCallById } from '../functions/getCallById/resource';
 import { updateCall } from '../functions/updateCall/resource';
+import { getCatalog } from '../functions/getCatalog/resource';
 
 const schema = a.schema({
 
@@ -238,6 +239,13 @@ const schema = a.schema({
     .returns(a.string())
     .authorization(allow => [allow.groups(['advocates', 'admins'])])
     .handler(a.handler.function(updateCall)),
+
+  getCatalog: a
+    .query()
+    .arguments({})
+    .returns(a.string())
+    .authorization(allow => [allow.authenticated()])
+    .handler(a.handler.function(getCatalog)),
 
 });
 

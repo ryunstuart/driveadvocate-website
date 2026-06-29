@@ -11,6 +11,7 @@ import { getPendingCall } from './functions/getPendingCall/resource';
 import { getCallsByDate } from './functions/getCallsByDate/resource';
 import { getCallById } from './functions/getCallById/resource';
 import { updateCall } from './functions/updateCall/resource';
+import { getCatalog } from './functions/getCatalog/resource';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { CfnOutput } from 'aws-cdk-lib';
@@ -28,6 +29,7 @@ const backend = defineBackend({
   getCallsByDate,
   getCallById,
   updateCall,
+  getCatalog,
 });
 
 // --- sendClientUpdate permissions ---
@@ -238,6 +240,13 @@ backend.updateCall.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['dynamodb:UpdateItem'],
     resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls'],
+  }),
+);
+
+backend.getCatalog.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:Scan'],
+    resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/VehicleCatalog'],
   }),
 );
 
