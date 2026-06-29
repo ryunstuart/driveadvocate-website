@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { dataClient } from '@/app/lib/amplify-data';
 import Footer from '@/app/components/Footer';
 
 type EnrollStep = 'loading' | 'invalid' | 'summary' | 'agreement' | 'payment' | 'complete';
@@ -19,16 +20,24 @@ export default function EnrollPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch(`/api/enroll?token=${token}`);
-        if (!res.ok) { setStep('invalid'); return; }
-        const data = await res.json();
-        if (!data.tokenRecord) { setStep('invalid'); return; }
-        if (data.tokenRecord.used) { router.push('/dashboard'); return; }
-        if (new Date(data.tokenRecord.expiresAt) < new Date()) { setStep('invalid'); return; }
-        setTokenData(data.tokenRecord);
-        if (data.tokenRecord.agreementAccepted) { setStep('payment'); }
+        console.log('Validating token:', token);
+        const result = await dataClient.queries.getOnboardingToken(
+          { token: token as string },
+          { authMode: 'apiKey' },
+        );
+        console.log('Token result:', result);
+
+        if (!result.data) { console.log('Token not found'); setStep('invalid'); return; }
+        if (result.data.used) { console.log('Token used'); router.push('/dashboard'); return; }
+        if (new Date(result.data.expiresAt as string) < new Date()) { console.log('Token expired'); setStep('invalid'); return; }
+
+        setTokenData(result.data);
+        if (result.data.agreementAccepted) { setStep('payment'); }
         else { setStep('summary'); }
-      } catch { setStep('invalid'); }
+      } catch (err) {
+        console.error('Token validation error:', err);
+        setStep('invalid');
+      }
     })();
   }, [token, router]);
 
@@ -94,7 +103,7 @@ export default function EnrollPage() {
           <div className="flex items-center justify-center gap-2 mb-10">
             {steps.map((s, i) => (
               <div key={s} className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i < currentIdx ? 'bg-emerald-600 text-white' : i === currentIdx ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${i <= currentIdx ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
                   {i < currentIdx ? '✓' : i + 1}
                 </div>
                 <span className={`text-sm font-medium hidden sm:block ${i === currentIdx ? 'text-slate-800' : 'text-slate-400'}`}>{s}</span>
@@ -106,7 +115,7 @@ export default function EnrollPage() {
 
         {step === 'summary' && tokenData && (
           <div className="space-y-6">
-            <h1 className="text-3xl font-bold">Welcome, {tokenData.clientName?.split(' ')[0]}</h1>
+            <h1 className="text-3xl font-bold">Welcome, {(tokenData.clientName as string)?.split(' ')[0]}</h1>
             <p className="text-slate-500">Review your enrollment details.</p>
             <div className="bg-white rounded-3xl shadow p-8">
               <h2 className="font-semibold mb-4">Your Enrollment</h2>
@@ -116,9 +125,7 @@ export default function EnrollPage() {
                 <div className="flex justify-between border-t border-slate-100 pt-3"><span className="text-slate-500">Service</span><span className="font-semibold">DriveAdvocate Negotiation Service</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">Price</span><span className="font-bold text-emerald-700 text-lg">$899</span></div>
               </div>
-              <div className="mt-4 bg-emerald-50 rounded-2xl p-4 text-sm text-emerald-700">
-                Have a discount code? You'll be able to apply it on the payment page.
-              </div>
+              <div className="mt-4 bg-emerald-50 rounded-2xl p-4 text-sm text-emerald-700">Have a discount code? You'll be able to apply it on the payment page.</div>
             </div>
             <button onClick={() => setStep('agreement')} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition">Continue to Agreement</button>
           </div>
@@ -149,28 +156,20 @@ export default function EnrollPage() {
           <div className="space-y-6">
             <h1 className="text-3xl font-bold">Complete Payment</h1>
             {cancelled && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-2xl">
-                Payment was cancelled. You can try again below.
-              </div>
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-2xl">Payment was cancelled. You can try again below.</div>
             )}
             <div className="bg-white rounded-3xl shadow p-8">
               <h2 className="font-semibold mb-4">Order Summary</h2>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between"><span className="text-slate-600">DriveAdvocate Negotiation Service</span><span className="font-semibold">$899</span></div>
-                <div className="flex justify-between text-xs text-slate-400"><span>Full dealer negotiation, OTD price locked, dedicated advocate</span></div>
                 <div className="border-t border-slate-100 pt-3 flex justify-between font-bold text-lg"><span>Total</span><span className="text-emerald-700">$899</span></div>
               </div>
-              <div className="mt-4 bg-blue-50 rounded-2xl p-3 text-sm text-blue-700">
-                Have a discount code? Enter it on the next screen during checkout.
-              </div>
+              <div className="mt-4 bg-blue-50 rounded-2xl p-3 text-sm text-blue-700">Have a discount code? Enter it on the next screen during checkout.</div>
             </div>
             <div className="bg-white rounded-3xl shadow p-8">
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-2xl">🔒</span>
-                <div>
-                  <div className="font-semibold text-sm">Secure Checkout via Stripe</div>
-                  <div className="text-xs text-slate-500">Your payment info is handled securely by Stripe. We never see your card details.</div>
-                </div>
+                <div><div className="font-semibold text-sm">Secure Checkout via Stripe</div><div className="text-xs text-slate-500">Your payment info is handled securely by Stripe.</div></div>
               </div>
               <button onClick={handlePayment} disabled={loading} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 disabled:bg-slate-300 transition text-lg">
                 {loading ? 'Redirecting to checkout...' : 'Pay $899 →'}

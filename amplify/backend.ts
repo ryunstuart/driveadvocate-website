@@ -12,6 +12,7 @@ import { getCallsByDate } from './functions/getCallsByDate/resource';
 import { getCallById } from './functions/getCallById/resource';
 import { updateCall } from './functions/updateCall/resource';
 import { getCatalog } from './functions/getCatalog/resource';
+import { getOnboardingToken } from './functions/getOnboardingToken/resource';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { CfnOutput } from 'aws-cdk-lib';
@@ -30,6 +31,7 @@ const backend = defineBackend({
   getCallById,
   updateCall,
   getCatalog,
+  getOnboardingToken,
 });
 
 // --- sendClientUpdate permissions ---
@@ -242,6 +244,13 @@ backend.updateCall.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['dynamodb:UpdateItem'],
     resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls'],
+  }),
+);
+
+backend.getOnboardingToken.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:GetItem'],
+    resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/OnboardingTokens'],
   }),
 );
 

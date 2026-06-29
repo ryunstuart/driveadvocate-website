@@ -8,6 +8,7 @@ import { getCallsByDate } from '../functions/getCallsByDate/resource';
 import { getCallById } from '../functions/getCallById/resource';
 import { updateCall } from '../functions/updateCall/resource';
 import { getCatalog } from '../functions/getCatalog/resource';
+import { getOnboardingToken } from '../functions/getOnboardingToken/resource';
 
 const schema = a.schema({
 
@@ -257,6 +258,23 @@ const schema = a.schema({
     .returns(a.string())
     .authorization(allow => [allow.authenticated()])
     .handler(a.handler.function(getCatalog)),
+
+  getOnboardingToken: a
+    .query()
+    .arguments({ token: a.string().required() })
+    .returns(a.customType({
+      token: a.string(),
+      clientEmail: a.string(),
+      clientName: a.string(),
+      dealId: a.string(),
+      callId: a.string(),
+      expiresAt: a.string(),
+      used: a.boolean(),
+      agreementAccepted: a.boolean(),
+      paymentStatus: a.string(),
+    }))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(a.handler.function(getOnboardingToken)),
 
 });
 
