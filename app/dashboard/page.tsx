@@ -397,7 +397,7 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
       if (!activeDealId) {
         if (clientEmail) {
           try {
-            const callRes = await fetch('/api/calls?date=');
+            const callRes = await fetch('/api/calls');
             if (callRes.ok) {
               const callData = await callRes.json();
               const scheduled = (callData.calls || []).find((c: any) =>
