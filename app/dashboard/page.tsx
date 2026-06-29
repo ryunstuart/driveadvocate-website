@@ -395,22 +395,28 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
 
     (async () => {
       if (!activeDealId) {
-        if (clientEmail) {
-          try {
-            const callRes = await fetch('/api/calls');
-            if (callRes.ok) {
-              const callData = await callRes.json();
-              const scheduled = (callData.calls || []).find((c: any) =>
-                c.clientEmail === clientEmail && c.status === 'scheduled'
-              );
-              if (scheduled) {
-                setPendingCall(scheduled);
-                setClientState('call-scheduled');
-                return;
-              }
-            }
-          } catch {}
+        const justBooked = localStorage.getItem('justBooked');
+        if (justBooked) {
+          localStorage.removeItem('justBooked');
+          localStorage.removeItem('bookedEmail');
+          setClientState('call-scheduled');
+          setPendingCall({ scheduledAt: new Date(Date.now() + 86400000).toISOString() });
+          return;
         }
+        try {
+          const callRes = await fetch('/api/calls');
+          if (callRes.ok) {
+            const callData = await callRes.json();
+            const scheduled = (callData.calls || []).find((c: any) =>
+              c.clientEmail === clientEmail && c.status === 'scheduled'
+            );
+            if (scheduled) {
+              setPendingCall(scheduled);
+              setClientState('call-scheduled');
+              return;
+            }
+          }
+        } catch {}
         setClientState('no-deal');
         return;
       }
