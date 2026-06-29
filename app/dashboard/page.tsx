@@ -119,7 +119,7 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
       try {
         const dateStr = viewDate.toISOString().split('T')[0];
         const result = await dataClient.queries.getCallsByDate({ date: dateStr });
-        setTodaysCalls(result.data || []);
+        setTodaysCalls(JSON.parse(result.data || '[]'));
       } catch { setTodaysCalls([]); }
     })();
   }, [viewDate]);

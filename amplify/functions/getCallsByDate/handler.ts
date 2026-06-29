@@ -21,13 +21,13 @@ export const handler = async (event: any) => {
       (a.scheduledAt || '').localeCompare(b.scheduledAt || '')
     );
 
-    return calls.map((c: any) => ({
+    return JSON.stringify(calls.map((c: any) => ({
       callId: c.callId, clientName: c.clientName, clientEmail: c.clientEmail,
       clientPhone: c.clientPhone, clientZip: c.clientZip || '',
       scheduledAt: c.scheduledAt, status: c.status, notes: c.notes || '',
-    }));
+    })));
   } catch (err: any) {
     console.error('getCallsByDate error:', err);
-    return [];
+    return '[]';
   }
 };

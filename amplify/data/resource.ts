@@ -219,16 +219,7 @@ const schema = a.schema({
   getCallsByDate: a
     .query()
     .arguments({ date: a.string().required() })
-    .returns(a.customType({
-      callId: a.string(),
-      clientName: a.string(),
-      clientEmail: a.string(),
-      clientPhone: a.string(),
-      clientZip: a.string(),
-      scheduledAt: a.string(),
-      status: a.string(),
-      notes: a.string(),
-    }).array())
+    .returns(a.string())
     .authorization(allow => [allow.groups(['advocates', 'admins'])])
     .handler(a.handler.function(getCallsByDate)),
 
