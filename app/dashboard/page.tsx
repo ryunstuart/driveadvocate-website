@@ -416,9 +416,8 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
             const result = await dataClient.queries.getPendingCall({ email: clientEmail });
             console.log('getPendingCall result:', result);
             if (result.data) {
-              const callData = parseAppSyncResult(result.data);
-              console.log('Parsed call:', callData, 'scheduledAt:', callData?.scheduledAt);
-              setPendingCall(callData);
+              console.log('scheduledAt:', result.data.scheduledAt);
+              setPendingCall(result.data);
               setClientState('call-scheduled');
               return;
             }

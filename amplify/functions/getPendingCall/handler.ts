@@ -23,32 +23,23 @@ export const handler = async (event: any) => {
     }));
 
     const items = result.Items || [];
-    if (items.length === 0) { console.log('No scheduled calls found'); return null; }
-
-    const raw = items[0];
-    console.log('Raw item keys:', Object.keys(raw));
-    console.log('scheduledAt raw:', JSON.stringify(raw.scheduledAt), 'type:', typeof raw.scheduledAt);
-    console.log('Full raw item:', JSON.stringify(raw));
+    if (items.length === 0) return null;
 
     const now = new Date().toISOString();
     const sorted = items.sort((a: any, b: any) =>
       new Date(unwrap(a.scheduledAt)).getTime() - new Date(unwrap(b.scheduledAt)).getTime()
     );
-    const upcoming = sorted.find((item: any) => unwrap(item.scheduledAt) > now) || sorted[sorted.length - 1];
+    const call = sorted.find((item: any) => unwrap(item.scheduledAt) > now) || sorted[sorted.length - 1];
 
-    const callData = {
-      callId: unwrap(upcoming.callId),
-      clientName: unwrap(upcoming.clientName),
-      clientEmail: unwrap(upcoming.clientEmail),
-      clientPhone: unwrap(upcoming.clientPhone),
-      scheduledAt: unwrap(upcoming.scheduledAt),
-      status: unwrap(upcoming.status),
-      notes: unwrap(upcoming.notes),
+    return {
+      callId: unwrap(call.callId),
+      clientName: unwrap(call.clientName),
+      clientEmail: unwrap(call.clientEmail),
+      clientPhone: unwrap(call.clientPhone),
+      scheduledAt: unwrap(call.scheduledAt),
+      status: unwrap(call.status),
+      notes: unwrap(call.notes),
     };
-
-    const jsonString = JSON.stringify(callData);
-    console.log('Returning:', jsonString);
-    return jsonString;
   } catch (err: any) {
     console.error('getPendingCall error:', err);
     return null;

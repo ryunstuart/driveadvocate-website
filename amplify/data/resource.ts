@@ -212,6 +212,8 @@ const schema = a.schema({
     .returns(a.customType({
       callId: a.string(),
       clientName: a.string(),
+      clientEmail: a.string(),
+      clientPhone: a.string(),
       scheduledAt: a.string(),
       status: a.string(),
       notes: a.string(),
@@ -229,7 +231,16 @@ const schema = a.schema({
   getCallById: a
     .query()
     .arguments({ callId: a.string().required() })
-    .returns(a.string())
+    .returns(a.customType({
+      callId: a.string(),
+      clientName: a.string(),
+      clientEmail: a.string(),
+      clientPhone: a.string(),
+      clientZip: a.string(),
+      scheduledAt: a.string(),
+      status: a.string(),
+      notes: a.string(),
+    }))
     .authorization(allow => [allow.groups(['advocates', 'admins'])])
     .handler(a.handler.function(getCallById)),
 

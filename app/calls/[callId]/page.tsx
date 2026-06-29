@@ -34,7 +34,7 @@ export default function PreCallPrep() {
     (async () => {
       try {
         const result = await dataClient.queries.getCallById({ callId: callId as string });
-        const data = result.data ? parseAppSyncResult(result.data) : null;
+        const data = result.data || null;
         if (data && !data.clientZip && data.clientEmail) {
           try {
             const clientResult = await dataClient.models.Client.list({ filter: { email: { eq: data.clientEmail } } });
