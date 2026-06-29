@@ -9,6 +9,8 @@ import { sendEnrollment } from './functions/sendEnrollment/resource';
 import { confirmClientSignup } from './functions/confirmClientSignup/resource';
 import { getPendingCall } from './functions/getPendingCall/resource';
 import { getCallsByDate } from './functions/getCallsByDate/resource';
+import { getCallById } from './functions/getCallById/resource';
+import { updateCall } from './functions/updateCall/resource';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { CfnOutput } from 'aws-cdk-lib';
@@ -24,6 +26,8 @@ const backend = defineBackend({
   confirmClientSignup,
   getPendingCall,
   getCallsByDate,
+  getCallById,
+  updateCall,
 });
 
 // --- sendClientUpdate permissions ---
@@ -219,6 +223,20 @@ backend.getPendingCall.resources.lambda.addToRolePolicy(
 backend.getCallsByDate.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['dynamodb:Scan'],
+    resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls'],
+  }),
+);
+
+backend.getCallById.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:GetItem'],
+    resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls'],
+  }),
+);
+
+backend.updateCall.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:UpdateItem'],
     resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls'],
   }),
 );

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getCurrentUser } from 'aws-amplify/auth';
+import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 
@@ -18,24 +19,24 @@ export default function PreCallPrep() {
 
   useEffect(() => {
     (async () => {
-      const res = await fetch(`/api/calls?callId=${callId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setCall(data.call);
-        setNotes(data.call?.notes || '');
-      }
+      try {
+        const result = await dataClient.queries.getCallById({ callId: callId as string });
+        const data = result.data ? JSON.parse(result.data) : null;
+        setCall(data);
+        setNotes(data?.notes || '');
+      } catch {}
       setLoading(false);
     })();
   }, [callId]);
 
   const updateStatus = async (status: string) => {
-    await fetch('/api/calls', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callId, status }) });
+    await dataClient.mutations.updateCall({ callId: callId as string, status });
     setCall((p: any) => ({ ...p, status }));
   };
 
   const saveNotes = async () => {
     setSaving(true);
-    await fetch('/api/calls', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ callId, notes }) });
+    await dataClient.mutations.updateCall({ callId: callId as string, notes });
     setSaving(false);
   };
 

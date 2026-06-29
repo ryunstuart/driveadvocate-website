@@ -5,6 +5,8 @@ import { sendEnrollment } from '../functions/sendEnrollment/resource';
 import { confirmClientSignup } from '../functions/confirmClientSignup/resource';
 import { getPendingCall } from '../functions/getPendingCall/resource';
 import { getCallsByDate } from '../functions/getCallsByDate/resource';
+import { getCallById } from '../functions/getCallById/resource';
+import { updateCall } from '../functions/updateCall/resource';
 
 const schema = a.schema({
 
@@ -222,6 +224,20 @@ const schema = a.schema({
     .returns(a.string())
     .authorization(allow => [allow.groups(['advocates', 'admins'])])
     .handler(a.handler.function(getCallsByDate)),
+
+  getCallById: a
+    .query()
+    .arguments({ callId: a.string().required() })
+    .returns(a.string())
+    .authorization(allow => [allow.groups(['advocates', 'admins'])])
+    .handler(a.handler.function(getCallById)),
+
+  updateCall: a
+    .mutation()
+    .arguments({ callId: a.string().required(), status: a.string(), notes: a.string() })
+    .returns(a.string())
+    .authorization(allow => [allow.groups(['advocates', 'admins'])])
+    .handler(a.handler.function(updateCall)),
 
 });
 
