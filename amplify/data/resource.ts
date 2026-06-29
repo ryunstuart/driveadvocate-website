@@ -4,6 +4,7 @@ import { searchDealInventory } from '../functions/searchDealInventory/resource';
 import { sendEnrollment } from '../functions/sendEnrollment/resource';
 import { confirmClientSignup } from '../functions/confirmClientSignup/resource';
 import { getPendingCall } from '../functions/getPendingCall/resource';
+import { getCallsByDate } from '../functions/getCallsByDate/resource';
 
 const schema = a.schema({
 
@@ -214,6 +215,22 @@ const schema = a.schema({
     }))
     .authorization(allow => [allow.authenticated()])
     .handler(a.handler.function(getPendingCall)),
+
+  getCallsByDate: a
+    .query()
+    .arguments({ date: a.string().required() })
+    .returns(a.customType({
+      callId: a.string(),
+      clientName: a.string(),
+      clientEmail: a.string(),
+      clientPhone: a.string(),
+      clientZip: a.string(),
+      scheduledAt: a.string(),
+      status: a.string(),
+      notes: a.string(),
+    }).array())
+    .authorization(allow => [allow.groups(['advocates', 'admins'])])
+    .handler(a.handler.function(getCallsByDate)),
 
 });
 

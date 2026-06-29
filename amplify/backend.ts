@@ -8,6 +8,7 @@ import { calcomWebhook } from './functions/calcomWebhook/resource';
 import { sendEnrollment } from './functions/sendEnrollment/resource';
 import { confirmClientSignup } from './functions/confirmClientSignup/resource';
 import { getPendingCall } from './functions/getPendingCall/resource';
+import { getCallsByDate } from './functions/getCallsByDate/resource';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { CfnOutput } from 'aws-cdk-lib';
@@ -22,6 +23,7 @@ const backend = defineBackend({
   sendEnrollment,
   confirmClientSignup,
   getPendingCall,
+  getCallsByDate,
 });
 
 // --- sendClientUpdate permissions ---
@@ -208,6 +210,13 @@ unauthRole.addToPrincipalPolicy(new PolicyStatement({
 // --- confirmClientSignup permissions ---
 
 backend.getPendingCall.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['dynamodb:Scan'],
+    resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls'],
+  }),
+);
+
+backend.getCallsByDate.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['dynamodb:Scan'],
     resources: ['arn:aws:dynamodb:us-east-1:870924848445:table/PendingCalls'],

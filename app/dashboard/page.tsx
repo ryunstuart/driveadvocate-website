@@ -118,9 +118,8 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
     (async () => {
       try {
         const dateStr = viewDate.toISOString().split('T')[0];
-        const res = await fetch(`/api/calls?date=${dateStr}`);
-        if (res.ok) { const data = await res.json(); setTodaysCalls(data.calls || []); }
-        else setTodaysCalls([]);
+        const result = await dataClient.queries.getCallsByDate({ date: dateStr });
+        setTodaysCalls(result.data || []);
       } catch { setTodaysCalls([]); }
     })();
   }, [viewDate]);
