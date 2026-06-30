@@ -11,6 +11,7 @@ import { getCatalog } from '../functions/getCatalog/resource';
 import { getOnboardingToken } from '../functions/getOnboardingToken/resource';
 import { createStripeCheckout } from '../functions/createStripeCheckout/resource';
 import { signAgreement } from '../functions/signAgreement/resource';
+import { createClientAccount } from '../functions/createClientAccount/resource';
 
 const schema = a.schema({
 
@@ -296,6 +297,19 @@ const schema = a.schema({
     .returns(a.customType({ success: a.boolean() }))
     .authorization(allow => [allow.publicApiKey()])
     .handler(a.handler.function(signAgreement)),
+
+  createClientAccount: a
+    .mutation()
+    .arguments({
+      email: a.string().required(),
+      password: a.string().required(),
+      firstName: a.string().required(),
+      lastName: a.string().required(),
+      phone: a.string(),
+    })
+    .returns(a.customType({ success: a.boolean(), error: a.string() }))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(a.handler.function(createClientAccount)),
 
 });
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cal, { getCalApi } from '@calcom/embed-react';
-import { signUp, signIn, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
+import { signIn, getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import { dataClient } from '@/app/lib/amplify-data';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
@@ -12,7 +12,7 @@ import { Eye, EyeOff } from 'lucide-react';
 const CALCOM_LINK = 'driveadvocate/driveadvocate-discovery-call';
 
 
-type Step = 'profile' | 'calendar' | 'confirmed';
+type Step = 'profile' | 'calendar';
 
 export default function BookPage() {
   const router = useRouter();
@@ -31,6 +31,7 @@ export default function BookPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
   useEffect(() => {
     getCurrentUser()
@@ -61,22 +62,13 @@ export default function BookPage() {
     try {
       const normalizedEmail = email.trim().toLowerCase();
 
-      await signUp({
-        username: normalizedEmail,
-        password,
-        options: {
-          userAttributes: {
-            email: normalizedEmail,
-            given_name: firstName,
-            family_name: lastName,
-          },
-        },
-      });
-
-      await dataClient.mutations.confirmClientSignup(
-        { email: normalizedEmail },
+      const created = await dataClient.mutations.createClientAccount(
+        { email: normalizedEmail, password, firstName, lastName, phone },
         { authMode: 'apiKey' },
       );
+      if (!created.data?.success) {
+        throw new Error(created.data?.error || 'Failed to create account.');
+      }
 
       await signIn({ username: normalizedEmail, password });
       await getCurrentUser();
@@ -99,10 +91,11 @@ export default function BookPage() {
 
       setStep('calendar');
     } catch (err: any) {
-      if (err.name === 'UsernameExistsException') {
+      const msg: string = err.message || '';
+      if (msg.toLowerCase().includes('already exists') || msg.toLowerCase().includes('username exists')) {
         setError('An account with this email already exists. Please log in instead.');
       } else {
-        setError(err.message || 'Failed to create account.');
+        setError(msg || 'Failed to create account.');
       }
     } finally {
       setLoading(false);
@@ -116,9 +109,7 @@ export default function BookPage() {
         action: 'bookingSuccessful',
         callback: () => {
           localStorage.setItem('justBooked', 'true');
-          setTimeout(() => {
-            window.location.href = '/dashboard?booked=true';
-          }, 2000);
+          setBookingConfirmed(true);
         },
       });
     })();
@@ -126,19 +117,14 @@ export default function BookPage() {
 
   useEffect(() => {
     if (step === 'calendar') {
-      localStorage.setItem('justBooked', 'true');
       localStorage.setItem('bookedEmail', email);
     }
-    if (step === 'confirmed') {
-      setTimeout(() => router.push('/dashboard'), 4000);
-    }
-  }, [step, router]);
+  }, [step, email]);
 
-  const stepIndex = { profile: 0, calendar: 1, confirmed: 2 };
+  const stepIndex = { profile: 0, calendar: 1 };
   const progressSteps = [
     { key: 'profile', label: 'Your Profile' },
     { key: 'calendar', label: 'Pick a Time' },
-    { key: 'confirmed', label: 'Confirmed' },
   ];
 
   return (
@@ -157,7 +143,7 @@ export default function BookPage() {
                 {stepIndex[step] > i ? '✓' : i + 1}
               </div>
               <span className={`text-sm font-medium ${step === s.key ? 'text-slate-800' : 'text-slate-400'}`}>{s.label}</span>
-              {i < 2 && <div className="w-8 h-0.5 bg-slate-200" />}
+              {i < 1 && <div className="w-8 h-0.5 bg-slate-200" />}
             </div>
           ))}
         </div>
@@ -230,22 +216,28 @@ export default function BookPage() {
                 config={{
                   name: `${firstName} ${lastName}`,
                   email: email,
-                  'Attendee Phone Number': phone,
+                  phone: phone,
+                  smsReminderNumber: phone,
+                  attendeePhoneNumber: phone,
                 }}
                 style={{ width: '100%', height: '700px', overflow: 'scroll' }}
               />
             </div>
-          </div>
-        )}
 
-        {/* Step 3 — Confirmed */}
-        {step === 'confirmed' && (
-          <div className="text-center py-16">
-            <div className="text-5xl mb-4">🎉</div>
-            <h1 className="text-3xl font-bold mb-2">You're Booked!</h1>
-            <p className="text-slate-500 mb-2">Check your email for a confirmation with the call details.</p>
-            <p className="text-sm text-slate-400">Redirecting to your dashboard...</p>
-            <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin mx-auto mt-6" />
+            {bookingConfirmed && (
+              <div className="mt-6">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 mb-4 text-center">
+                  <div className="text-emerald-700 font-semibold text-lg">You're Booked!</div>
+                  <div className="text-sm text-emerald-600 mt-1">Check your email for a confirmation with call details.</div>
+                </div>
+                <button
+                  onClick={() => { window.location.href = '/dashboard?booked=true'; }}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-semibold text-lg transition"
+                >
+                  Continue to My Dashboard →
+                </button>
+              </div>
+            )}
           </div>
         )}
 

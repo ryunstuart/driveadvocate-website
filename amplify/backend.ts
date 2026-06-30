@@ -15,6 +15,7 @@ import { getCatalog } from './functions/getCatalog/resource';
 import { getOnboardingToken } from './functions/getOnboardingToken/resource';
 import { createStripeCheckout } from './functions/createStripeCheckout/resource';
 import { signAgreement } from './functions/signAgreement/resource';
+import { createClientAccount } from './functions/createClientAccount/resource';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { CfnOutput } from 'aws-cdk-lib';
@@ -36,6 +37,7 @@ const backend = defineBackend({
   getOnboardingToken,
   createStripeCheckout,
   signAgreement,
+  createClientAccount,
 });
 
 // --- sendClientUpdate permissions ---
@@ -283,6 +285,13 @@ backend.getCatalog.resources.lambda.addToRolePolicy(
 backend.confirmClientSignup.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['cognito-idp:AdminConfirmSignUp', 'cognito-idp:AdminUpdateUserAttributes'],
+    resources: ['arn:aws:cognito-idp:us-east-1:870924848445:userpool/us-east-1_mBhomQZzY'],
+  }),
+);
+
+backend.createClientAccount.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    actions: ['cognito-idp:AdminCreateUser', 'cognito-idp:AdminSetUserPassword'],
     resources: ['arn:aws:cognito-idp:us-east-1:870924848445:userpool/us-east-1_mBhomQZzY'],
   }),
 );
