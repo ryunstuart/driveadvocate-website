@@ -24,10 +24,7 @@ function EnrollSuccessContent() {
         setVerified(true);
       } catch {}
     })();
-
-    const timer = setTimeout(() => router.push('/dashboard'), 5000);
-    return () => clearTimeout(timer);
-  }, [token, router]);
+  }, [token]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -66,10 +63,10 @@ function EnrollSuccessContent() {
             </div>
           </div>
 
-          <button onClick={() => router.push('/dashboard')} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition">
+          <button onClick={() => { window.location.href = '/dashboard'; }} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition">
             Go to My Dashboard
           </button>
-          <p className="text-xs text-slate-400 mt-3">Redirecting automatically...</p>
+          <p className="text-xs text-slate-400 mt-3">You'll receive a confirmation email shortly.</p>
         </div>
       </div>
       <Footer />
