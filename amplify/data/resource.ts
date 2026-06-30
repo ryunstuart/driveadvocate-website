@@ -9,6 +9,8 @@ import { getCallById } from '../functions/getCallById/resource';
 import { updateCall } from '../functions/updateCall/resource';
 import { getCatalog } from '../functions/getCatalog/resource';
 import { getOnboardingToken } from '../functions/getOnboardingToken/resource';
+import { createStripeCheckout } from '../functions/createStripeCheckout/resource';
+import { signAgreement } from '../functions/signAgreement/resource';
 
 const schema = a.schema({
 
@@ -275,6 +277,25 @@ const schema = a.schema({
     }))
     .authorization(allow => [allow.publicApiKey()])
     .handler(a.handler.function(getOnboardingToken)),
+
+  createStripeCheckout: a
+    .mutation()
+    .arguments({
+      token: a.string().required(),
+      dealId: a.string().required(),
+      clientEmail: a.string().required(),
+      clientName: a.string().required(),
+    })
+    .returns(a.customType({ url: a.string(), error: a.string() }))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(a.handler.function(createStripeCheckout)),
+
+  signAgreement: a
+    .mutation()
+    .arguments({ token: a.string().required(), ipAddress: a.string() })
+    .returns(a.customType({ success: a.boolean() }))
+    .authorization(allow => [allow.publicApiKey()])
+    .handler(a.handler.function(signAgreement)),
 
 });
 

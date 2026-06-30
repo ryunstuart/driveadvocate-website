@@ -45,29 +45,26 @@ export default function EnrollPage() {
     if (!agreementChecked) return;
     setLoading(true);
     try {
-      await fetch('/api/enroll', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, action: 'sign_agreement' }),
-      });
+      let ip = 'unknown';
+      try { const ipRes = await fetch('https://api.ipify.org?format=json'); ip = (await ipRes.json()).ip; } catch {}
+      await dataClient.mutations.signAgreement({ token: token as string, ipAddress: ip }, { authMode: 'apiKey' });
       setStep('payment');
-    } catch {}
+    } catch (err) { console.error('signAgreement error:', err); }
     setLoading(false);
   };
 
   const handlePayment = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/stripe', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token, dealId: tokenData.dealId,
-          clientEmail: tokenData.clientEmail, clientName: tokenData.clientName,
-        }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else setLoading(false);
-    } catch { setLoading(false); }
+      const result = await dataClient.mutations.createStripeCheckout({
+        token: token as string,
+        dealId: tokenData.dealId as string,
+        clientEmail: tokenData.clientEmail as string,
+        clientName: tokenData.clientName as string,
+      }, { authMode: 'apiKey' });
+      if (result.data?.url) window.location.href = result.data.url;
+      else { console.error('Checkout error:', result.data?.error); setLoading(false); }
+    } catch (err) { console.error('createStripeCheckout error:', err); setLoading(false); }
   };
 
   const steps = ['Summary', 'Agreement', 'Payment'];
