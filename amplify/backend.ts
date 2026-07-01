@@ -16,7 +16,8 @@ import { getOnboardingToken } from './functions/getOnboardingToken/resource';
 import { createStripeCheckout } from './functions/createStripeCheckout/resource';
 import { signAgreement } from './functions/signAgreement/resource';
 import { createClientAccount } from './functions/createClientAccount/resource';
-import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { getVisorFacets } from './functions/getVisorFacets/resource';
+import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
 import { FunctionUrlAuthType, HttpMethod } from 'aws-cdk-lib/aws-lambda';
 import { CfnOutput } from 'aws-cdk-lib';
 
@@ -38,6 +39,7 @@ const backend = defineBackend({
   createStripeCheckout,
   signAgreement,
   createClientAccount,
+  getVisorFacets,
 });
 
 // --- sendClientUpdate permissions ---
@@ -139,7 +141,10 @@ backend.searchDealInventory.resources.lambda.addToRolePolicy(
 backend.searchDealInventory.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['ssm:GetParameter'],
-    resources: ['arn:aws:ssm:us-east-1:870924848445:parameter/driveadvocate/*'],
+    resources: [
+      'arn:aws:ssm:us-east-1:870924848445:parameter/driveadvocate/*',
+      'arn:aws:ssm:us-east-1:870924848445:parameter/driveadvocate/visor/*',
+    ],
   }),
 );
 
@@ -293,5 +298,13 @@ backend.createClientAccount.resources.lambda.addToRolePolicy(
   new PolicyStatement({
     actions: ['cognito-idp:AdminCreateUser', 'cognito-idp:AdminSetUserPassword'],
     resources: ['arn:aws:cognito-idp:us-east-1:870924848445:userpool/us-east-1_mBhomQZzY'],
+  }),
+);
+
+backend.getVisorFacets.resources.lambda.addToRolePolicy(
+  new PolicyStatement({
+    effect: Effect.ALLOW,
+    actions: ['ssm:GetParameter'],
+    resources: ['arn:aws:ssm:us-east-1:870924848445:parameter/driveadvocate/visor/*'],
   }),
 );

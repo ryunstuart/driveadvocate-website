@@ -413,13 +413,42 @@ function ClientDashboard({ user, onLogout }: { user: any; onLogout: () => void }
           localStorage.removeItem('justBooked');
           localStorage.removeItem('bookedEmail');
         }
-        console.log('Dashboard: no activeDealId, checking PendingCalls for:', clientEmail);
+
+        // Check DynamoDB for any existing deal before falling back to call-scheduled/no-deal
+        if (clientEmail) {
+          try {
+            const { data: deals } = await dataClient.models.Deal.list({
+              filter: { clientId: { eq: clientEmail } },
+            });
+            const activeDeal = (deals || []).find(
+              (d: any) => d.status !== 'Complete' && d.status !== 'Dead'
+            );
+            if (activeDeal) {
+              const cu = JSON.parse(localStorage.getItem('currentUser') || '{}');
+              cu.activeDealId = activeDeal.id;
+              cu.hasActiveDeal = true;
+              localStorage.setItem('currentUser', JSON.stringify(cu));
+
+              await fetchDealData(activeDeal.id);
+              setClientState(activeDeal.status === 'Pending' ? 'pending' : 'active');
+              pollInterval = setInterval(() => fetchDealData(activeDeal.id), 60000);
+
+              try {
+                const { data: clients } = await dataClient.models.Client.list({ filter: { email: { eq: clientEmail } } });
+                if (clients.length > 0) { setClientRecordId(clients[0].id); setEmailNotifications(clients[0].emailNotifications !== false); }
+              } catch {}
+              return;
+            }
+          } catch (err) {
+            console.error('Deal lookup failed:', err);
+          }
+        }
+
+        // No deal found — check for a scheduled call
         if (clientEmail) {
           try {
             const result = await dataClient.queries.getPendingCall({ email: clientEmail });
-            console.log('getPendingCall result:', result);
             if (result.data) {
-              console.log('scheduledAt:', result.data.scheduledAt);
               setPendingCall(result.data);
               setClientState('call-scheduled');
               return;

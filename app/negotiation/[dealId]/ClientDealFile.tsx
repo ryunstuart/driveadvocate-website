@@ -23,25 +23,28 @@ interface Dealership {
 
 interface InventoryListing {
   vin: string;
-  heading: string;
-  price: number;
-  originalPrice: number;
-  msrp: number;
+  stockNumber: string;
+  year: string;
+  make: string;
+  model: string;
+  trim: string;
   miles: number;
+  price: number;
+  msrp: number;
+  discountFromMsrp: number;
   exteriorColor: string;
   interiorColor: string;
-  daysOnLot: number;
-  priceDropAmount: number;
-  marketAvgPrice: number;
-  belowMarketAvg: boolean;
+  baseExteriorColor: string;
+  baseInteriorColor: string;
   dealerName: string;
-  dealerPhone: string;
-  dealerAddress: string;
-  dealerCity: string;
-  dealerState: string;
-  stockNumber: string;
-  listingUrl: string;
-  photoUrl: string;
+  dealerType: string;
+  city: string;
+  state: string;
+  distanceMiles: number;
+  vdpUrl: string;
+  photoUrls: string[];
+  daysOnMarket: number;
+  priceHistory: Array<{ price: number; date: string }>;
   colorComboMatch: number | null;
   colorMatchLabel: string | null;
 }
@@ -160,7 +163,11 @@ export default function ClientDealFile() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAppSyncDeal, setIsAppSyncDeal] = useState(false);
   const [dealInfo, setDealInfo] = useState({ clientName: '', vehicle: '', vehicleDetails: '' });
-  const [vehiclePref, setVehiclePref] = useState<{ make: string; model: string; year: string; zipCode: string; searchRadius: number } | null>(null);
+  const [vehiclePref, setVehiclePref] = useState<{
+    make: string; model: string; year: string; trim: string; condition: string;
+    zipCode: string; searchRadius: number;
+    exteriorColors: string[]; interiorColors: string[]; colorCombos: string[];
+  } | null>(null);
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
   const [inventory, setInventory] = useState<InventoryListing[]>([]);
   const [inventorySearching, setInventorySearching] = useState(false);
@@ -235,8 +242,13 @@ export default function ClientDealFile() {
               setVehiclePref({
                 make: vp.make, model: vp.model,
                 year: vp.year || '2020',
+                trim: vp.trim || '',
+                condition: vp.condition || 'used',
                 zipCode: vp.zipCode,
                 searchRadius: vp.searchRadius || 100,
+                exteriorColors: (vp.exteriorColors || []).filter(Boolean) as string[],
+                interiorColors: (vp.interiorColors || []).filter(Boolean) as string[],
+                colorCombos: (vp.colorCombos || []).filter(Boolean) as string[],
               });
             }
           }
@@ -280,13 +292,7 @@ export default function ClientDealFile() {
           }
           setDealerships(localState?.dealerships || []);
 
-          try {
-            const invRes = await fetch(`/api/inventory?dealId=${dealId}`);
-            if (invRes.ok) {
-              const invData = await invRes.json();
-              setInventory(invData.listings || []);
-            }
-          } catch {}
+          // Inventory loads on-demand via triggerInventorySearch (Visor API)
 
           if (vpResult.data.length > 0) {
             const vp = vpResult.data[0];
@@ -589,20 +595,68 @@ export default function ClientDealFile() {
     if (!vehiclePref || inventorySearching) return;
     setInventorySearching(true);
     try {
-      await dataClient.mutations.searchDealInventory({
-        dealId,
+      const result = await dataClient.queries.searchDealInventory({
         make: vehiclePref.make,
         model: vehiclePref.model,
+        trim: vehiclePref.trim || undefined,
         year: vehiclePref.year,
+        condition: vehiclePref.condition,
         zip: vehiclePref.zipCode,
-        radius: vehiclePref.searchRadius,
-        carType: 'used',
+        radius: String(vehiclePref.searchRadius),
+        exteriorColors: vehiclePref.exteriorColors.length ? vehiclePref.exteriorColors : undefined,
+        interiorColors: vehiclePref.interiorColors.length ? vehiclePref.interiorColors : undefined,
       });
-      const invRes = await fetch(`/api/inventory?dealId=${dealId}`);
-      if (invRes.ok) {
-        const invData = await invRes.json();
-        setInventory(invData.listings || []);
-      }
+
+      const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : (result.data || {});
+      const raw: any[] = parsed.listings || [];
+
+      const listings: InventoryListing[] = raw.map((l: any) => {
+        let colorComboMatch: number | null = null;
+        let colorMatchLabel: string | null = null;
+        if (vehiclePref.colorCombos.length > 0) {
+          const listExt = (l.base_exterior_color || l.exterior_color || '').toLowerCase();
+          const listInt = (l.base_interior_color || l.interior_color || '').toLowerCase();
+          for (let i = 0; i < vehiclePref.colorCombos.length; i++) {
+            const [ext = '', int = ''] = vehiclePref.colorCombos[i].split('/');
+            const extMatch = !ext || listExt.includes(ext.toLowerCase()) || ext.toLowerCase().includes(listExt);
+            const intMatch = !int || listInt.includes(int.toLowerCase()) || int.toLowerCase().includes(listInt);
+            if (extMatch && intMatch) {
+              colorComboMatch = i + 1;
+              colorMatchLabel = vehiclePref.colorCombos[i];
+              break;
+            }
+          }
+        }
+        return {
+          vin: l.vin || '',
+          stockNumber: l.stock_number || '',
+          year: l.year || vehiclePref.year,
+          make: l.make || vehiclePref.make,
+          model: l.model || vehiclePref.model,
+          trim: l.trim || '',
+          miles: l.miles || 0,
+          price: l.price || 0,
+          msrp: l.msrp || 0,
+          discountFromMsrp: l.discount_from_msrp || 0,
+          exteriorColor: l.exterior_color || '',
+          interiorColor: l.interior_color || '',
+          baseExteriorColor: l.base_exterior_color || '',
+          baseInteriorColor: l.base_interior_color || '',
+          dealerName: l.dealer_name || '',
+          dealerType: l.dealer_type || '',
+          city: l.city || '',
+          state: l.state || '',
+          distanceMiles: l.distance_miles || 0,
+          vdpUrl: l.vdp_url || '',
+          photoUrls: l.photo_urls || [],
+          daysOnMarket: l.days_on_market || 0,
+          priceHistory: l.price_history || [],
+          colorComboMatch,
+          colorMatchLabel,
+        };
+      });
+
+      setInventory(listings);
     } catch (err) {
       console.error('Inventory search failed:', err);
     } finally {
@@ -657,7 +711,7 @@ export default function ClientDealFile() {
     const msrp = inventory[0]?.msrp || avgPrice || 0;
     const invoice = msrp * 0.94;
     const avgDays = inventory.length > 0
-      ? Math.round(inventory.reduce((s, i) => s + (i.daysOnLot || 0), 0) / inventory.length)
+      ? Math.round(inventory.reduce((s, i) => s + (i.daysOnMarket || 0), 0) / inventory.length)
       : 45;
     const totalInc = incentives.filter((i: any) => i.canStack).reduce((s: number, i: any) => s + (i.amount || 0), 0);
     if (msrp === 0) return null;
@@ -884,51 +938,66 @@ export default function ClientDealFile() {
                     </button>
                   )}
                 </div>
-                {inventory.some(l => l.colorMatchLabel === 'Color matching pending') && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 mb-4 text-sm text-amber-700">
-                    Color filtering is pending — showing all inventory. Exact color matching activates after vehicle color data is imported.
-                  </div>
-                )}
                 <div className="space-y-4">
-                  {inventory.map(listing => (
-                    <div key={listing.vin} className="border border-slate-200 rounded-2xl p-5 hover:border-emerald-300 transition">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <div className="font-semibold">{listing.dealerName}</div>
-                            {listing.colorComboMatch && <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${listing.colorComboMatch === 1 ? 'bg-emerald-100 text-emerald-700' : listing.colorComboMatch === 2 ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>✓ Combo {listing.colorComboMatch} — {listing.colorMatchLabel}</span>}
-                            {listing.daysOnLot >= 30 && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">30+ days</span>}
-                            {listing.priceDropAmount > 0 && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">Price dropped ${listing.priceDropAmount.toLocaleString()}</span>}
-                            {listing.belowMarketAvg && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium">Below market avg</span>}
-                          </div>
-                          <div className="text-sm text-slate-600">{listing.heading}</div>
-                          <div className="text-xs text-slate-500 mt-1">
-                            {listing.dealerCity}, {listing.dealerState} · {listing.miles.toLocaleString()} mi · {listing.exteriorColor} / {listing.interiorColor}
-                          </div>
-                          <div className="text-xs text-slate-400 mt-1">
-                            VIN: {listing.vin}{listing.stockNumber ? ` · Stock: ${listing.stockNumber}` : ''}
-                          </div>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="text-xl font-bold text-slate-800">${listing.price.toLocaleString()}</div>
-                          {listing.originalPrice > listing.price && (
-                            <div className="text-xs text-slate-400 line-through">${listing.originalPrice.toLocaleString()}</div>
-                          )}
-                          {listing.marketAvgPrice > 0 && (
-                            <div className={`text-xs mt-0.5 font-medium ${listing.price < listing.marketAvgPrice ? 'text-emerald-600' : 'text-slate-400'}`}>
-                              Avg: ${listing.marketAvgPrice.toLocaleString()}
+                  {inventory.map(listing => {
+                    const priceDrop = listing.priceHistory.length >= 2
+                      ? listing.priceHistory[0].price - listing.price
+                      : 0;
+                    const discPct = listing.discountFromMsrp > 0 ? Math.round(listing.discountFromMsrp * 10) / 10 : 0;
+                    return (
+                      <div key={listing.vin} className="border border-slate-200 rounded-2xl overflow-hidden hover:border-emerald-300 transition">
+                        <div className="flex gap-0">
+                          {/* Photo */}
+                          {listing.photoUrls[0] && (
+                            <div className="shrink-0 w-36 h-28 bg-slate-100 overflow-hidden">
+                              <img src={listing.photoUrls[0]} alt={`${listing.year} ${listing.make} ${listing.model}`} className="w-full h-full object-cover" />
                             </div>
                           )}
-                          <div className="text-xs text-slate-400 mt-1">{listing.daysOnLot}d on lot</div>
+                          <div className="flex-1 p-4 min-w-0">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                                  <span className="font-semibold text-sm">{listing.dealerName}</span>
+                                  {listing.dealerType === 'franchise' && <span className="text-xs bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Franchise</span>}
+                                  {listing.colorComboMatch && (
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${listing.colorComboMatch === 1 ? 'bg-emerald-100 text-emerald-700' : listing.colorComboMatch === 2 ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                                      ✓ Combo {listing.colorComboMatch}
+                                    </span>
+                                  )}
+                                  {listing.daysOnMarket >= 30 && <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-medium">{listing.daysOnMarket}d on lot</span>}
+                                  {priceDrop > 500 && <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">↓ ${priceDrop.toLocaleString()}</span>}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                  {listing.city}, {listing.state}
+                                  {listing.distanceMiles > 0 && <span className="text-slate-400"> · {Math.round(listing.distanceMiles)}mi away</span>}
+                                  {listing.miles > 0 && <span> · {listing.miles.toLocaleString()} mi</span>}
+                                </div>
+                                <div className="text-xs text-slate-400 mt-0.5">
+                                  {[listing.baseExteriorColor || listing.exteriorColor, listing.baseInteriorColor || listing.interiorColor].filter(Boolean).join(' / ')}
+                                  {listing.trim && <span className="ml-1">· {listing.trim}</span>}
+                                </div>
+                              </div>
+                              <div className="text-right shrink-0">
+                                <div className="text-lg font-bold text-slate-800">${listing.price.toLocaleString()}</div>
+                                {listing.msrp > 0 && listing.msrp > listing.price && (
+                                  <div className="text-xs text-slate-400 line-through">${listing.msrp.toLocaleString()} MSRP</div>
+                                )}
+                                {discPct > 0 && (
+                                  <div className="text-xs text-emerald-600 font-medium">{discPct}% below MSRP</div>
+                                )}
+                                <div className="text-xs text-slate-400">{listing.daysOnMarket}d on market</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 px-4 py-2.5 border-t border-slate-100 bg-slate-50">
+                          <button onClick={() => { setOfferDealership(listing.dealerName); setOfferPrice(`$${listing.price.toLocaleString()}`); setShowOfferModal(true); }} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs rounded-xl hover:border-emerald-300 hover:text-emerald-600 transition">+ Offer</button>
+                          <button onClick={() => openCallModal({ id: Date.now(), name: listing.dealerName, distance: Math.round(listing.distanceMiles || 0), phone: '', status: 'Not Called' })} className="px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-xl hover:bg-emerald-700 transition">Log Call</button>
+                          {listing.vdpUrl && <a href={listing.vdpUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 border border-slate-200 text-slate-500 text-xs rounded-xl hover:border-slate-300 transition ml-auto">View Listing →</a>}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
-                        <button onClick={() => { setOfferDealership(listing.dealerName); setOfferPrice(`$${listing.price.toLocaleString()}`); setShowOfferModal(true); }} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs rounded-xl hover:border-emerald-300 hover:text-emerald-600 transition">+ Offer</button>
-                        <button onClick={() => openCallModal({ id: Date.now(), name: listing.dealerName, distance: 0, phone: listing.dealerPhone, status: 'Not Called' })} className="px-3 py-1.5 bg-emerald-600 text-white text-xs rounded-xl hover:bg-emerald-700 transition">Log Call</button>
-                        {listing.listingUrl && <a href={listing.listingUrl} target="_blank" rel="noopener noreferrer" className="px-3 py-1.5 border border-slate-200 text-slate-500 text-xs rounded-xl hover:border-slate-300 transition ml-auto">View Listing</a>}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 </>
               ) : (

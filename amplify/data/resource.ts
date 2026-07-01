@@ -12,6 +12,7 @@ import { getOnboardingToken } from '../functions/getOnboardingToken/resource';
 import { createStripeCheckout } from '../functions/createStripeCheckout/resource';
 import { signAgreement } from '../functions/signAgreement/resource';
 import { createClientAccount } from '../functions/createClientAccount/resource';
+import { getVisorFacets } from '../functions/getVisorFacets/resource';
 
 const schema = a.schema({
 
@@ -166,25 +167,22 @@ const schema = a.schema({
     .handler(a.handler.function(sendClientUpdate)),
 
   searchDealInventory: a
-    .mutation()
+    .query()
     .arguments({
-      dealId: a.string().required(),
-      make: a.string().required(),
-      model: a.string().required(),
+      make: a.string(),
+      model: a.string(),
+      trim: a.string(),
       year: a.string(),
-      zip: a.string().required(),
-      radius: a.integer(),
-      carType: a.string(),
+      condition: a.string(),
+      zip: a.string(),
+      radius: a.string(),
+      exteriorColors: a.string().array(),
+      interiorColors: a.string().array(),
+      minPrice: a.integer(),
+      maxPrice: a.integer(),
     })
-    .returns(a.customType({
-      success: a.boolean(),
-      resultCount: a.integer(),
-      error: a.string(),
-    }))
-    .authorization(allow => [
-      allow.groups(['advocates', 'admins']),
-      allow.authenticated(),
-    ])
+    .returns(a.string())
+    .authorization(allow => [allow.groups(['advocates', 'admins'])])
     .handler(a.handler.function(searchDealInventory)),
 
   sendEnrollmentLink: a
@@ -310,6 +308,20 @@ const schema = a.schema({
     .returns(a.customType({ success: a.boolean(), error: a.string() }))
     .authorization(allow => [allow.publicApiKey()])
     .handler(a.handler.function(createClientAccount)),
+
+  getVisorFacets: a
+    .query()
+    .arguments({
+      facet: a.string().required(),
+      make: a.string(),
+      model: a.string(),
+      trim: a.string(),
+      year: a.string(),
+      condition: a.string(),
+    })
+    .returns(a.string())
+    .authorization(allow => [allow.groups(['advocates', 'admins'])])
+    .handler(a.handler.function(getVisorFacets)),
 
 });
 

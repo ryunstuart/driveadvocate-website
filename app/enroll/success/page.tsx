@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getCurrentUser } from 'aws-amplify/auth';
 import Footer from '@/app/components/Footer';
 
 export const dynamic = 'force-dynamic';
@@ -63,7 +64,15 @@ function EnrollSuccessContent() {
             </div>
           </div>
 
-          <button onClick={() => { window.location.href = '/dashboard'; }} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition">
+          <button onClick={async () => {
+            try {
+              await getCurrentUser();
+              window.location.href = '/dashboard';
+            } catch {
+              localStorage.setItem('postPaymentRedirect', 'true');
+              window.location.href = '/login?redirect=/dashboard&postpayment=true';
+            }
+          }} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-semibold hover:bg-emerald-700 transition">
             Go to My Dashboard
           </button>
           <p className="text-xs text-slate-400 mt-3">You'll receive a confirmation email shortly.</p>

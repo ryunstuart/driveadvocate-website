@@ -28,6 +28,9 @@ export default function Login() {
     }
     return '';
   });
+  const postPayment = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('postpayment') === 'true'
+    : false;
   const [password, setPassword] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -185,6 +188,11 @@ export default function Login() {
           )}
         </div>
 
+        {postPayment && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-2xl mb-5">
+            Payment confirmed! Log in to view your dashboard.
+          </div>
+        )}
         {success && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-3 rounded-2xl mb-5">{success}</div>}
 
         {view === 'login' && (
