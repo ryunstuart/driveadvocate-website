@@ -180,6 +180,8 @@ const schema = a.schema({
       interiorColors: a.string().array(),
       minPrice: a.integer(),
       maxPrice: a.integer(),
+      fuelType: a.string(),
+      drivetrain: a.string(),
     })
     .returns(a.string())
     .authorization(allow => [allow.groups(['advocates', 'admins'])])

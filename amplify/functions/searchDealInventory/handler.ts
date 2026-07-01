@@ -12,7 +12,8 @@ async function getVisorKey(): Promise<string> {
 
 export const handler = async (event: any) => {
   const { make, model, trim, year, condition, zip, radius,
-          exteriorColors, interiorColors, minPrice, maxPrice } = event.arguments || {};
+          exteriorColors, interiorColors, minPrice, maxPrice,
+          fuelType, drivetrain } = event.arguments || {};
 
   const apiKey = await getVisorKey();
 
@@ -44,6 +45,8 @@ export const handler = async (event: any) => {
   if (interiorColors?.length) params.append('base_interior_color', interiorColors.join(','));
   if (minPrice) params.append('min_price', String(minPrice));
   if (maxPrice) params.append('max_price', String(maxPrice));
+  if (fuelType) params.append('fuel_type', fuelType);
+  if (drivetrain) params.append('drivetrain', drivetrain);
 
   console.log('Visor request:', `https://api.visor.vin/v1/listings?${params.toString()}`);
 
