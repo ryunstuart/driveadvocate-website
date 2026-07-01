@@ -278,9 +278,7 @@ export default function BookPage() {
                 config={{
                   name: `${firstName} ${lastName}`,
                   email: email,
-                  phone: toE164(phone),
-                  smsReminderNumber: toE164(phone),
-                  attendeePhoneNumber: toE164(phone),
+                  'Your Phone Number': toE164(phone),
                 }}
                 style={{ width: '100%', height: '700px', overflow: 'scroll' }}
               />
