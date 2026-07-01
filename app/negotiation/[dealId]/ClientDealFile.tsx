@@ -951,7 +951,7 @@ export default function ClientDealFile() {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-semibold">Inventory <span className="text-slate-400 font-normal text-base">({inventory.length} listings)</span></h2>
                   {vehiclePref && (
-                    <button onClick={triggerInventorySearch} disabled={inventorySearching} className="px-4 py-2 text-sm border border-slate-200 rounded-2xl hover:border-emerald-300 hover:text-emerald-600 disabled:text-slate-400 transition">
+                    <button onClick={() => triggerInventorySearch()} disabled={inventorySearching} className="px-4 py-2 text-sm border border-slate-200 rounded-2xl hover:border-emerald-300 hover:text-emerald-600 disabled:text-slate-400 transition">
                       {inventorySearching ? 'Refreshing...' : 'Refresh'}
                     </button>
                   )}
@@ -1029,7 +1029,7 @@ export default function ClientDealFile() {
                   </p>
                   {vehiclePref && (
                     <button
-                      onClick={triggerInventorySearch}
+                      onClick={() => triggerInventorySearch()}
                       disabled={inventorySearching}
                       className="px-6 py-2.5 bg-emerald-600 text-white rounded-2xl text-sm font-medium hover:bg-emerald-700 disabled:bg-slate-300 transition"
                     >
@@ -1314,7 +1314,7 @@ export default function ClientDealFile() {
               <h3 className="font-semibold mb-4">Actions</h3>
               <div className="space-y-3">
                 {vehiclePref && (
-                  <button onClick={triggerInventorySearch} disabled={inventorySearching} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
+                  <button onClick={() => triggerInventorySearch()} disabled={inventorySearching} className="w-full text-left px-4 py-3 rounded-2xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-sm font-medium">
                     {inventorySearching ? '🔄 Searching...' : '🔍 Refresh Inventory'}
                   </button>
                 )}
