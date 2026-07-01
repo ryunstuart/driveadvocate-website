@@ -37,10 +37,7 @@ export const handler = async (event: any) => {
     params.append('postal_code', zip);
     params.append('radius', String(radius || 100));
   }
-  if (condition) {
-    const inventoryType = condition === 'new' ? 'new' : condition === 'used' ? 'used' : 'certified';
-    params.append('inventory_type', inventoryType);
-  }
+  params.append('inventory_type', 'new');
   if (exteriorColors?.length) params.append('base_exterior_color', exteriorColors.join(','));
   if (interiorColors?.length) params.append('base_interior_color', interiorColors.join(','));
   if (minPrice) params.append('min_price', String(minPrice));
