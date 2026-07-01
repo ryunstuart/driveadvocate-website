@@ -12,6 +12,13 @@ const CORS_HEADERS = {
   'Content-Type': 'application/json',
 };
 
+function toE164(raw: string): string {
+  if (!raw) return '';
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('+')) return `+${trimmed.slice(1).replace(/\D/g, '')}`;
+  return `+1${trimmed.replace(/\D/g, '')}`;
+}
+
 export const handler = async (event: any) => {
   console.log('Received event:', JSON.stringify(event));
 
@@ -42,7 +49,7 @@ export const handler = async (event: any) => {
             callId: payload.uid,
             clientName: attendee.name,
             clientEmail: attendee.email,
-            clientPhone: attendee.phoneNumber || payload.responses?.phone?.value || '',
+            clientPhone: toE164(attendee.phoneNumber || payload.responses?.phone?.value || ''),
             clientZip: payload.responses?.zip?.value || '',
             clientAddress: '',
             clientCity: '',

@@ -11,6 +11,12 @@ import { Eye, EyeOff } from 'lucide-react';
 
 const CALCOM_LINK = 'driveadvocate/driveadvocate-discovery-call';
 
+function toE164(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('+')) return `+${trimmed.slice(1).replace(/\D/g, '')}`;
+  return `+1${trimmed.replace(/\D/g, '')}`;
+}
+
 
 type Step = 'profile' | 'calendar';
 
@@ -55,15 +61,13 @@ export default function BookPage() {
     e.preventDefault();
     setError('');
 
-    if (password !== confirmPassword) { setError('Passwords do not match'); return; }
-    if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
-
     setLoading(true);
     try {
       const normalizedEmail = email.trim().toLowerCase();
+      const e164Phone = toE164(phone);
 
       const created = await dataClient.mutations.createClientAccount(
-        { email: normalizedEmail, password, firstName, lastName, phone },
+        { email: normalizedEmail, password, firstName, lastName, phone: e164Phone },
         { authMode: 'apiKey' },
       );
       if (!created.data?.success) {
@@ -76,7 +80,7 @@ export default function BookPage() {
       try {
         await dataClient.models.Client.create({
           email: normalizedEmail,
-          firstName, lastName, phone, zipCode: zip,
+          firstName, lastName, phone: e164Phone, zipCode: zip,
           profileCompleted: true, onboardingCompleted: false, emailNotifications: true,
         });
       } catch {}
@@ -85,7 +89,7 @@ export default function BookPage() {
         email: email.trim().toLowerCase(), firstName, isAdvocate: false, hasActiveDeal: false,
       }));
       localStorage.setItem('profileData', JSON.stringify({
-        firstName, lastName, email: email.trim().toLowerCase(), phone, zipCode: zip, city, state,
+        firstName, lastName, email: email.trim().toLowerCase(), phone: e164Phone, zipCode: zip, city, state,
         searchRadius: '100', budget: '', timeline: '', notes: '',
       }));
 
@@ -120,6 +124,15 @@ export default function BookPage() {
       localStorage.setItem('bookedEmail', email);
     }
   }, [step, email]);
+
+  const passwordChecks = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+  const allChecksPassed = Object.values(passwordChecks).every(Boolean);
 
   const stepIndex = { profile: 0, calendar: 1 };
   const progressSteps = [
@@ -162,7 +175,28 @@ export default function BookPage() {
                   <div><label className="block text-sm font-medium text-slate-700 mb-1">Last Name *</label><input type="text" value={lastName} onChange={e => setLastName(e.target.value)} required className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
                 </div>
                 <div><label className="block text-sm font-medium text-slate-700 mb-1">Email Address *</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} required className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
-                <div><label className="block text-sm font-medium text-slate-700 mb-1">Phone Number *</label><input type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="(636) 555-0123" className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number *</label>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => {
+                      const digits = e.target.value.replace(/\D/g, '');
+                      let formatted = digits;
+                      if (digits.length >= 6) {
+                        formatted = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+                      } else if (digits.length >= 3) {
+                        formatted = `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+                      }
+                      setPhone(formatted);
+                    }}
+                    required
+                    placeholder="(636) 517-8550"
+                    maxLength={14}
+                    className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition"
+                  />
+                  <p className="text-xs text-slate-400 mt-1">US phone number — digits only, we'll format it</p>
+                </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div><label className="block text-sm font-medium text-slate-700 mb-1">ZIP *</label><input type="text" value={zip} onChange={e => setZip(e.target.value)} required maxLength={5} className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
                   <div><label className="block text-sm font-medium text-slate-700 mb-1">City</label><input type="text" value={city} onChange={e => setCity(e.target.value)} className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
@@ -174,20 +208,48 @@ export default function BookPage() {
               <div className="bg-white rounded-3xl shadow p-8 space-y-5">
                 <h2 className="font-semibold text-slate-800">Create Your Password</h2>
                 <p className="text-sm text-slate-500">Access your DriveAdvocate dashboard to track your deal.</p>
-                <div className="relative">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Password *</label>
-                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required minLength={8} placeholder="Minimum 8 characters" className="w-full p-3 pr-12 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-9 text-slate-400 hover:text-slate-600">
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
+                <div>
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Password *</label>
+                    <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="Minimum 8 characters" className="w-full p-3 pr-12 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-9 text-slate-400 hover:text-slate-600">
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  {password.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      {[
+                        { key: 'length', label: 'At least 8 characters' },
+                        { key: 'uppercase', label: 'One uppercase letter' },
+                        { key: 'lowercase', label: 'One lowercase letter' },
+                        { key: 'number', label: 'One number' },
+                        { key: 'special', label: 'One special character (!@#$...)' },
+                      ].map(({ key, label }) => (
+                        <div key={key} className="flex items-center gap-2 text-xs">
+                          <span className={passwordChecks[key as keyof typeof passwordChecks] ? 'text-emerald-500' : 'text-red-400'}>
+                            {passwordChecks[key as keyof typeof passwordChecks] ? '✓' : '✗'}
+                          </span>
+                          <span className={passwordChecks[key as keyof typeof passwordChecks] ? 'text-emerald-600' : 'text-red-400'}>{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div><label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password *</label><input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" /></div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password *</label>
+                  <input type={showPassword ? 'text' : 'password'} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required className="w-full p-3 border border-slate-300 rounded-2xl focus:outline-none focus:border-emerald-500 transition" />
+                  {confirmPassword.length > 0 && (
+                    <p className={`text-xs mt-1 ${password === confirmPassword ? 'text-emerald-600' : 'text-red-400'}`}>
+                      {password === confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {error && <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-2xl">{error}</div>}
 
-              <button type="submit" disabled={loading} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white py-4 rounded-2xl font-semibold text-lg transition">
-                {loading ? 'Creating your account...' : 'Continue to Schedule →'}
+              <button type="submit" disabled={loading || !allChecksPassed || password !== confirmPassword} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-4 rounded-2xl font-semibold text-lg transition">
+                {loading ? 'Setting up your account...' : 'Continue to Schedule →'}
               </button>
 
               <p className="text-center text-sm text-slate-500">Already have an account? <a href="/login" className="text-emerald-600 hover:underline">Log in</a></p>
@@ -216,9 +278,9 @@ export default function BookPage() {
                 config={{
                   name: `${firstName} ${lastName}`,
                   email: email,
-                  phone: phone,
-                  smsReminderNumber: phone,
-                  attendeePhoneNumber: phone,
+                  phone: toE164(phone),
+                  smsReminderNumber: toE164(phone),
+                  attendeePhoneNumber: toE164(phone),
                 }}
                 style={{ width: '100%', height: '700px', overflow: 'scroll' }}
               />
