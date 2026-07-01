@@ -312,10 +312,9 @@ export default function VehicleWizard() {
     setSearching(true);
     try {
       const result = await dataClient.queries.searchDealInventory({
-        dealId: `preview-${Date.now()}`,
         make, model, year, zip: zipCode,
         radius: searchRadius,
-        carType: condition,
+        condition,
       });
       setSearchResult({ count: result.data?.resultCount || 0, searched: true });
     } catch (err) {
