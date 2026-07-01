@@ -37,6 +37,8 @@ const schema = a.schema({
     model: a.string(),
     trim: a.string(),
     condition: a.string(),
+    fuelType: a.string(),
+    drivetrain: a.string(),
     colorCombos: a.string().array(),
     exteriorColors: a.string().array(),
     interiorColors: a.string().array(),

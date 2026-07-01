@@ -35,8 +35,9 @@ export interface VehicleResult {
 
 interface Props {
   clientZip?: string;
+  initialValues?: Partial<VehicleResult>;
   onComplete: (prefs: VehicleResult) => void;
-  onClose: () => void;
+  onCancel: () => void;
 }
 
 function ColorSwatch({ color, selected, onClick }: { color: string; selected: boolean; onClick: () => void }) {
@@ -127,7 +128,7 @@ function AddOptionButton({ onClick, label }: { onClick: () => void; label: strin
   );
 }
 
-export default function VehicleWizardModal({ clientZip, onComplete, onClose }: Props) {
+export default function VehicleWizardModal({ clientZip, initialValues, onComplete, onCancel }: Props) {
   const [year, setYear] = useState('');
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
@@ -154,6 +155,7 @@ export default function VehicleWizardModal({ clientZip, onComplete, onClose }: P
 
   const facetCache = useRef<Record<string, string[]>>({});
   const catalogCache = useRef<any[] | null>(null);
+  const skipCascade = useRef(false);
 
   const applyValues = useCallback((facet: string, values: string[]) => {
     if (facet === 'make') setMakes(values);
@@ -188,6 +190,19 @@ export default function VehicleWizardModal({ clientZip, onComplete, onClose }: P
     }
   }, [applyValues]);
 
+  // Pre-populate from initialValues (e.g. when editing from deal file)
+  useEffect(() => {
+    if (!initialValues) return;
+    skipCascade.current = true;
+    if (initialValues.make) setMake(initialValues.make);
+    if (initialValues.model) setModel(initialValues.model);
+    if (initialValues.year) setYear(initialValues.year);
+    if (initialValues.trim) setTrim(initialValues.trim);
+    if (initialValues.fuelType) setFuelType(initialValues.fuelType);
+    if (initialValues.drivetrain) setDrivetrain(initialValues.drivetrain);
+    requestAnimationFrame(() => { skipCascade.current = false; });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load makes on mount (new inventory only)
   useEffect(() => {
     loadFacet('make', { condition: 'New' });
@@ -195,20 +210,24 @@ export default function VehicleWizardModal({ clientZip, onComplete, onClose }: P
 
   // Cascade: make changed → reload models, clear downstream
   useEffect(() => {
-    setModel(''); setTrim(''); setTrimInfo(null);
-    setFuelType(''); setDrivetrain('');
-    setModels([]); setTrims([]); setFuelTypes([]); setDrivetrains([]);
-    setOemExteriorColors([]); setOemInteriorColors([]);
-    setColorCombos([{ exterior: '', interior: '' }, { exterior: '', interior: '' },
-                    { exterior: '', interior: '' }, { exterior: '', interior: '' }]);
+    if (!skipCascade.current) {
+      setModel(''); setTrim(''); setTrimInfo(null);
+      setFuelType(''); setDrivetrain('');
+      setModels([]); setTrims([]); setFuelTypes([]); setDrivetrains([]);
+      setOemExteriorColors([]); setOemInteriorColors([]);
+      setColorCombos([{ exterior: '', interior: '' }, { exterior: '', interior: '' },
+                      { exterior: '', interior: '' }, { exterior: '', interior: '' }]);
+    }
     if (make) loadFacet('model', { make, condition: 'New' });
   }, [make]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cascade: model changed → reload trims, clear downstream
   useEffect(() => {
-    setTrim(''); setTrimInfo(null); setTrims([]);
-    setFuelType(''); setDrivetrain(''); setFuelTypes([]); setDrivetrains([]);
-    setOemExteriorColors([]); setOemInteriorColors([]);
+    if (!skipCascade.current) {
+      setTrim(''); setTrimInfo(null); setTrims([]);
+      setFuelType(''); setDrivetrain(''); setFuelTypes([]); setDrivetrains([]);
+      setOemExteriorColors([]); setOemInteriorColors([]);
+    }
     if (make && model) loadFacet('trim', { make, model, condition: 'New' });
   }, [model]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -231,7 +250,7 @@ export default function VehicleWizardModal({ clientZip, onComplete, onClose }: P
           const result = await dataClient.queries.getCatalog({});
           catalogCache.current = parseAppSyncResult(result.data, []);
         }
-        const vehicle = catalogCache.current.find(
+        const vehicle = catalogCache.current?.find(
           (v: any) => v.make?.toLowerCase() === make.toLowerCase()
                    && v.model?.toLowerCase() === model.toLowerCase()
         );
@@ -399,7 +418,7 @@ export default function VehicleWizardModal({ clientZip, onComplete, onClose }: P
         </div>
 
         <div className="flex gap-3 mt-6">
-          <button onClick={onClose}
+          <button onClick={onCancel}
             className="flex-1 py-3 border border-slate-300 rounded-2xl hover:bg-slate-50 text-sm font-medium">
             Cancel
           </button>

@@ -8,6 +8,7 @@ import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
 import { calculatePricing, generateNegotiationScript, getBestCallTime } from '@/app/lib/negotiation';
 import FinancialWizard, { FinancialProfileData } from '@/app/components/FinancialWizard';
+import VehicleWizardModal from '@/app/components/VehicleWizardModal';
 
 interface Dealership {
   id: number;
@@ -165,9 +166,13 @@ export default function ClientDealFile() {
   const [dealInfo, setDealInfo] = useState({ clientName: '', vehicle: '', vehicleDetails: '' });
   const [vehiclePref, setVehiclePref] = useState<{
     make: string; model: string; year: string; trim: string; condition: string;
+    fuelType: string; drivetrain: string;
     zipCode: string; searchRadius: number;
     exteriorColors: string[]; interiorColors: string[]; colorCombos: string[];
   } | null>(null);
+  const vpIdRef = useRef<string>('');
+  const [showVehicleWizard, setShowVehicleWizard] = useState(false);
+  const [autoRunInventorySearch, setAutoRunInventorySearch] = useState(false);
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
   const [inventory, setInventory] = useState<InventoryListing[]>([]);
   const [inventorySearching, setInventorySearching] = useState(false);
@@ -238,13 +243,16 @@ export default function ClientDealFile() {
             const ext = (vp.exteriorColors || []).join(', ');
             const int = (vp.interiorColors || []).join(', ');
             vehicleDetails = [ext && `${ext} Ext`, int && `${int} Int`].filter(Boolean).join(' • ');
-            if (vp.make && vp.model && vp.zipCode) {
+            if (vp.make && vp.model) {
+              vpIdRef.current = vp.id;
               setVehiclePref({
                 make: vp.make, model: vp.model,
-                year: vp.year || '2020',
+                year: vp.year || '',
                 trim: vp.trim || '',
-                condition: vp.condition || 'used',
-                zipCode: vp.zipCode,
+                condition: vp.condition || 'New',
+                fuelType: vp.fuelType || '',
+                drivetrain: vp.drivetrain || '',
+                zipCode: vp.zipCode || '',
                 searchRadius: vp.searchRadius || 100,
                 exteriorColors: (vp.exteriorColors || []).filter(Boolean) as string[],
                 interiorColors: (vp.interiorColors || []).filter(Boolean) as string[],
@@ -591,20 +599,23 @@ export default function ClientDealFile() {
     }
   };
 
-  const triggerInventorySearch = async () => {
-    if (!vehiclePref || inventorySearching) return;
+  const triggerInventorySearch = async (prefs?: typeof vehiclePref) => {
+    const vp = prefs ?? vehiclePref;
+    if (!vp || inventorySearching) return;
     setInventorySearching(true);
     try {
       const result = await dataClient.queries.searchDealInventory({
-        make: vehiclePref.make,
-        model: vehiclePref.model,
-        trim: vehiclePref.trim || undefined,
-        year: vehiclePref.year,
-        condition: vehiclePref.condition,
-        zip: vehiclePref.zipCode,
-        radius: String(vehiclePref.searchRadius),
-        exteriorColors: vehiclePref.exteriorColors.length ? vehiclePref.exteriorColors : undefined,
-        interiorColors: vehiclePref.interiorColors.length ? vehiclePref.interiorColors : undefined,
+        make: vp.make,
+        model: vp.model,
+        trim: vp.trim || undefined,
+        year: vp.year || undefined,
+        condition: vp.condition,
+        zip: vp.zipCode || undefined,
+        radius: String(vp.searchRadius),
+        exteriorColors: vp.exteriorColors.length ? vp.exteriorColors : undefined,
+        interiorColors: vp.interiorColors.length ? vp.interiorColors : undefined,
+        fuelType: vp.fuelType || undefined,
+        drivetrain: vp.drivetrain || undefined,
       });
 
       const parsed = typeof result.data === 'string' ? JSON.parse(result.data) : (result.data || {});
@@ -613,16 +624,16 @@ export default function ClientDealFile() {
       const listings: InventoryListing[] = raw.map((l: any) => {
         let colorComboMatch: number | null = null;
         let colorMatchLabel: string | null = null;
-        if (vehiclePref.colorCombos.length > 0) {
+        if (vp.colorCombos.length > 0) {
           const listExt = (l.base_exterior_color || l.exterior_color || '').toLowerCase();
           const listInt = (l.base_interior_color || l.interior_color || '').toLowerCase();
-          for (let i = 0; i < vehiclePref.colorCombos.length; i++) {
-            const [ext = '', int = ''] = vehiclePref.colorCombos[i].split('/');
+          for (let i = 0; i < vp.colorCombos.length; i++) {
+            const [ext = '', int = ''] = vp.colorCombos[i].split('/');
             const extMatch = !ext || listExt.includes(ext.toLowerCase()) || ext.toLowerCase().includes(listExt);
             const intMatch = !int || listInt.includes(int.toLowerCase()) || int.toLowerCase().includes(listInt);
             if (extMatch && intMatch) {
               colorComboMatch = i + 1;
-              colorMatchLabel = vehiclePref.colorCombos[i];
+              colorMatchLabel = vp.colorCombos[i];
               break;
             }
           }
@@ -630,9 +641,9 @@ export default function ClientDealFile() {
         return {
           vin: l.vin || '',
           stockNumber: l.stock_number || '',
-          year: l.year || vehiclePref.year,
-          make: l.make || vehiclePref.make,
-          model: l.model || vehiclePref.model,
+          year: l.year || vp.year,
+          make: l.make || vp.make,
+          model: l.model || vp.model,
           trim: l.trim || '',
           miles: l.miles || 0,
           price: l.price || 0,
@@ -663,6 +674,13 @@ export default function ClientDealFile() {
       setInventorySearching(false);
     }
   };
+
+  useEffect(() => {
+    if (autoRunInventorySearch && vehiclePref) {
+      triggerInventorySearch(vehiclePref);
+      setAutoRunInventorySearch(false);
+    }
+  }, [autoRunInventorySearch, vehiclePref]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const copyDealSummary = async () => {
     const lines = [
@@ -1245,6 +1263,31 @@ export default function ClientDealFile() {
               </div>
             </div>
 
+            {vehiclePref && (
+              <div className="bg-white rounded-3xl shadow p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold">Vehicle Preferences</h3>
+                  <button
+                    onClick={() => setShowVehicleWizard(true)}
+                    className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
+                  >
+                    ✏️ Edit
+                  </button>
+                </div>
+                <div className="space-y-1.5 text-sm text-slate-600">
+                  <div><span className="font-medium text-slate-700">Vehicle:</span> {[vehiclePref.year, vehiclePref.make, vehiclePref.model, vehiclePref.trim].filter(Boolean).join(' ')}</div>
+                  {vehiclePref.fuelType && <div><span className="font-medium text-slate-700">Fuel:</span> {vehiclePref.fuelType}</div>}
+                  {vehiclePref.drivetrain && <div><span className="font-medium text-slate-700">Drivetrain:</span> {vehiclePref.drivetrain}</div>}
+                  {vehiclePref.exteriorColors.length > 0 && (
+                    <div><span className="font-medium text-slate-700">Exterior:</span> {vehiclePref.exteriorColors.join(', ')}</div>
+                  )}
+                  {vehiclePref.interiorColors.length > 0 && (
+                    <div><span className="font-medium text-slate-700">Interior:</span> {vehiclePref.interiorColors.join(', ')}</div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {dealerships.length > 0 && (
               <div className="bg-white rounded-3xl shadow p-8">
                 <h3 className="font-semibold mb-4">Outreach Progress</h3>
@@ -1483,6 +1526,54 @@ export default function ClientDealFile() {
             }
           }}
           onClose={() => setShowFinancialWizard(false)}
+        />
+      )}
+      {showVehicleWizard && (
+        <VehicleWizardModal
+          clientZip={vehiclePref?.zipCode || ''}
+          initialValues={vehiclePref ? {
+            make: vehiclePref.make,
+            model: vehiclePref.model,
+            year: vehiclePref.year,
+            trim: vehiclePref.trim,
+            fuelType: vehiclePref.fuelType,
+            drivetrain: vehiclePref.drivetrain,
+            exteriorColors: vehiclePref.exteriorColors,
+            interiorColors: vehiclePref.interiorColors,
+            condition: vehiclePref.condition,
+          } : undefined}
+          onComplete={async (newPrefs) => {
+            try {
+              if (vpIdRef.current) {
+                await dataClient.models.VehiclePreference.update({
+                  id: vpIdRef.current,
+                  make: newPrefs.make,
+                  model: newPrefs.model,
+                  year: newPrefs.year,
+                  trim: newPrefs.trim,
+                  fuelType: newPrefs.fuelType,
+                  drivetrain: newPrefs.drivetrain,
+                  exteriorColors: newPrefs.exteriorColors,
+                  interiorColors: newPrefs.interiorColors,
+                  colorCombos: newPrefs.colorCombos.map(c => `${c.exterior}/${c.interior}`).filter(Boolean),
+                  condition: newPrefs.condition,
+                });
+              }
+            } catch (err) {
+              console.error('Failed to update vehicle preference:', err);
+            }
+            setVehiclePref(prev => prev ? {
+              ...prev,
+              make: newPrefs.make, model: newPrefs.model, year: newPrefs.year,
+              trim: newPrefs.trim, fuelType: newPrefs.fuelType, drivetrain: newPrefs.drivetrain,
+              exteriorColors: newPrefs.exteriorColors, interiorColors: newPrefs.interiorColors,
+              colorCombos: newPrefs.colorCombos.map(c => `${c.exterior}/${c.interior}`).filter(Boolean),
+              condition: newPrefs.condition,
+            } : null);
+            setShowVehicleWizard(false);
+            setAutoRunInventorySearch(true);
+          }}
+          onCancel={() => setShowVehicleWizard(false)}
         />
       )}
       <Footer />
