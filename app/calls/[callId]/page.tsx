@@ -271,7 +271,7 @@ export default function PreCallPrep() {
         <VehicleWizardModal
           clientZip={call.clientZip}
           onComplete={(prefs) => { setVehiclePrefs(prefs); setVehicleComplete(true); setShowVehicleWizard(false); }}
-          onClose={() => setShowVehicleWizard(false)}
+          onCancel={() => setShowVehicleWizard(false)}
         />
       )}
 
