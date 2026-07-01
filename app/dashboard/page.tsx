@@ -118,8 +118,11 @@ function AdvocateDashboard({ user, onLogout }: { user: any; onLogout: () => void
   useEffect(() => {
     (async () => {
       try {
-        const dateStr = viewDate.toISOString().split('T')[0];
-        const result = await dataClient.queries.getCallsByDate({ date: dateStr });
+        const start = new Date(viewDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(viewDate);
+        end.setHours(23, 59, 59, 999);
+        const result = await dataClient.queries.getCallsByDate({ startISO: start.toISOString(), endISO: end.toISOString() });
         setTodaysCalls(parseAppSyncResult(result.data, []));
       } catch { setTodaysCalls([]); }
     })();

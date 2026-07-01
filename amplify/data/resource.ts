@@ -227,7 +227,7 @@ const schema = a.schema({
 
   getCallsByDate: a
     .query()
-    .arguments({ date: a.string().required() })
+    .arguments({ startISO: a.string().required(), endISO: a.string().required() })
     .returns(a.string())
     .authorization(allow => [allow.groups(['advocates', 'admins'])])
     .handler(a.handler.function(getCallsByDate)),
