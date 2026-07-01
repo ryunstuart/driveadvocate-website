@@ -311,7 +311,7 @@ export default function VehicleWizard() {
     if (!make || !model || !zipCode) return;
     setSearching(true);
     try {
-      const result = await dataClient.mutations.searchDealInventory({
+      const result = await dataClient.queries.searchDealInventory({
         dealId: `preview-${Date.now()}`,
         make, model, year, zip: zipCode,
         radius: parseInt(searchRadius, 10),

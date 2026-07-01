@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { dataClient } from '@/app/lib/amplify-data';
 import { parseAppSyncResult } from '@/app/lib/parse-result';
 
@@ -118,8 +118,24 @@ export default function VehicleWizardModal({ clientZip, onComplete, onClose }: P
   const [oemExteriorColors, setOemExteriorColors] = useState<string[]>([]);
   const [oemInteriorColors, setOemInteriorColors] = useState<string[]>([]);
   const [loadingFacets, setLoadingFacets] = useState<Set<string>>(new Set());
+  const facetCache = useRef<Record<string, string[]>>({});
+
+  const applyValues = useCallback((facet: string, values: string[]) => {
+    if (facet === 'make') setMakes(values);
+    else if (facet === 'model') setModels(values);
+    else if (facet === 'trim') setTrims(values);
+    else if (facet === 'exterior_color') setOemExteriorColors(values);
+    else if (facet === 'interior_color') setOemInteriorColors(values);
+  }, []);
 
   const loadFacet = useCallback(async (facet: string, filters: Record<string, string | undefined>) => {
+    const cacheKey = `${facet}-${JSON.stringify(filters)}`;
+
+    if (facetCache.current[cacheKey]) {
+      applyValues(facet, facetCache.current[cacheKey]);
+      return;
+    }
+
     setLoadingFacets(prev => new Set(prev).add(facet));
     try {
       const args: any = { facet };
@@ -128,17 +144,14 @@ export default function VehicleWizardModal({ clientZip, onComplete, onClose }: P
       }
       const result = await dataClient.queries.getVisorFacets(args);
       const values: string[] = parseAppSyncResult(result.data, []);
-      if (facet === 'make') setMakes(values);
-      else if (facet === 'model') setModels(values);
-      else if (facet === 'trim') setTrims(values);
-      else if (facet === 'exterior_color') setOemExteriorColors(values);
-      else if (facet === 'interior_color') setOemInteriorColors(values);
+      facetCache.current[cacheKey] = values;
+      applyValues(facet, values);
     } catch (e) {
       console.error('getVisorFacets error:', facet, e);
     } finally {
       setLoadingFacets(prev => { const next = new Set(prev); next.delete(facet); return next; });
     }
-  }, []);
+  }, [applyValues]);
 
   // Load all makes on mount
   useEffect(() => {
