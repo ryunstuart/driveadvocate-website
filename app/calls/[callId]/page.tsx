@@ -35,10 +35,12 @@ export default function PreCallPrep() {
       try {
         const result = await dataClient.queries.getCallById({ callId: callId as string });
         const data = result.data || null;
-        if (data && !data.clientZip && data.clientEmail) {
+        if (data && data.clientEmail && (!data.clientPhone || !data.clientZip)) {
           try {
             const clientResult = await dataClient.models.Client.list({ filter: { email: { eq: data.clientEmail } } });
-            if (clientResult.data?.[0]?.zipCode) data.clientZip = clientResult.data[0].zipCode;
+            const client = clientResult.data?.[0];
+            if (client?.phone && !data.clientPhone) data.clientPhone = client.phone;
+            if (client?.zipCode && !data.clientZip) data.clientZip = client.zipCode;
           } catch {}
         }
         setCall(data);
@@ -86,6 +88,9 @@ export default function PreCallPrep() {
           condition: vehiclePrefs.condition,
           zipCode: call.clientZip || '',
           searchRadius: 100,
+          colorCombos: vehiclePrefs.colorCombos?.map((c: any) => `${c.exterior}/${c.interior}`).filter(Boolean) ?? [],
+          exteriorColors: vehiclePrefs.exteriorColors ?? [],
+          interiorColors: vehiclePrefs.interiorColors ?? [],
         });
       }
 

@@ -36,6 +36,10 @@ export const handler = async (event: any) => {
 
   const { triggerEvent, payload } = body;
   console.log('Cal.com webhook:', triggerEvent, payload?.uid);
+  console.log('Full payload:', JSON.stringify(payload));
+  console.log('Responses:', JSON.stringify(payload?.responses));
+  console.log('Custom inputs:', JSON.stringify(payload?.customInputs));
+  console.log('Attendees:', JSON.stringify(payload?.attendees));
 
   try {
     switch (triggerEvent) {
@@ -43,13 +47,21 @@ export const handler = async (event: any) => {
         const attendee = payload.attendees?.[0];
         if (!attendee) break;
 
+        const rawPhone =
+          payload.responses?.['Your Phone Number']?.value ||
+          payload.customInputs?.['Your Phone Number'] ||
+          attendee.phoneNumber ||
+          payload.responses?.phone?.value ||
+          '';
+        console.log('Resolved phone:', rawPhone);
+
         await db.send(new PutCommand({
           TableName: 'PendingCalls',
           Item: {
             callId: payload.uid,
             clientName: attendee.name,
             clientEmail: attendee.email,
-            clientPhone: toE164(attendee.phoneNumber || payload.responses?.phone?.value || ''),
+            clientPhone: toE164(rawPhone),
             clientZip: payload.responses?.zip?.value || '',
             clientAddress: '',
             clientCity: '',
