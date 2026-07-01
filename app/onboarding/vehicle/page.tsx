@@ -6,6 +6,7 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { dataClient } from '@/app/lib/amplify-data';
+import { parseAppSyncResult } from '@/app/lib/parse-result';
 
 // ─── Vehicle Type Definitions ────────────────────────────────────────────────
 
@@ -316,7 +317,8 @@ export default function VehicleWizard() {
         radius: searchRadius,
         condition,
       });
-      setSearchResult({ count: result.data?.resultCount || 0, searched: true });
+      const parsed = parseAppSyncResult(result.data, { listings: [], total: 0 });
+      setSearchResult({ count: parsed.total || 0, searched: true });
     } catch (err) {
       console.error('Inventory search failed:', err);
       setSearchResult({ count: 0, searched: true });
